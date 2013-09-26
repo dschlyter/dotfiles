@@ -1,0 +1,7 @@
+.svn
+.hg
+.DS_Store
+*.o
+a.out
+CMakeFiles
+cmake*

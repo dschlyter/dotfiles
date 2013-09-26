@@ -1,0 +1,4 @@
+: enable incremental and highlight search, with case ignore
+set is
+set hls
+set ignorecase
