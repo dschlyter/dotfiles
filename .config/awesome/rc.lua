@@ -197,10 +197,7 @@ root.buttons(awful.util.table.join(
 
 -- {{{ Key bindings
 globalkeys = awful.util.table.join(
-    awful.key({ modkey,           }, "Left",   awful.tag.viewprev       ),
-    awful.key({ modkey,           }, "Right",  awful.tag.viewnext       ),
-    awful.key({ modkey,           }, "Escape", awful.tag.history.restore),
-
+    -- Moving focus between clients, screens and tags
     awful.key({ modkey,           }, "j",
         function ()
             awful.client.focus.byidx( 1)
@@ -211,42 +208,39 @@ globalkeys = awful.util.table.join(
             awful.client.focus.byidx(-1)
             if client.focus then client.focus:raise() end
         end),
-    awful.key({ modkey,           }, "w", function () mymainmenu:show({keygrabber=true}) end),
+    awful.key({ modkey,           }, "h", function () awful.screen.focus_relative( 1) end),
+    awful.key({ modkey,           }, "l", function () awful.screen.focus_relative(-1) end),
+    awful.key({ modkey,           }, "p", awful.tag.viewprev        ),
+    awful.key({ modkey,           }, "n", awful.tag.viewnext        ),
+    awful.key({ modkey,           }, "u", awful.client.urgent.jumpto),
+
+    -- Moving clients around
+    awful.key({ modkey, "Control" }, "j", function () awful.client.swap.byidx(  1)    end),
+    awful.key({ modkey, "Control" }, "k", function () awful.client.swap.byidx( -1)    end),
 
     -- Layout manipulation
-    awful.key({ modkey, "Shift"   }, "j", function () awful.client.swap.byidx(  1)    end),
-    awful.key({ modkey, "Shift"   }, "k", function () awful.client.swap.byidx( -1)    end),
-    awful.key({ modkey, "Control" }, "j", function () awful.screen.focus_relative( 1) end),
-    awful.key({ modkey, "Control" }, "k", function () awful.screen.focus_relative(-1) end),
-    awful.key({ modkey,           }, "u", awful.client.urgent.jumpto),
-    awful.key({ modkey,           }, "Tab",
-        function ()
-            awful.client.focus.history.previous()
-            if client.focus then
-                client.focus:raise()
-            end
-        end),
-
-    -- Standard program
-    awful.key({ modkey,           }, "Return", function () awful.util.spawn(terminal) end),
-    awful.key({ modkey, "Control" }, "r", awesome.restart),
-    awful.key({ modkey, "Shift"   }, "q", awesome.quit),
-
-    awful.key({ modkey,           }, "l",     function () awful.tag.incmwfact( 0.05)    end),
-    awful.key({ modkey,           }, "h",     function () awful.tag.incmwfact(-0.05)    end),
-    awful.key({ modkey, "Shift"   }, "h",     function () awful.tag.incnmaster( 1)      end),
-    awful.key({ modkey, "Shift"   }, "l",     function () awful.tag.incnmaster(-1)      end),
-    awful.key({ modkey, "Control" }, "h",     function () awful.tag.incncol( 1)         end),
-    awful.key({ modkey, "Control" }, "l",     function () awful.tag.incncol(-1)         end),
+    awful.key({ modkey, "Shift"   }, "l",     function () awful.tag.incmwfact( 0.05)    end),
+    awful.key({ modkey, "Shift"   }, "h",     function () awful.tag.incmwfact(-0.05)    end),
+    awful.key({ modkey,           }, "i",     function () awful.tag.incnmaster( 1)      end),
+    awful.key({ modkey,           }, "o",     function () awful.tag.incnmaster(-1)      end),
+    awful.key({ modkey, "Control" }, "i",     function () awful.tag.incncol( 1)         end),
+    awful.key({ modkey, "Control" }, "o",     function () awful.tag.incncol(-1)         end),
     awful.key({ modkey,           }, "space", function () awful.layout.inc(layouts,  1) end),
     awful.key({ modkey, "Shift"   }, "space", function () awful.layout.inc(layouts, -1) end),
 
-    awful.key({ modkey, "Control" }, "n", awful.client.restore),
+    -- Restore minimized clients
+    awful.key({ modkey,           }, "v", awful.client.restore),
+    
+    -- Standard program
+    awful.key({ modkey,           }, "Return", function () awful.util.spawn(terminal) end),
+    awful.key({ modkey, "Shift"   }, "r", awesome.restart),
+    awful.key({ modkey, "Shift"   }, "q", awesome.quit),
+    awful.key({ modkey, "Shift"   }, "s",     function () awful.util.spawn( "/home/david/bin/suspend" ) end),
 
     -- Prompt
-    awful.key({ modkey },            "r",     function () mypromptbox[mouse.screen]:run() end),
-
-    awful.key({ modkey }, "x",
+    awful.key({ modkey            }, "d",     function () awful.util.spawn( "dmenu_run" ) end),
+    awful.key({ modkey            }, "r",     function () mypromptbox[mouse.screen]:run() end),
+    awful.key({ modkey, "Control" }, "r",
               function ()
                   awful.prompt.run({ prompt = "Run Lua code: " },
                   mypromptbox[mouse.screen].widget,
@@ -256,20 +250,42 @@ globalkeys = awful.util.table.join(
 )
 
 clientkeys = awful.util.table.join(
+    -- Moving clients around
+    awful.key({ modkey, "Control"   }, "h",      function(c) awful.client.movetoscreen(c,c.screen+1) end ),
+    awful.key({ modkey, "Control"   }, "l",      function(c) awful.client.movetoscreen(c,c.screen-1) end ),
+    -- http://awesome.naquadah.org/wiki/Move_Window_to_Workspace_Left/Right (should be updated for 3.5)
+    awful.key({ modkey, "Control"   }, "p",
+    function (c)
+            local curidx = awful.tag.getidx(c:tags()[1])
+            if curidx == 1 then
+                c:tags({screen[mouse.screen]:tags()[9]})
+            else
+                c:tags({screen[mouse.screen]:tags()[curidx - 1]})
+            end
+        end),
+    awful.key({ modkey, "Control"   }, "n",
+    function (c)
+            local curidx = awful.tag.getidx(c:tags()[1])
+            if curidx == 9 then
+                c:tags({screen[mouse.screen]:tags()[1]})
+            else
+                c:tags({screen[mouse.screen]:tags()[curidx + 1]})
+            end
+        end),
+    awful.key({ modkey,           }, "m",      function (c) c:swap(awful.client.getmaster()) end),
+    
+    -- Client manipulation
     awful.key({ modkey,           }, "f",      function (c) c.fullscreen = not c.fullscreen  end),
-    awful.key({ modkey, "Shift"   }, "c",      function (c) c:kill()                         end),
+    awful.key({ modkey,           }, "c",      function (c) c:kill()                         end),
     awful.key({ modkey, "Control" }, "space",  awful.client.floating.toggle                     ),
-    awful.key({ modkey, "Control" }, "Return", function (c) c:swap(awful.client.getmaster()) end),
-    awful.key({ modkey,           }, "o",      awful.client.movetoscreen                        ),
-    awful.key({ modkey, "Shift"   }, "r",      function (c) c:redraw()                       end),
     awful.key({ modkey,           }, "t",      function (c) c.ontop = not c.ontop            end),
-    awful.key({ modkey,           }, "n",
+    awful.key({ modkey,           }, "b",
         function (c)
             -- The client currently has the input focus, so it cannot be
             -- minimized, since minimized clients can't have the focus.
             c.minimized = true
         end),
-    awful.key({ modkey,           }, "m",
+    awful.key({ modkey,           }, "g",
         function (c)
             c.maximized_horizontal = not c.maximized_horizontal
             c.maximized_vertical   = not c.maximized_vertical
