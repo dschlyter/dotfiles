@@ -139,12 +139,16 @@ mytasklist.buttons = awful.util.table.join(
                                                   c:raise()
                                               end
                                           end),
-                     awful.button({ }, 3, function ()
+                     awful.button({ }, 2, function (c)
+                                              c:kill()
+                                          end),
+                     awful.button({ }, 3, function (c)
                                               if instance then
                                                   instance:hide()
                                                   instance = nil
                                               else
-                                                  instance = awful.menu.clients({ width=250 })
+                                                  -- instance = awful.menu.clients({ width=250 })
+                                                  c.minimized = true
                                               end
                                           end),
                      awful.button({ }, 4, function ()
