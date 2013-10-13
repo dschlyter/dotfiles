@@ -52,6 +52,10 @@ function marks {
 
 # Aliases
 
+## Global aliases
+alias -g G='| grep'
+alias -g L='| less'
+
 ## Flags on by default
 alias locate='locate -i'
 alias ls='ls -h --color=auto'
