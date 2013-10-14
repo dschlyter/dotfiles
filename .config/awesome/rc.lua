@@ -354,8 +354,21 @@ end
 
 clientbuttons = awful.util.table.join(
     awful.button({ }, 1, function (c) client.focus = c; c:raise() end),
-    awful.button({ modkey }, 1, awful.mouse.client.move),
-    awful.button({ modkey }, 3, awful.mouse.client.resize))
+    awful.button({ modkey }, 1, function (c) 
+        if c.maximized_horizontal or c.maximized_vertical then
+            c.maximized_horizontal = false
+            c.maximized_vertical = false
+        end
+        awful.mouse.client.move(c, nil)
+    end),
+    awful.button({ modkey }, 3, function(c) 
+        if c.maximized_horizontal or c.maximized_vertical then
+            c.maximized_horizontal = false
+            c.maximized_vertical = false
+            awful.client.floating.set(c, true)
+        end
+        awful.mouse.client.resize(c)
+    end))
 
 -- Set keys
 root.keys(globalkeys)
