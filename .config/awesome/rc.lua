@@ -282,20 +282,22 @@ clientkeys = awful.util.table.join(
     awful.key({ modkey, "Control"   }, "p",
     function (c)
             local curidx = awful.tag.getidx(c:tags()[1])
-            if curidx == 1 then
-                c:tags({screen[mouse.screen]:tags()[9]})
-            else
-                c:tags({screen[mouse.screen]:tags()[curidx - 1]})
+            tag = screen[mouse.screen]:tags()[9]
+            if not (curidx == 1) then
+                tag = screen[mouse.screen]:tags()[curidx - 1]
             end
+            c:tags({tag})
+            awful.tag.viewonly(tag)
         end),
     awful.key({ modkey, "Control"   }, "n",
     function (c)
             local curidx = awful.tag.getidx(c:tags()[1])
-            if curidx == 9 then
-                c:tags({screen[mouse.screen]:tags()[1]})
-            else
-                c:tags({screen[mouse.screen]:tags()[curidx + 1]})
+            tag = screen[mouse.screen]:tags()[1]
+            if not (curidx == 9) then
+                tag = screen[mouse.screen]:tags()[curidx + 1]
             end
+            c:tags({tag})
+            awful.tag.viewonly(tag)
         end),
     awful.key({ modkey,           }, "m",      function (c) c:swap(awful.client.getmaster()) end),
     
