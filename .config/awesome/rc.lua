@@ -119,8 +119,15 @@ mytaglist.buttons = awful.util.table.join(
                     )
 
 toggleMaximized = function (c)
-    c.maximized_horizontal = not c.maximized_horizontal
-    c.maximized_vertical   = not c.maximized_vertical
+    float = awful.client.floating.get(c)
+
+    if float then
+        -- clients are sometimes reported as floating when they are not
+        -- hack around: delete the floating info
+        awful.client.floating.delete(c)
+    end
+    c.maximized_horizontal = not float
+    c.maximized_vertical   = not float
 end
 
 mytasklist = {}
@@ -303,7 +310,7 @@ clientkeys = awful.util.table.join(
             -- minimized, since minimized clients can't have the focus.
             c.minimized = true
         end),
-    awful.key({ modkey,           }, "g",      toggleMaximized                                  ) 
+    awful.key({ modkey,           }, "g",      toggleMaximized) 
 )
 
 -- Compute the maximum number of digit we need, limited to 9
