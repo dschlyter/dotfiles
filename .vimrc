@@ -191,6 +191,9 @@ cmap w!! w !sudo tee % >/dev/null
 "" plain old boring settings
 ""
 
+" encryption should be strong 
+set cm=blowfish
+
 " In many terminal emulators the mouse works just fine, thus enable it.
 if has('mouse')
   set mouse=a
