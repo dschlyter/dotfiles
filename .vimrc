@@ -1,89 +1,96 @@
 " use Vim settings, rather than Vi settings
 set nocompatible
 
+" key for custom commands, to prevent overwrite of standard commands
+let mapleader = "ö"
+
 ""
 "" plugins
 ""
 
-" use vundle for plugins
-filetype off " required for vundle on older vim versions
-set rtp+=~/.vim/bundle/vundle/
-call vundle#rc()
-Bundle 'gmarik/vundle'
+" some basic security
+" do not run plugins when using sudo / sudoedit
+if $USER != 'root' && $SUDO_USER == ""
 
-" plugins and their settings
+    " use vundle for plugins
+    filetype off " required for vundle on older vim versions
+    set rtp+=~/.vim/bundle/vundle/
+    call vundle#rc()
+    Bundle 'gmarik/vundle'
 
-" experimental fork of 'Lokaltag/vim-easymotion', 
-" enables fast movement commands
-Bundle 'supasorn/vim-easymotion'
-map <SPACE> <leader><leader>s
+    " experimental fork of 'Lokaltag/vim-easymotion', 
+    " enables fast movement commands
+    Bundle 'supasorn/vim-easymotion'
+    map <SPACE> <leader><leader>s
 
-" fuzzy search and open files quickly
-" open with <C-p>
-Bundle 'kien/ctrlp.vim'
+    " fuzzy search and open files quickly
+    " open with <C-p>
+    Bundle 'kien/ctrlp.vim'
 
-" git / github commands, diff, blame, etc
-Bundle 'tpope/vim-fugitive'
+    " git / github commands, diff, blame, etc
+    Bundle 'tpope/vim-fugitive'
 
-" visualize undo tree, and revert to previous states
-Bundle 'sjl/gundo.vim'
+    " visualize undo tree, and revert to previous states
+    Bundle 'sjl/gundo.vim'
 
-" paste previous yanks easily
-Bundle 'maxbrunsfeld/vim-yankstack'
+    " paste previous yanks easily
+    Bundle 'maxbrunsfeld/vim-yankstack'
 
-" syntax error highlights and descriptions
-Bundle 'scrooloose/syntastic'
-let g:syntastic_check_on_open=1
-let g:syntastic_enable_signs=1
+    " syntax error highlights and descriptions
+    Bundle 'scrooloose/syntastic'
+    let g:syntastic_check_on_open=1
+    let g:syntastic_enable_signs=1
 
-" autocomplete engine
-Bundle 'Valloric/YouCompleteMe'
-let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
-let g:ycm_extra_conf_globlist = ['~/code/dotfiles/*','~/Dropbox/code/dotfiles/*']
+    " autocomplete engine
+    Bundle 'Valloric/YouCompleteMe'
+    let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
+    let g:ycm_extra_conf_globlist = ['~/code/dotfiles/*','~/Dropbox/code/dotfiles/*']
 
-" golang autocomplete
-Bundle 'Blackrush/vim-gocode'
-" au BufRead,BufNewFile *.go setlocal filetype=go (not needed?)
+    " golang autocomplete
+    Bundle 'Blackrush/vim-gocode'
+    " au BufRead,BufNewFile *.go setlocal filetype=go (not needed?)
 
-" snippets-engine
-Bundle "MarcWeber/vim-addon-mw-utils"
-Bundle "tomtom/tlib_vim"
-Bundle "garbas/vim-snipmate"
-Bundle "honza/vim-snippets"
-" rebind keys to not clash with YCM autocomplete
-imap <C-X> <Plug>snipMateNextOrTrigger
-smap <C-X> <Plug>snipMateNextOrTrigger
+    " snippets-engine
+    Bundle "MarcWeber/vim-addon-mw-utils"
+    Bundle "tomtom/tlib_vim"
+    Bundle "garbas/vim-snipmate"
+    Bundle "honza/vim-snippets"
+    " rebind keys to not clash with YCM autocomplete
+    imap <C-X> <Plug>snipMateNextOrTrigger
+    smap <C-X> <Plug>snipMateNextOrTrigger
 
-" filetree visualization and selection
-Bundle 'scrooloose/nerdtree'
-noremap <C-n> :NERDTreeToggle<cr>
+    " filetree visualization and selection
+    Bundle 'scrooloose/nerdtree'
+    noremap <C-n> :NERDTreeToggle<cr>
 
-" search code with ack from vim
-Bundle 'mileszs/ack.vim'
-cmap ack Ack
+    " search code with ack from vim
+    Bundle 'mileszs/ack.vim'
+    cmap ack Ack
 
-" fancier status line, with git integration etc
-Bundle 'bling/vim-airline'
-set laststatus=2 " always show statusline
-let g:airline_detect_whitespace=0 " no warning for trailing whitespace
-let g:airline_powerline_fonts = 1
+    " fancier status line, with git integration etc
+    Bundle 'bling/vim-airline'
+    set laststatus=2 " always show statusline
+    let g:airline_detect_whitespace=0 " no warning for trailing whitespace
+    let g:airline_powerline_fonts = 1
 
-" color code parenthesis to show matching
-Bundle 'kien/rainbow_parentheses.vim'
-au VimEnter * RainbowParenthesesToggleAll
-au Syntax * RainbowParenthesesLoadRound
-au Syntax * RainbowParenthesesLoadSquare
-au Syntax * RainbowParenthesesLoadBraces
+    " color code parenthesis to show matching
+    Bundle 'kien/rainbow_parentheses.vim'
+    au VimEnter * RainbowParenthesesToggleAll
+    au Syntax * RainbowParenthesesLoadRound
+    au Syntax * RainbowParenthesesLoadSquare
+    au Syntax * RainbowParenthesesLoadBraces
 
-" comment and uncomment code
-" use with <leader>cc and <leader>cu
-Bundle 'scrooloose/nerdcommenter'
+    " comment and uncomment code
+    " use with <leader>cc and <leader>cu
+    Bundle 'scrooloose/nerdcommenter'
 
-" write html with magic, use <C-e> to apply magic
-Bundle 'tristen/vim-sparkup'
+    " write html with magic, use <C-e> to apply magic
+    Bundle 'tristen/vim-sparkup'
 
-" close html tags quickly with <C-->
-Bundle 'vim-scripts/closetag.vim'
+    " close html tags quickly with <C-->
+    Bundle 'vim-scripts/closetag.vim'
+
+endif
 
 " reenable filetype after plugin init
 filetype plugin indent on
@@ -91,9 +98,6 @@ filetype plugin indent on
 ""
 "" leader customizations
 ""
-
-" key for custom commands, to prevent overwrite of standard commands
-let mapleader = "ö"
 
 " plugin leader commands
 nnoremap <leader>u :GundoToggle<cr>
