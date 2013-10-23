@@ -226,8 +226,8 @@ globalkeys = awful.util.table.join(
             awful.client.focus.byidx(-1)
             if client.focus then client.focus:raise() end
         end),
-    awful.key({ modkey,           }, "h", function () awful.screen.focus_relative( 1) end),
-    awful.key({ modkey,           }, "l", function () awful.screen.focus_relative(-1) end),
+    awful.key({ modkey,           }, "h", function () awful.screen.focus_relative(-1) end),
+    awful.key({ modkey,           }, "l", function () awful.screen.focus_relative( 1) end),
     awful.key({ modkey,           }, "p", awful.tag.viewprev        ),
     awful.key({ modkey,           }, "n", awful.tag.viewnext        ),
     awful.key({ modkey,           }, "u", awful.client.urgent.jumpto),
@@ -276,8 +276,8 @@ globalkeys = awful.util.table.join(
 
 clientkeys = awful.util.table.join(
     -- Moving clients around
-    awful.key({ modkey, "Control"   }, "h",      function(c) awful.client.movetoscreen(c,c.screen+1) end ),
-    awful.key({ modkey, "Control"   }, "l",      function(c) awful.client.movetoscreen(c,c.screen-1) end ),
+    awful.key({ modkey, "Control"   }, "h",      function(c) awful.client.movetoscreen(c,c.screen-1) end ),
+    awful.key({ modkey, "Control"   }, "l",      function(c) awful.client.movetoscreen(c,c.screen+1) end ),
     -- http://awesome.naquadah.org/wiki/Move_Window_to_Workspace_Left/Right (should be updated for 3.5)
     awful.key({ modkey, "Control"   }, "p",
     function (c)
