@@ -106,13 +106,11 @@ nmap <leader>P <Plug>yankstack_substitute_newer_paste
 
 noremap <leader>n :noh<cr>
 noremap <leader>o :only<cr>
-noremap <leader><tab> :tabnew<cr>
+noremap <leader>t :tabnew<cr>
 noremap <leader>j :bn<cr>
 noremap <leader>k :bp<cr>
 
 set tabpagemax=20
-noremap <leader>h :tabprevious<cr>
-noremap <leader>l :tabnext<cr>
 
 ""
 "" possibly breaking customizations
@@ -131,15 +129,15 @@ noremap <down> <nop>
 noremap <left> <nop>
 noremap <right> <nop>
 
-" faster moving between splits
-noremap <C-h> <C-w>h
-noremap <C-j> <C-w>j
-noremap <C-k> <C-w>k
-noremap <C-l> <C-w>l
-inoremap <C-h> <C-o><C-w>h
-inoremap <C-j> <C-o><C-w>j
-inoremap <C-k> <C-o><C-w>k
-inoremap <C-l> <C-o><C-w>l
+" faster moving between splits and tabs
+noremap <C-h> :tabprevious<cr>
+noremap <C-j> <C-w>w
+noremap <C-k> <C-w>r
+noremap <C-l> :tabnext<cr>
+inoremap <C-h> <C-o>:tabprevious<cr>
+inoremap <C-j> <C-o><C-w>w
+inoremap <C-k> <C-o><C-w>r
+inoremap <C-l> <C-o>:tabnext<cr>
 
 " use proper regexps
 nnoremap / /\v
