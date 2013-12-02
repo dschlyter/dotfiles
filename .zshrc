@@ -27,7 +27,7 @@ RPROMPT="   %{$fg[$(host_color)]%}[%n@%m]%{$reset_color%}"
 # Variables
 
 export GOPATH="$HOME/code/go"
-export PATH="$GOPATH/bin:$HOME/bin:/opt/sudo:$PATH"
+export PATH="$HOME/opt/sbt/bin:$GOPATH/bin:$HOME/bin:/opt/sudo:$PATH"
 export EDITOR="vim"
 export VISUAL="vim"
 
