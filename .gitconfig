@@ -39,7 +39,7 @@
     cm = commit
     br = branch
     co = checkout
-    cp = !git add -p && git commit
+    pc = !git add -p && git commit
     # nice compact log format
 	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --all
     # purge branch on local and remote
