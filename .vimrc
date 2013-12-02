@@ -153,8 +153,13 @@ inoremap <C-v> <ESC>"+]p`]a
 " Make shift-tab work in reverse of tab in insert mode
 inoremap <S-Tab> <C-o><<
 
-" prevent getting trapped in ex mode by accident
-nnoremap Q <nop>
+" remap some useless or dangerous defaults
+" use Q to run the macro on q
+noremap Q @q
+" use K to delete without writing to register
+nnoremap K "_d
+nnoremap KK "_dd
+vnoremap K "_d
 
 ""
 "" cute hacks
