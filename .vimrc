@@ -40,6 +40,7 @@ if $USER != 'root' && $SUDO_USER == ""
     Bundle 'scrooloose/syntastic'
     let g:syntastic_check_on_open=1
     let g:syntastic_enable_signs=1
+    let g:syntastic_always_populate_loc_list = 1
 
     " autocomplete engine
     Bundle 'Valloric/YouCompleteMe'
@@ -123,11 +124,13 @@ set tabpagemax=20
 noremap j gj
 noremap k gk
 
-" no cheating (but works in insert mode)
-noremap <up> <nop>
-noremap <down> <nop>
-noremap <left> <nop>
-noremap <right> <nop>
+" rebind arrow keys - no cheating in normal mode
+" navigate between Ack-grep findinigs
+noremap <up> :cp<CR>
+noremap <down> :cn<CR>
+" navigate between syntastic errors
+noremap <left> :lprevious<CR>
+noremap <right> :lnext<CR>
 
 " faster moving between splits and tabs
 noremap <C-h> :tabprevious<cr>
