@@ -74,6 +74,9 @@ if $USER != 'root' && $SUDO_USER == ""
     let g:airline_detect_whitespace=0 " no warning for trailing whitespace
     let g:airline_powerline_fonts = 1
 
+    " show + - in the gutter for uncommited git change
+    Bundle "airblade/vim-gitgutter"
+
     " color code parenthesis to show matching
     Bundle 'kien/rainbow_parentheses.vim'
     au VimEnter * RainbowParenthesesToggleAll

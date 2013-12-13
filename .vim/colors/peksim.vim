@@ -43,6 +43,9 @@ hi PmenuSbar        ctermfg=black       ctermbg=white
 " Message displayed in lower left, such as --INSERT--
 hi ModeMsg          ctermfg=red         ctermbg=NONE        cterm=BOLD
 
+" For sign column
+highlight SignColumn ctermbg=NONE
+highlight SignColumn guibg=NONE
 
 "
 " Syntax colors, modified from peksa.vim and lr_black.vim
