@@ -386,15 +386,13 @@ awful.rules.rules = {
                      keys = clientkeys,
                      buttons = clientbuttons,
                      size_hints_honor = false } },
-    { rule = { class = "MPlayer" },
+    -- Pro tip: Find window classes using "xprop"
+    { rule_any = { class = { "MPlayer" }},
       properties = { floating = true } },
-    { rule = { class = "pinentry" },
-      properties = { floating = true } },
-    { rule = { class = "gimp" },
-      properties = { floating = true } },
-    -- Set Firefox to always map on tags number 2 of screen 1.
-    -- { rule = { class = "Firefox" },
-    --   properties = { tag = tags[1][2] } },
+    { rule_any = { class = { "Vlc", "Totem", "gimp" }, name =  {"Scala IDE" }},
+      properties = { floating = true, maximized_vertical = true, maximized_horizontal = true } },
+    { rule_any = { class = { "Google-chrome" }},
+      properties = { floating = true, maximized_vertical = true, maximized_horizontal = true, tag = tags[2][1] } },
 }
 -- }}}
 
