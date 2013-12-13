@@ -66,7 +66,7 @@ if $USER != 'root' && $SUDO_USER == ""
 
     " search code with ack from vim
     Bundle 'mileszs/ack.vim'
-    cmap ack Ack
+    noremap <C-g> :Ack 
 
     " fancier status line, with git integration etc
     Bundle 'bling/vim-airline'
