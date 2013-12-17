@@ -271,7 +271,13 @@ globalkeys = awful.util.table.join(
     awful.key({ modkey, "Shift"   }, "s",     function () awful.util.spawn( "/home/david/bin/suspend" ) end),
 
     -- Prompt
-    awful.key({ modkey            }, "d",     function () awful.util.spawn( "dmenu_run" ) end),
+    -- Dmenu prompt using the awesome theme - from: http://awesome.naquadah.org/wiki/Using_dmenu
+    awful.key({ modkey            }, "d",     function () 
+        awful.util.spawn("dmenu_run -i -p 'Run command:' -nb '" .. 
+        beautiful.bg_normal .. "' -nf '" .. beautiful.fg_normal .. 
+        "' -sb '" .. beautiful.bg_focus .. 
+        "' -sf '" .. beautiful.fg_focus .. "'") 
+    end),
     awful.key({ modkey            }, "r",     function () mypromptbox[mouse.screen]:run() end),
     awful.key({ modkey, "Control" }, "r",
               function ()
