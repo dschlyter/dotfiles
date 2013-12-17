@@ -120,6 +120,12 @@ set tabpagemax=20
 "" possibly breaking customizations
 ""
 
+" move to start and end of line using bash-style shortcuts
+noremap <C-a> ^
+noremap <C-e> $
+inoremap <C-a> <C-o>^
+inoremap <C-e> <C-o>$
+
 " leave insert with jj
 " inoremap jj <ESC>
 
