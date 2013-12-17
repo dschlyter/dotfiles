@@ -87,9 +87,16 @@ myawesomemenu = {
    { "quit", awesome.quit }
 }
 
+myshutdownmenu = {
+    { "suspend", "/home/david/bin/suspend" },
+    { "reboot", "/home/david/bin/reboot" },
+    { "shutdown", "/home/david/bin/shutdown" }
+}
+
 mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesome_icon },
                                     { "Debian", debian.menu.Debian_menu.Debian },
-                                    { "open terminal", terminal }
+                                    { "open terminal", terminal },
+                                    { "quit", myshutdownmenu }
                                   }
                         })
 
@@ -260,6 +267,7 @@ globalkeys = awful.util.table.join(
     awful.key({ modkey,           }, "Return", function () awful.util.spawn(terminal) end),
     awful.key({ modkey, "Shift"   }, "r", awesome.restart),
     awful.key({ modkey, "Shift"   }, "q", awesome.quit),
+    awful.key({ modkey,           }, "s",     function () awful.util.spawn( "bash -c 'sleep 1 && xset dpms force off'") end),
     awful.key({ modkey, "Shift"   }, "s",     function () awful.util.spawn( "/home/david/bin/suspend" ) end),
 
     -- Prompt
