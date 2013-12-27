@@ -407,10 +407,10 @@ awful.rules.rules = {
     -- Pro tip: Find window classes using "xprop"
     { rule_any = { class = { "MPlayer" }},
       properties = { floating = true } },
-    { rule_any = { class = { "Vlc", "Totem", "gimp" }, name =  {"Scala IDE" }},
-      properties = { floating = true, maximized_vertical = true, maximized_horizontal = true } },
-    { rule_any = { class = { "Google-chrome" }},
-      properties = { floating = true, maximized_vertical = true, maximized_horizontal = true, tag = tags[2][1] } },
+    { rule_any = { class = { "feh", "Vlc", "Totem", "gimp" }, name =  {"Scala IDE" }},
+      properties = { floating = true, maximized_vertical = true, maximized_horizontal = true } }
+    -- { rule_any = { class = { "Google-chrome" }},
+    --  properties = { floating = true, maximized_vertical = true, maximized_horizontal = true, tag = tags[2][1] } },
 }
 -- }}}
 
