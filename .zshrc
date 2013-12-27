@@ -53,7 +53,7 @@ function marks {
 # Aliases
 
 ## Global aliases
-alias -g G='| grep'
+alias -g G='| grep -i'
 alias -g L='| less'
 
 ## Flags on by default
@@ -63,6 +63,7 @@ alias vim='vim -p'
 alias mv='mv -i'
 alias cp='cp -i'
 alias make='make -j 2'
+alias nautilus='nautilus --no-desktop'
 
 # Default to date -Is if no args are supplied
 # iso-8601 is the one true date format
@@ -80,6 +81,9 @@ fi
 alias b='popd'
 alias zshrc='vim ~/.zshrc; rz'
 alias rz='source ~/.zshrc'
+alias xo='xdg-open'
+alias se='sudoedit'
+alias ack='ack-grep'
 
 # Software beep
 export BEEP=/usr/share/sounds/KDE-Im-Message-In.ogg
