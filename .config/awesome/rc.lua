@@ -10,6 +10,9 @@ require("naughty")
 -- Load Debian menu entries
 require("debian.menu")
 
+-- Widgets library
+require("calendar2")
+
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
 -- another config (This code will only ever execute for the fallback config)
@@ -107,6 +110,7 @@ mylauncher = awful.widget.launcher({ image = image(beautiful.awesome_icon),
 -- {{{ Wibox
 -- Create a textclock widget
 mytextclock = awful.widget.textclock({ align = "right" })
+calendar2.addCalendarToWidget(mytextclock, "<span color='red'>%s</span>")
 
 -- Create a systray
 mysystray = widget({ type = "systray" })
