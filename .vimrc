@@ -4,13 +4,18 @@ set nocompatible
 " key for custom commands, to prevent overwrite of standard commands
 let mapleader = "ö"
 
+if !empty($COLORTERM) || $TERM == "xterm-256color" || $TERM == "screen-256color"
+    set t_Co=256
+endif
+
 ""
 "" plugins
 ""
 
 " some basic security
 " do not run plugins when using sudo / sudoedit
-if $USER != 'root' && $SUDO_USER == ""
+" also only run if vundle is installed
+if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/vundle')
 
     " use vundle for plugins
     filetype off " required for vundle on older vim versions
@@ -68,11 +73,25 @@ if $USER != 'root' && $SUDO_USER == ""
     Bundle 'mileszs/ack.vim'
     noremap <C-g> :Ack 
 
+    " colorscheme for vim
+    Bundle 'nanotech/jellybeans.vim'
+	let g:jellybeans_background_color_256 = 'none'
+    try 
+        colorscheme jellybeans
+    catch
+        set background=dark
+        " use default colors
+    endtry
+
     " fancier status line, with git integration etc
     Bundle 'bling/vim-airline'
+    let g:airline_theme='dark'
     set laststatus=2 " always show statusline
     let g:airline_detect_whitespace=0 " no warning for trailing whitespace
     let g:airline_powerline_fonts = 1
+    let g:airline#extensions#tabline#enabled = 1
+    let g:airline#extensions#tabline#left_sep = ' '
+    let g:airline#extensions#tabline#left_alt_sep = '|'
 
     " show + - in the gutter for uncommited git change
     Bundle "airblade/vim-gitgutter"
@@ -93,7 +112,6 @@ if $USER != 'root' && $SUDO_USER == ""
 
     " close html tags quickly with <C-->
     Bundle 'vim-scripts/closetag.vim'
-
 endif
 
 " reenable filetype after plugin init
@@ -214,20 +232,7 @@ if has('mouse')
   set mouse=a
 endif
 
-" better colors
-if $TERM == "xterm-256color" || $TERM == "screen-256color" || $COLORTERM == "gnome-terminal"
-    " support more colors
-    set t_Co=256
-endif
-set background=dark
 syntax enable
-
-" colorscheme
-try
-    colorscheme peksim
-catch
-    " ignore this error, just use vanilla colors
-endtry
 
 " linenumbers 
 set number
@@ -296,4 +301,3 @@ set viminfo='10,\"100,:20,%,n~/.viminfo
 
 " modelines seldom used and possible security risk
 set modelines=0
-
