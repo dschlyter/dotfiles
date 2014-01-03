@@ -43,9 +43,11 @@ end
 beautiful.init("/home/david/.config/awesome/theme.lua")
 
 -- This is used later as the default terminal and editor to run.
-terminal = "urxvt"
+terminal = "xfce4-terminal"
 editor = os.getenv("EDITOR") or "vim"
-editor_cmd = terminal .. " -e " .. editor
+editor_cmd = function(file)
+    return terminal .. " -e '" .. editor .. " " .. file .. "'"
+end
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -81,18 +83,31 @@ for s = 1, screen.count() do
 end
 -- }}}
 
+-- Override awesome.quit when we're using GNOME
+-- from: http://awesome.naquadah.org/wiki/Quickly_Setting_up_Awesome_with_Gnome
+_awesome_quit = awesome.quit
+awesome.quit = function()
+    if os.getenv("DESKTOP_SESSION") == "awesome-gnome" then
+       os.execute("/usr/bin/gnome-session-quit")
+    else
+        _awesome_quit()
+    end
+end
+
 -- {{{ Menu
 -- Create a laucher widget and a main menu
 myawesomemenu = {
    { "manual", terminal .. " -e man awesome" },
-   { "edit config", editor_cmd .. " " .. awesome.conffile },
+   { "edit config", editor_cmd(awesome.conffile) },
    { "restart", awesome.restart },
    { "quit", awesome.quit }
 }
 
 myshutdownmenu = {
     { "suspend", "/home/david/bin/suspend" },
+    { "logout", awesome.quit },
     { "reboot", "/home/david/bin/reboot" },
+    { "win reboot", "/home/david/bin/win-reboot" },
     { "shutdown", "/home/david/bin/shutdown" }
 }
 
