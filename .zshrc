@@ -59,7 +59,6 @@ alias -g L='| less'
 ## Flags on by default
 alias locate='locate -i'
 alias ls='ls -h --color=auto'
-alias vim='vim -p'
 alias mv='mv -i'
 alias cp='cp -i'
 alias make='make -j 2'

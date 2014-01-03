@@ -132,8 +132,6 @@ noremap <leader>t :tabnew<cr>
 noremap <leader>j :bn<cr>
 noremap <leader>k :bp<cr>
 
-set tabpagemax=20
-
 ""
 "" possibly breaking customizations
 ""
@@ -160,14 +158,14 @@ noremap <left> :lprevious<CR>
 noremap <right> :lnext<CR>
 
 " faster moving between splits and tabs
-noremap <C-h> :tabprevious<cr>
+noremap <C-h> :bp<CR>
 noremap <C-j> <C-w>w
 noremap <C-k> <C-w>r
-noremap <C-l> :tabnext<cr>
-inoremap <C-h> <C-o>:tabprevious<cr>
+noremap <C-l> :bn<CR>
+inoremap <C-h> <C-o>:bp<CR>
 inoremap <C-j> <C-o><C-w>w
 inoremap <C-k> <C-o><C-w>r
-inoremap <C-l> <C-o>:tabnext<cr>
+inoremap <C-l> <C-o>:bn<CR>
 
 " use proper regexps
 nnoremap / /\v
@@ -273,6 +271,8 @@ set ruler
 set ttyfast
 set visualbell
 set noerrorbells
+
+set tabpagemax=20
 
 " Command line tab completion
 set wildmenu
