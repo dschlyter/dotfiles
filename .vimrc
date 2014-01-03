@@ -145,6 +145,10 @@ inoremap <C-e> <C-o>$
 " leave insert with jj
 " inoremap jj <ESC>
 
+" close buffer
+noremap <C-x> :bd<CR>
+inoremap <C-x> <C-o>:bd<CR>
+
 " better handling of wrapped lines
 noremap j gj
 noremap k gk
