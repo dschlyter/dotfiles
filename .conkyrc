@@ -215,16 +215,20 @@ ${diskiograph_write 20}
 I/O Read: $alignr $diskio_read
 ${diskiograph_read 20}
 
-Root $alignr $color${fs_free /}/${fs_size /}
-${fs_bar /}
-WinSSD $alignr $color${fs_free /media/david/4ADA0357DA033EA7}/${fs_size /media/david/4ADA0357DA033EA7}
-${fs_bar /media/david/4ADA0357DA033EA7}
-System $alignr $color${fs_free /media/david/System}/${fs_size /media/david/System}
-${fs_bar /media/david/System}
-Data1 $alignr $color${fs_free /media/david/Data1}/${fs_size /media/david/Data1}
-${fs_bar /media/david/Data1}
-Data $alignr $color${fs_free /media/david/Data}/${fs_size /media/david/Data}
-${fs_bar /media/david/Data}
+Root $alignr $color${fs_free /}/${fs_size /} Free
+${fs_bar /}${if_mounted /media/david/4ADA0357DA033EA7}
+# Note: If-statements are wrapped in a weird way to prevent empty lines
+WinSSD $alignr $color${fs_free /media/david/4ADA0357DA033EA7}/${fs_size /media/david/4ADA0357DA033EA7} Free
+${fs_bar /media/david/4ADA0357DA033EA7} ${endif}${if_mounted /media/david/System}
+#
+System $alignr $color${fs_free /media/david/System}/${fs_size /media/david/System} Free
+${fs_bar /media/david/System}${endif}${if_mounted /media/david/Data1}
+#
+Data1 $alignr $color${fs_free /media/david/Data1}/${fs_size /media/david/Data1} Free
+${fs_bar /media/david/Data1}${endif}${if_mounted /media/david/Data}
+#
+Data $alignr $color${fs_free /media/david/Data}/${fs_size /media/david/Data} Free
+${fs_bar /media/david/Data}${endif}
 #
 #${color lightgrey}Temperatures:
 # CPU:$color ${i2c temp 2}C${color grey} - MB:$color ${i2c temp 1}C
@@ -246,5 +250,4 @@ ${color lightgrey}Total: ${totaldown eth0} ${alignr}Total: ${totalup eth0}
 
 # TODO weather without complicated dependencies
 
-# TODO
-#${color red}4711 available updates
+${color red} ${execi 10 cat /tmp/apt-updates-available}
