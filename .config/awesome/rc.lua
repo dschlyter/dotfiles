@@ -55,6 +55,7 @@ end
 -- I suggest you to remap Mod4 to another key using xmodmap or other tools.
 -- However, you can use another modifier like Mod1, but it may interact with others.
 modkey = "Mod4"
+altkey = "Mod1"
 
 -- Table of layouts to cover with awful.layout.inc, order matters.
 layouts =
@@ -239,25 +240,25 @@ root.buttons(awful.util.table.join(
 ))
 -- }}}
 
+focusById = function (idx)
+    return function()
+        awful.client.focus.byidx(idx)
+        if client.focus then client.focus:raise() end
+    end
+end
+
 -- {{{ Key bindings
 globalkeys = awful.util.table.join(
     -- Moving focus between clients, screens and tags
-    awful.key({ modkey,           }, "j",
-        function ()
-            awful.client.focus.byidx( 1)
-            if client.focus then client.focus:raise() end
-        end),
-    awful.key({ modkey,           }, "k",
-        function ()
-            awful.client.focus.byidx(-1)
-            if client.focus then client.focus:raise() end
-        end),
+    awful.key({ modkey,           }, "j", focusById(1)),
+    awful.key({ modkey,           }, "k", focusById(-1)),
     awful.key({ modkey,           }, "h", function () awful.screen.focus_relative(-1) end),
     awful.key({ modkey,           }, "l", function () awful.screen.focus_relative( 1) end),
     awful.key({ modkey,           }, "p", awful.tag.viewprev        ),
     awful.key({ modkey,           }, "n", awful.tag.viewnext        ),
     awful.key({ modkey,           }, "u", awful.client.urgent.jumpto),
-    awful.key({ modkey,           }, "Tab",
+    awful.key({ modkey,           }, "Tab", focusById(1)),
+    awful.key({ altkey,           }, "Tab",
         function ()
             awful.client.focus.history.previous()
             if client.focus then
