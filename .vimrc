@@ -120,6 +120,10 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " show + - in the gutter for uncommited git change
     Bundle "airblade/vim-gitgutter"
 
+    " enable dsb, cs'" and ysiw<div> syntax for changing surrounding elements
+    Bundle "tpope/vim-surround"
+    Bundle "tpope/vim-repeat"
+
     " color code parenthesis to show matching
     Bundle 'kien/rainbow_parentheses.vim'
     au VimEnter * RainbowParenthesesToggleAll
