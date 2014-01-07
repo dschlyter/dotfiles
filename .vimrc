@@ -53,16 +53,16 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
 
     " golang autocomplete
     Bundle 'Blackrush/vim-gocode'
-    " au BufRead,BufNewFile *.go setlocal filetype=go (not needed?)
-
+    "set completeopt-=preview "disable scratch buffer popup
+    
     " snippets-engine
-    Bundle "MarcWeber/vim-addon-mw-utils"
-    Bundle "tomtom/tlib_vim"
-    Bundle "garbas/vim-snipmate"
+    Bundle "SirVer/ultisnips"
     Bundle "honza/vim-snippets"
-    " rebind keys to not clash with YCM autocomplete
-    imap <C-X> <Plug>snipMateNextOrTrigger
-    smap <C-X> <Plug>snipMateNextOrTrigger
+    " UltiSnips does not work seamlessly with YCM yet, we need to rebind its triggers
+    " https://github.com/Valloric/YouCompleteMe/issues/420
+    let g:UltiSnipsExpandTrigger="<C-x>"
+    let g:UltiSnipsJumpForwardTrigger="<C-x>"
+    let g:UltiSnipsJumpBackwardTrigger="none"
 
     " filetree visualization and selection
     Bundle 'scrooloose/nerdtree'
