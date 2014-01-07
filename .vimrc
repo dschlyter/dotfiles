@@ -75,6 +75,7 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " colorscheme for vim
     Bundle 'nanotech/jellybeans.vim'
 	let g:jellybeans_background_color_256 = 'none'
+    let g:jellybeans_overrides = { 'SignColumn': { 'guibg': 'NONE', '256ctermbg': 'NONE' }, }
     try 
         colorscheme jellybeans
     catch
@@ -84,13 +85,37 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
 
     " fancier status line, with git integration etc
     Bundle 'bling/vim-airline'
-    let g:airline_theme='dark'
     set laststatus=2 " always show statusline
     let g:airline_detect_whitespace=0 " no warning for trailing whitespace
     let g:airline_powerline_fonts = 1
     let g:airline#extensions#tabline#enabled = 1
     let g:airline#extensions#tabline#left_sep = ' '
     let g:airline#extensions#tabline#left_alt_sep = '|'
+
+    let g:airline_theme='dark'
+    function! AirlineThemePatch(palette)
+        " calm blue instead of ugly yellow for normal mode
+        let normalColor = [ '', '', 255, 25, ]
+        let a:palette.normal.airline_a = normalColor
+        let a:palette.normal.airline_z = normalColor
+        
+        " bright yellow from visual mode used for insert instead
+        " will also mark changed files bright yellow on tabline (side effect)
+        let a:palette.insert = copy(a:palette.visual)
+
+        " subtle green for visual mode
+        let a:palette.visual = copy(a:palette.normal)
+        let visualColor = [ '', '', 255, 22, ]
+        let a:palette.visual.airline_a = visualColor
+        let a:palette.visual.airline_z = visualColor
+
+        " do not mark modified files in bottom bar (already marked on tabline)
+        let a:palette.normal_modified = {}
+        let a:palette.insert_modified = {}
+        let a:palette.visual_modified = {}
+        let a:palette.replace_modified = {}
+    endfunction
+    let g:airline_theme_patch_func = 'AirlineThemePatch'
 
     " show + - in the gutter for uncommited git change
     Bundle "airblade/vim-gitgutter"
