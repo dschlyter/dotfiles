@@ -1,9 +1,5 @@
 # Prompt
 
-if [ -f ~/.zshrc_local ]; then
-    source ~/.zshrc_local
-fi
-
 # Simple hash function, usage: stupid_hash str mod
 stupid_hash() {
     i=0
@@ -155,6 +151,13 @@ zstyle ':completion:*' menu select
 
 autoload -Uz compinit
 compinit
+
+# Overriding configs goes in .zshrc_local
+
+LOCAL_ZSHRC=~/.zshrc_local
+if [ -f $LOCAL_ZSHRC ]; then
+    source $LOCAL_ZSHRC
+fi
 
 # Settings
 
