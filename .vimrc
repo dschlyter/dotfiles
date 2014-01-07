@@ -16,7 +16,6 @@ endif
 " do not run plugins when using sudo / sudoedit
 " also only run if vundle is installed
 if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/vundle')
-
     " use vundle for plugins
     filetype off " required for vundle on older vim versions
     set rtp+=~/.vim/bundle/vundle/
@@ -28,8 +27,8 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     Bundle 'supasorn/vim-easymotion'
     map <SPACE> <leader><leader>s
 
-    " fuzzy search and open files quickly
-    " open with <C-p>
+    " open files with fuzzy search
+    " use with <C-p>
     Bundle 'kien/ctrlp.vim'
 
     " git / github commands, diff, blame, etc
@@ -123,14 +122,16 @@ filetype plugin indent on
 
 " plugin leader commands
 nnoremap <leader>u :GundoToggle<cr>
-nmap <leader>p <Plug>yankstack_substitute_older_paste
-nmap <leader>P <Plug>yankstack_substitute_newer_paste
+nnoremap <leader>p <Plug>yankstack_substitute_older_paste
+nnoremap <leader>P <Plug>yankstack_substitute_newer_paste
 
-noremap <leader>n :noh<cr>
-noremap <leader>o :only<cr>
-noremap <leader>t :tabnew<cr>
-noremap <leader>j :bn<cr>
-noremap <leader>k :bp<cr>
+nnoremap <leader>d :DiffOrig
+
+nnoremap <leader>n :noh<cr>
+nnoremap <leader>o :only<cr>
+nnoremap <leader>t :tabnew<cr>
+nnoremap <leader>j :bn<cr>
+nnoremap <leader>k :bp<cr>
 
 ""
 "" possibly breaking customizations
@@ -146,8 +147,8 @@ inoremap <C-e> <C-o>$
 " inoremap jj <ESC>
 
 " close buffer
-noremap <C-x> :bd<CR>
-inoremap <C-x> <C-o>:bd<CR>
+noremap <C-b> :bd<CR>
+inoremap <C-b> <C-o>:bd<CR>
 
 " better handling of wrapped lines
 noremap j gj
@@ -164,16 +165,12 @@ noremap <right> :lnext<CR>
 " faster moving between splits and tabs
 noremap <C-h> :bp<CR>
 noremap <C-j> <C-w>w
-noremap <C-k> <C-w>r
+noremap <C-k> <C-w>W
 noremap <C-l> :bn<CR>
 inoremap <C-h> <C-o>:bp<CR>
 inoremap <C-j> <C-o><C-w>w
-inoremap <C-k> <C-o><C-w>r
+inoremap <C-k> <C-o><C-w>W
 inoremap <C-l> <C-o>:bn<CR>
-
-" use proper regexps
-nnoremap / /\v
-vnoremap / /\v
 
 " Make vim copy/paste suck a bit less
 " Copy/Paste to system clipboard with regular ctrl-c, ctrl-v
@@ -221,6 +218,21 @@ endif
 
 " write file without write permissions
 cmap w!! w !sudo tee % >/dev/null
+
+" Diff with file on disk
+command DiffOrig vert new | set bt=nofile | r ++edit # | 0d_ | diffthis | wincmd p | diffthis
+
+function! s:DiffWithSaved()
+    let filetype=&ft
+    diffthis
+    vnew | r # | normal! 1Gdd
+    diffthis
+    exe "setlocal bt=nofile bh=wipe nobl noswf ro ft=" . filetype
+endfunction
+com! DiffSaved call s:DiffWithSaved()
+
+" check if file has changed when changing buffer or file
+au FocusGained,BufEnter * :silent! !
 
 ""
 "" plain old boring settings
