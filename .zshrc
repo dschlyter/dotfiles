@@ -27,25 +27,6 @@ export PATH="$HOME/opt/sbt/bin:$GOPATH/bin:$HOME/bin:/opt/sudo:$PATH"
 export EDITOR="vim"
 export VISUAL="vim"
 
-# Fast cd with marks
-
-export MARKPATH=$HOME/.marks
-function j  { 
-    if [ "$1" ]
-    then cd -P $MARKPATH/$1 2>/dev/null || echo "No such mark: $1"
-    else marks
-    fi
-}
-function mark { 
-    mkdir -p $MARKPATH; ln -s $(pwd) $MARKPATH/$1
-}
-function unmark { 
-    rm -i $MARKPATH/$1 
-}
-function marks {
-    ls -l $MARKPATH | sed 's/  / /g' | cut -d' ' -f9- | sed 's/ -/\t-/g' && echo
-}
-
 # Aliases
 
 ## Global aliases
@@ -83,6 +64,14 @@ alias ack='ack-grep'
 # Software beep
 export BEEP=/usr/share/sounds/KDE-Im-Message-In.ogg
 alias beep='paplay $BEEP'
+
+# Fast cd with autojump
+
+AUTOJUMP_SCRIPT=/usr/share/autojump/autojump.zsh
+if [ -f $AUTOJUMP_SCRIPT ]; then
+    source $AUTOJUMP_SCRIPT
+    alias js='autojump --stat'
+fi
 
 # Vim mode while not messing up existing nice shortcuts
 
