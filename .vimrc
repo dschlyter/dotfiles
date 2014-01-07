@@ -248,6 +248,17 @@ endif
 " write file without write permissions
 cmap w!! w !sudo tee % >/dev/null
 
+" highlight word under cursor
+" from: http://stackoverflow.com/questions/1551231/highlight-variable-under-cursor-in-vim-like-in-netbeans
+func! HighlightUnderCursor()
+    " naive assumption, if we have syntax highlighting, we also want variable highlight
+    if &syntax != ''
+        " may want to swap 'Search' for 'IncSearch' depending on colorscheme
+        exe printf('match Search /\V\<%s\>/', escape(expand('<cword>'), '/\'))
+    endif
+endfunc
+autocmd CursorMoved * :call HighlightUnderCursor()
+
 " Diff with file on disk
 command DiffOrig vert new | set bt=nofile | r ++edit # | 0d_ | diffthis | wincmd p | diffthis
 
