@@ -1,26 +1,45 @@
 # Prompt
 
-# Simple hash function, usage: stupid_hash str mod
-stupid_hash() {
-    i=0
-    for chr in $(echo $1 | sed -e 's/\(.\)/\1 /g'); do 
-        i=$((($i+$(printf '%d' "'$chr")) % $2))
-    done
-    echo $i
-} 
-host_color() {
-    host_colorset=(green cyan blue yellow magenta white)
-    num=$(($(stupid_hash $HOST ${#host_colorset[@]}) + 1)) 
-    #stupid one based indexing :(
-    echo ${host_colorset[$num]}
+autoload -U colors && colors
+set_prompt() {
+    local CURR_DIR="%{$fg[green]%}%40<..<%~%<<%{$reset_color%}"
+    local PROMPT_CHAR="%{$fg_bold[red]%}%(!.#.>)%{$reset_color%}"
+    PROMPT="$CURR_DIR$GIT_INFO$PROMPT_CHAR "
 }
 
-autoload -U colors && colors
-#PROMPT="%{$fg[yellow]%}%30<..<%~%<<%{$fg_bold[red]%}%(!.#.>)%{$reset_color%} "
-PROMPT="%{$fg[green]%}%30<..<%~%<<%{$fg_bold[red]%}%(!.#.>)%{$reset_color%} "
-RPROMPT="   %{$fg[$(host_color)]%}[%n@%m]%{$reset_color%}"
+update_git_info() {
+    git rev-parse --is-inside-work-tree &> /dev/null
+    if [ $? -eq 0 ]; then
+        local GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        if [ $GIT_BRANCH = "HEAD" ]; then
+            GIT_BRANCH=$(git rev-parse --short HEAD)
+        else
+            local GIT_REMOTE=$(git config branch.$GIT_BRANCH.remote)
+            local GIT_REMOTE_BRANCH="$GIT_REMOTE/$GIT_BRANCH"
+            [[ $GIT_REMOTE == "" ]] && GIT_REMOTE_BRANCH="origin/master"
+            local GIT_AHEAD="^$(git rev-list $GIT_REMOTE_BRANCH..HEAD 2> /dev/null | wc -l)"
+            [[ $GIT_AHEAD == "^0" ]] && GIT_AHEAD=""
+        fi
 
-# Variables
+        command git diff --quiet --ignore-submodules HEAD &>/dev/null
+        [[ $? -eq 1 ]] && local GIT_DIRTY='*'
+
+        GIT_INFO="%{$fg_bold[blue]%}@$GIT_BRANCH$GIT_AHEAD$GIT_DIRTY%{$reset_color%}"
+    else
+        GIT_INFO=""
+    fi
+    set_prompt
+}
+
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd update_git_info
+
+# Show hostname in right prompt iff in SSH session
+if [ "$SSH_CONNECTION" != "" ]; then
+    RPROMPT="   %{$fg[blue]%}[%n@%m]%{$reset_color%}"
+fi
+
+# Env Variables
 
 export GOPATH="$HOME/code/go"
 export PATH="$HOME/opt/sbt/bin:$GOPATH/bin:$HOME/bin:/opt/sudo:$PATH"
@@ -79,7 +98,7 @@ bindkey -v
 bindkey -M viins 'jj' vi-cmd-mode
 
 bindkey "^R" history-incremental-pattern-search-backward
-bindkey "^S" history-incremental-pattern-search-forward
+bindkey "^F" history-incremental-pattern-search-forward
 bindkey '^A' beginning-of-line
 bindkey '^E' end-of-line
 bindkey '^W' backward-kill-word
