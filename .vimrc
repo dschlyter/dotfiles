@@ -62,7 +62,7 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " https://github.com/Valloric/YouCompleteMe/issues/420
     let g:UltiSnipsExpandTrigger="<C-x>"
     let g:UltiSnipsJumpForwardTrigger="<C-x>"
-    let g:UltiSnipsJumpBackwardTrigger="none"
+    let g:UltiSnipsJumpBackwardTrigger="<nop>"
 
     " filetree visualization and selection
     Bundle 'scrooloose/nerdtree'
