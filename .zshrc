@@ -1,3 +1,62 @@
+# Env Variables
+
+export PATH="$HOME/opt/sbt/bin:$GOPATH/bin:$HOME/bin:/opt/sudo:$PATH"
+export GOPATH="$HOME/code/go"
+export EDITOR="vim"
+export VISUAL="vim"
+
+# Aliases
+
+## Conveniences
+alias b='popd'
+alias zshrc='vim ~/.zshrc; rz'
+alias rz='source ~/.zshrc'
+alias xo='xdg-open'
+alias se='sudoedit'
+alias ack='ack-grep'
+
+## Global aliases
+alias -g G='| grep -i'
+alias -g L='| less'
+
+## Flags on by default
+alias locate='locate -i'
+alias ls='ls -h --color=auto'
+alias mv='mv -i'
+alias cp='cp -i'
+alias make='make -j 2'
+alias nautilus='nautilus --no-desktop'
+
+# Default to date -Is if no args are supplied
+# iso-8601 is the one true date format
+if [ -f /bin/date ]; then
+    func date() {
+        if [ "$*" ]; then
+            /bin/date $*
+        else
+            /bin/date -Is
+        fi
+    }
+fi
+
+# Software beep
+export BEEP=/usr/share/sounds/KDE-Im-Message-In.ogg
+alias beep='paplay $BEEP'
+
+# Functions
+
+function retry {
+    while true; do
+        $*
+        STATUS=$?
+        if [ "$STATUS" -eq "0" ]; then
+            break;
+        fi
+        echo "Exit $STATUS - Retrying in 1 second"
+        sleep 1
+    done
+}
+
 # Prompt
 
 autoload -U colors && colors
@@ -38,51 +97,6 @@ add-zsh-hook precmd update_git_info
 if [ "$SSH_CONNECTION" != "" ]; then
     RPROMPT="   %{$fg[blue]%}[%n@%m]%{$reset_color%}"
 fi
-
-# Env Variables
-
-export GOPATH="$HOME/code/go"
-export PATH="$HOME/opt/sbt/bin:$GOPATH/bin:$HOME/bin:/opt/sudo:$PATH"
-export EDITOR="vim"
-export VISUAL="vim"
-
-# Aliases
-
-## Global aliases
-alias -g G='| grep -i'
-alias -g L='| less'
-
-## Flags on by default
-alias locate='locate -i'
-alias ls='ls -h --color=auto'
-alias mv='mv -i'
-alias cp='cp -i'
-alias make='make -j 2'
-alias nautilus='nautilus --no-desktop'
-
-# Default to date -Is if no args are supplied
-# iso-8601 is the one true date format
-if [ -f /bin/date ]; then
-    func date() {
-        if [ "$*" ]; then
-            /bin/date $*
-        else
-            /bin/date -Is
-        fi
-    }
-fi
-
-## Conveniences
-alias b='popd'
-alias zshrc='vim ~/.zshrc; rz'
-alias rz='source ~/.zshrc'
-alias xo='xdg-open'
-alias se='sudoedit'
-alias ack='ack-grep'
-
-# Software beep
-export BEEP=/usr/share/sounds/KDE-Im-Message-In.ogg
-alias beep='paplay $BEEP'
 
 # Fast cd with autojump
 
@@ -126,21 +140,6 @@ after-first-word() {
 zle -N after-first-word
 bindkey "^X1" after-first-word
 
-
-# Functions
-
-function retry {
-    while true; do
-        $*
-        STATUS=$?
-        if [ "$STATUS" -eq "0" ]; then
-            break;
-        fi
-        echo "Exit $STATUS - Retrying in 1 second"
-        sleep 1
-    done
-}
-
 # Completition
 
 zstyle ':completion:*' use-cache on
@@ -159,13 +158,6 @@ zstyle ':completion:*' menu select
 
 autoload -Uz compinit
 compinit
-
-# Overriding configs goes in .zshrc_local
-
-LOCAL_ZSHRC=~/.zshrc_local
-if [ -f $LOCAL_ZSHRC ]; then
-    source $LOCAL_ZSHRC
-fi
 
 # Settings
 
@@ -197,3 +189,11 @@ setopt nopromptcr               # don't add \r which overwrites cmd output with 
 setopt histverify               # when using ! cmds, confirm first
 setopt interactivecomments      # escape commands so i can use them later
 setopt recexact                 # recognise exact, ambiguous matches
+
+# Overriding configs goes in .zshrc_local
+
+LOCAL_ZSHRC=~/.zshrc_local
+if [ -f $LOCAL_ZSHRC ]; then
+    source $LOCAL_ZSHRC
+fi
+
