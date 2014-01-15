@@ -69,9 +69,9 @@ set_prompt() {
 update_git_info() {
     git rev-parse --is-inside-work-tree &> /dev/null
     if [ $? -eq 0 ]; then
-        local GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        local GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
         if [ $GIT_BRANCH = "HEAD" ]; then
-            GIT_BRANCH=$(git rev-parse --short HEAD)
+            GIT_BRANCH=$(git rev-parse --short HEAD 2> /dev/null)
         else
             local GIT_REMOTE=$(git config branch.$GIT_BRANCH.remote)
             local GIT_REMOTE_BRANCH="$GIT_REMOTE/$GIT_BRANCH"
