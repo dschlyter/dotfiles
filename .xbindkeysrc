@@ -44,7 +44,6 @@
 
 # Enable windows-style shortcuts for swedish keyboard layout - makes programming a lot easier
 
-
 "xvkbd -xsendevent -text '@'"
     Control+Alt+2
 "xvkbd -xsendevent -text $"
@@ -57,6 +56,11 @@
     Control+Alt+9
 "xvkbd -xsendevent -text }"
     Control+Alt+0
+# not part of the swedish keyboard standard, but their keys did not work, this is close enough
+"xvkbd -xsendevent -text '\\'"
+    Control+Alt+o
+"xvkbd -xsendevent -text '~'"
+    Control+Alt+p
 
 # Alternative command, not working:
 # "xte 'str @'"
