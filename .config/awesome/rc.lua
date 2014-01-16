@@ -145,7 +145,7 @@ mytaglist.buttons = awful.util.table.join(
                     awful.button({ }, 5, awful.tag.viewnext)
                     )
 
-toggleMaximized = function (c)
+toggle_maximized = function (c)
     float = awful.client.floating.get(c)
 
     if float then
@@ -157,12 +157,17 @@ toggleMaximized = function (c)
     c.maximized_vertical   = not float
 end
 
+focus_by_id = function (idx)
+    awful.client.focus.byidx(idx)
+    if client.focus then client.focus:raise() end
+end
+
 mytasklist = {}
 mytasklist.buttons = awful.util.table.join(
                      awful.button({ }, 1, function (c)
                                               if c == client.focus then
                                                   -- c.minimized = true
-                                                  toggleMaximized(c)
+                                                  toggle_maximized(c)
                                               else
                                                   if not c:isvisible() then
                                                       awful.tag.viewonly(c:tags()[1])
@@ -186,12 +191,10 @@ mytasklist.buttons = awful.util.table.join(
                                               end
                                           end),
                      awful.button({ }, 4, function ()
-                                              awful.client.focus.byidx(-1)
-                                              if client.focus then client.focus:raise() end
+                                              focus_by_id(-1)
                                           end),
                      awful.button({ }, 5, function ()
-                                              awful.client.focus.byidx(1)
-                                              if client.focus then client.focus:raise() end
+                                              focus_by_id(1)
                                           end))
 
 for s = 1, screen.count() do
@@ -240,13 +243,6 @@ root.buttons(awful.util.table.join(
 ))
 -- }}}
 
-focusById = function (idx)
-    return function()
-        awful.client.focus.byidx(idx)
-        if client.focus then client.focus:raise() end
-    end
-end
-
 -- A minor hack to avoid screen switch focusing the wrong client
 mouse_moved_by_screen_focus = false
 focus_relative = function(offset)
@@ -257,14 +253,14 @@ end
 -- {{{ Key bindings
 globalkeys = awful.util.table.join(
     -- Moving focus between clients, screens and tags
-    awful.key({ modkey,           }, "j", focusById(1)),
-    awful.key({ modkey,           }, "k", focusById(-1)),
+    awful.key({ modkey,           }, "j", function() focus_by_id(1) end),
+    awful.key({ modkey,           }, "k", function() focus_by_id(-1) end),
     awful.key({ modkey,           }, "h", function () focus_relative(-1) end),
     awful.key({ modkey,           }, "l", function () focus_relative( 1) end),
     awful.key({ modkey,           }, "p", awful.tag.viewprev        ),
     awful.key({ modkey,           }, "n", awful.tag.viewnext        ),
     awful.key({ modkey,           }, "u", awful.client.urgent.jumpto),
-    awful.key({ modkey,           }, "Tab", focusById(1)),
+    awful.key({ modkey,           }, "Tab", function() focus_by_id(1) end),
     awful.key({ altkey,           }, "Tab",
         function ()
             awful.client.focus.history.previous()
@@ -351,7 +347,7 @@ clientkeys = awful.util.table.join(
             -- minimized, since minimized clients can't have the focus.
             c.minimized = true
         end),
-    awful.key({ modkey,           }, "g",      toggleMaximized) 
+    awful.key({ modkey,           }, "g",      toggle_maximized) 
 )
 
 -- Compute the maximum number of digit we need, limited to 9
