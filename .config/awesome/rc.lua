@@ -247,13 +247,20 @@ focusById = function (idx)
     end
 end
 
+-- A minor hack to avoid screen switch focusing the wrong client
+mouse_moved_by_screen_focus = false
+focus_relative = function(offset)
+    mouse_moved_by_screen_focus = true
+    awful.screen.focus_relative(offset)
+end
+
 -- {{{ Key bindings
 globalkeys = awful.util.table.join(
     -- Moving focus between clients, screens and tags
     awful.key({ modkey,           }, "j", focusById(1)),
     awful.key({ modkey,           }, "k", focusById(-1)),
-    awful.key({ modkey,           }, "h", function () awful.screen.focus_relative(-1) end),
-    awful.key({ modkey,           }, "l", function () awful.screen.focus_relative( 1) end),
+    awful.key({ modkey,           }, "h", function () focus_relative(-1) end),
+    awful.key({ modkey,           }, "l", function () focus_relative( 1) end),
     awful.key({ modkey,           }, "p", awful.tag.viewprev        ),
     awful.key({ modkey,           }, "n", awful.tag.viewnext        ),
     awful.key({ modkey,           }, "u", awful.client.urgent.jumpto),
@@ -438,7 +445,11 @@ client.add_signal("manage", function (c, startup)
     c:add_signal("mouse::enter", function(c)
         if awful.layout.get(c.screen) ~= awful.layout.suit.magnifier
             and awful.client.focus.filter(c) then
-            client.focus = c
+            if not mouse_moved_by_screen_focus then
+                client.focus = c
+            else
+                mouse_moved_by_screen_focus = false
+            end
         end
     end)
 
