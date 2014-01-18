@@ -142,6 +142,9 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     Bundle 'vim-scripts/closetag.vim'
 endif
 
+command BundleSetup !git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
+command YCMSetup !sh -c 'cd ~/.vim/bundle/YouCompleteMe; ./install.sh --clang-completer'
+
 " reenable filetype after plugin init
 filetype plugin indent on
 
