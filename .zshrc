@@ -116,6 +116,10 @@ bindkey "^F" history-incremental-pattern-search-forward
 bindkey '^A' beginning-of-line
 bindkey '^E' end-of-line
 bindkey '^W' backward-kill-word
+bindkey '^B' backward-word
+bindkey '^V' forward-word
+# save current line and come back to it after running another command
+bindkey '^Y' push-line 
 
 bindkey '^P' up-line-or-history
 bindkey '^N' down-line-or-history
