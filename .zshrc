@@ -1,7 +1,7 @@
 # Env Variables
 
-export PATH="$HOME/opt/sbt/bin:$GOPATH/bin:$HOME/bin:/opt/sudo:$PATH"
 export GOPATH="$HOME/code/go"
+export PATH="$GOPATH/bin:$HOME/bin:/opt/sudo:$PATH"
 export EDITOR="vim"
 export VISUAL="vim"
 
