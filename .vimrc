@@ -8,9 +8,10 @@ if !empty($COLORTERM) || $TERM == "xterm-256color" || $TERM == "screen-256color"
     set t_Co=256
 endif
 
-""
-"" plugins
-""
+
+" plugins
+" =======
+
 
 " some basic security
 " do not run plugins when using sudo / sudoedit
@@ -150,9 +151,10 @@ command YCMSetup !sh -c 'cd ~/.vim/bundle/YouCompleteMe; ./install.sh --clang-co
 " reenable filetype after plugin init
 filetype plugin indent on
 
-""
-"" leader customizations
-""
+
+" leader customizations
+" =====================
+
 
 " plugin leader commands
 nnoremap <leader>u :GundoToggle<cr>
@@ -171,9 +173,10 @@ nnoremap <leader>k :bp<cr>
 nnoremap <leader>- yypVr-
 nnoremap <leader>= yypVr=
 
-""
-"" possibly breaking customizations
-""
+
+" possibly breaking customizations
+" ================================
+
 
 " move to start and end of line using bash-style shortcuts
 noremap <C-a> ^
@@ -228,9 +231,10 @@ nnoremap K "_d
 nnoremap KK "_dd
 vnoremap K "_d
 
-""
-"" cute hacks
-""
+
+" cute hacks
+" ==========
+
 
 " Return to last cursor position when re-opening a file
 function! ResCur()
@@ -283,9 +287,10 @@ com! DiffSaved call s:DiffWithSaved()
 " check if file has changed when changing buffer or file
 au FocusGained,BufEnter * :silent! !
 
-""
-"" plain old boring settings
-""
+
+" plain old boring settings
+" =========================
+
 
 " encryption should be strong 
 set cm=blowfish
