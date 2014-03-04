@@ -47,12 +47,8 @@ alias beep='paplay $BEEP'
 
 function retry {
     while true; do
-        $*
-        STATUS=$?
-        if [ "$STATUS" -eq "0" ]; then
-            break;
-        fi
-        echo "Exit $STATUS - Retrying in 1 second"
+        eval $* && return 0
+        echo "Exit $? - Retrying in 1 second"
         sleep 1
     done
 }
