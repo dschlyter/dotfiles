@@ -119,6 +119,7 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
 
     " show + - in the gutter for uncommited git change
     Bundle "airblade/vim-gitgutter"
+    map <leader>g :GitGutterEnable<CR>
 
     " enable dsb, cs'" and ysiw<div> syntax for changing surrounding elements
     Bundle "tpope/vim-surround"
@@ -126,6 +127,7 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
 
     " color code parenthesis to show matching
     Bundle 'kien/rainbow_parentheses.vim'
+    let g:rbpt_max = 6
     au VimEnter * RainbowParenthesesToggleAll
     au Syntax * RainbowParenthesesLoadRound
     au Syntax * RainbowParenthesesLoadSquare
