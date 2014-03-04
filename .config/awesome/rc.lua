@@ -176,8 +176,8 @@ mytasklist.buttons = awful.util.table.join(
                                                   -- This will also un-minimize
                                                   -- the client, if needed
                                                   client.focus = c
-                                                  c:raise()
                                               end
+                                              c:raise()
                                           end),
                      awful.button({ }, 2, function (c)
                                               c:kill()
