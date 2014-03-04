@@ -167,6 +167,10 @@ nnoremap <leader>t :tabnew<cr>
 nnoremap <leader>j :bn<cr>
 nnoremap <leader>k :bp<cr>
 
+" Fast underline (markdown)
+nnoremap <leader>- yypVr-
+nnoremap <leader>= yypVr=
+
 ""
 "" possibly breaking customizations
 ""
