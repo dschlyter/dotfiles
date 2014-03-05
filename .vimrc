@@ -293,7 +293,9 @@ au FocusGained,BufEnter * :silent! !
 
 
 " encryption should be strong 
-set cm=blowfish
+if exists("+cryptmethod")
+    set cryptmethod=blowfish
+endif
 
 " In many terminal emulators the mouse works just fine, thus enable it.
 if has('mouse')
@@ -309,10 +311,12 @@ set number
 " better search
 set ignorecase
 set smartcase
-set wildignorecase
 set incsearch
 set hlsearch
 set showmatch
+if exists("+wildignorecase")
+    set wildignorecase
+endif
 
 " assume the /g flag on :s substitutions to replace all matches in a line:
 set gdefault
@@ -356,10 +360,12 @@ set hidden
 set backspace=indent,eol,start
 
 " persistent undo
-set undofile
-set undodir=~/.vim_undo//
-set undolevels=1000 
-set undoreload=10000 
+if exists("+undofile")
+    set undofile
+    set undodir=~/.vim_undo//
+    set undolevels=1000 
+    set undoreload=10000 
+endif
 
 " Tell vim to remember certain things when we exit
 "  '10  :  marks will be remembered for up to 10 previously edited files
