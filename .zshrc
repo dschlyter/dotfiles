@@ -27,6 +27,11 @@ alias cp='cp -i'
 alias make='make -j 2'
 alias nautilus='nautilus --no-desktop'
 
+function md {
+    mkdir $1
+    cd $1
+}
+
 # Default to date -Is if no args are supplied
 # iso-8601 is the one true date format
 if [ -f /bin/date ]; then

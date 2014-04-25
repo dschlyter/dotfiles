@@ -228,7 +228,10 @@ Data1 $alignr $color${fs_free /media/david/Data1}/${fs_size /media/david/Data1} 
 ${fs_bar /media/david/Data1}${endif}${if_mounted /media/david/Data}
 #
 Data $alignr $color${fs_free /media/david/Data}/${fs_size /media/david/Data} Free
-${fs_bar /media/david/Data}${endif}
+${fs_bar /media/david/Data}${endif}${if_mounted /media/goflex}
+#
+NAS $alignr $color${fs_free /media/goflex}/${fs_size /media/goflex} Free
+${fs_bar /media/goflex}${endif}
 #
 #${color lightgrey}Temperatures:
 # CPU:$color ${i2c temp 2}C${color grey} - MB:$color ${i2c temp 1}C

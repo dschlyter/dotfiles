@@ -74,11 +74,25 @@ theme.titlebar_maximized_button_normal_active = "/usr/share/awesome/themes/defau
 theme.titlebar_maximized_button_focus_active  = "/usr/share/awesome/themes/default/titlebar/maximized_focus_active.png"
 
 -- You can use your own command to set your wallpaper
--- theme.wallpaper_cmd = { "awsetbg /home/david/Dropbox/wall-rotation/dubai.jpg" }
+-- http://stackoverflow.com/questions/11201262/file-read-in-lua
+function file_exists(file)
+    local f = io.open(file, "rb")
+    if f then f:close() end
+    return f ~= nil
+end
 
--- awsetbg gives random errors, run feh directly
--- theme.wallpaper_cmd = { "feh --bg-scale /home/david/bin/ignoreerrors awsetbg /home/david/Dropbox/wall-rotation/abstraction-patterns-lines-circles-dots-color-abstraction-patterns-lines-circles-dots.jpg" }
-theme.wallpaper_cmd = { "feh --bg-scale /home/david/Dropbox/wall-rotation/dubai.jpg" }
+function first_line(file)
+    if not file_exists(file) then 
+        return ""
+    end
+    for line in io.lines(file) do 
+        return line
+    end
+    return ""
+end
+
+bg_file = first_line("/home/david/.bg")
+theme.wallpaper_cmd = { "feh --bg-scale " .. bg_file }
 
 -- You can use your own layout icons like this:
 theme.layout_fairh = "/usr/share/awesome/themes/zenburn/layouts/fairh.png"
