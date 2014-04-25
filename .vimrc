@@ -23,10 +23,8 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     call vundle#rc()
     Bundle 'gmarik/vundle'
 
-    " experimental fork of 'Lokaltag/vim-easymotion', 
-    " enables fast movement commands
-    Bundle 'supasorn/vim-easymotion'
-    map <SPACE> <leader><leader>s
+    " improve f and t commands
+    Bundle 'svermeulen/vim-extended-ft'
 
     " open files with fuzzy search
     " use with <C-p>
@@ -55,6 +53,9 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " golang autocomplete
     Bundle 'Blackrush/vim-gocode'
     "set completeopt-=preview "disable scratch buffer popup
+    
+    " julia support
+    Bundle 'JuliaLang/julia-vim'
     
     " snippets-engine
     Bundle "SirVer/ultisnips"
