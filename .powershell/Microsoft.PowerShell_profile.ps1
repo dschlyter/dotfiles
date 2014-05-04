@@ -1,6 +1,6 @@
 # This powershell profile, combined with GOW (Gnu on Windows) makes for an almost usable terminal env on windows
 # Put this file in Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
-# Built for Powershell 2.0
+# Run "Set-ExecutionPolicy Unrestricted -Force" as Admin to enable loading of scripts and this profile
 
 # Go to homedir
 Function home { cd $ENV:USERPROFILE }
@@ -16,9 +16,15 @@ Function pgrep {
     ps | grep -E "^Handles|$Args"
 }
 
+if ($PSVersionTable.PSVersion.Major -ge 3) { 
+	# Install PSReadLine before using this
+	# https://github.com/lzybkr/PSReadLine
+	Import-Module PSReadLine
+	Set-PSReadlineOption -EditMode Emacs
+}
+
 # Persistent history
 # From: http://jamesone111.wordpress.com/2012/01/28/adding-persistent-history-to-powershell/
-# With Powershell 3.0 you may want to try PSReadline
 # View history with "h" or "history" command
 # Insert command with "#<id>[tab]"
 
@@ -35,27 +41,24 @@ $History | select -Unique  |
            Add-History -errorAction SilentlyContinue
 
 Function prompt {
-  # Save history after every command
-  $hid = $myinvocation.historyID
-  if ($hid -gt 1) {
-    $lastCommand = get-history ($myinvocation.historyID -1 )
-    $lastCommand | convertto-csv | Select -last 1 >> $logfile
-  }
-  
-  # Just print a normal prompt
-  "PS$($PSVersionTable.psversion.major) " + $(Get-Location) + 
-  $(if ($nestedpromptlevel -ge 1) { '>>' }) + '> '
+	# Save history after every command
+	$hid = $myinvocation.historyID
+	if ($hid -gt 1) {
+		$lastCommand = get-history ($myinvocation.historyID -1 )
+		$lastCommand | convertto-csv | Select -last 1 >> $logfile
+	}
+
+	# Just print a normal prompt
+	"PS$($PSVersionTable.psversion.major) " + $(Get-Location) + 
+	$(if ($nestedpromptlevel -ge 1) { '>>' }) + '> '
 }
 
 # Search history, requires gow
 Function hi {
-    Get-History -count 32767 | grep $Args
+    Get-History -count 32767 | grep -i $Args
 }
 
-# TODO add poor mans autojump
-# For Powershell 3+ you may try Jump-Location instead
-
-# Check elapsed time AFTER running a command - pretty neat
+# Check elapsed time AFTER running a command, pretty neat
 Function time {
     <# .Synopsis Returns the time taken to run a command 
       .Description By default returns the time taken to run the last command 
