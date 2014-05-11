@@ -7,6 +7,11 @@ Function home { cd $ENV:USERPROFILE }
 home
 
 # Commands
+Function pathReload {
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + 
+    ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+}
+
 Function pkill {
     taskkill /F /IM $Args
 }
@@ -17,10 +22,10 @@ Function pgrep {
 }
 
 if ($PSVersionTable.PSVersion.Major -ge 3) { 
-	# Install PSReadLine before using this
-	# https://github.com/lzybkr/PSReadLine
-	Import-Module PSReadLine
-	Set-PSReadlineOption -EditMode Emacs
+    # Install PSReadLine before using this
+    # https://github.com/lzybkr/PSReadLine
+    Import-Module PSReadLine
+    Set-PSReadlineOption -EditMode Emacs
 }
 
 # Persistent history
@@ -41,16 +46,16 @@ $History | select -Unique  |
            Add-History -errorAction SilentlyContinue
 
 Function prompt {
-	# Save history after every command
-	$hid = $myinvocation.historyID
-	if ($hid -gt 1) {
-		$lastCommand = get-history ($myinvocation.historyID -1 )
-		$lastCommand | convertto-csv | Select -last 1 >> $logfile
-	}
+    # Save history after every command
+    $hid = $myinvocation.historyID
+    if ($hid -gt 1) {
+        $lastCommand = get-history ($myinvocation.historyID -1 )
+        $lastCommand | convertto-csv | Select -last 1 >> $logfile
+    }
 
-	# Just print a normal prompt
-	"PS$($PSVersionTable.psversion.major) " + $(Get-Location) + 
-	$(if ($nestedpromptlevel -ge 1) { '>>' }) + '> '
+    # Just print a normal prompt
+    "PS$($PSVersionTable.psversion.major) " + $(Get-Location) + 
+    $(if ($nestedpromptlevel -ge 1) { '>>' }) + '> '
 }
 
 # Search history, requires gow
@@ -72,4 +77,20 @@ Function time {
             (get-history ($i)).startexecutiontime).totalseconds
         }
     } 
+}
+
+$LOCAL_PROFILE="$ENV:USERPROFILE\Documents\WindowsPowerShell\local.ps1"
+if (Test-Path $LOCAL_PROFILE) {
+    . $LOCAL_PROFILE
+}
+
+# Poor mans bookmarks
+Function save($path) {
+    $CURR_PATH=(pwd).Path
+    if($path -ne $null) { 
+        echo "Function $path { cd '$CURR_PATH' }" | out-file $LOCAL_PROFILE -Append -Encoding ASCII
+        . $LOCAL_PROFILE
+    } else {
+        echo "Usage: save shortcutName"
+    }
 }
