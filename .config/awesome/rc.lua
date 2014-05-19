@@ -154,8 +154,13 @@ toggle_maximized = function (c)
         -- hack around: delete the floating info
         awful.client.floating.delete(c)
     end
-    c.maximized_horizontal = not float
-    c.maximized_vertical   = not float
+
+    set_maximized(c, not float)
+end
+
+set_maximized = function(c, val)
+    c.maximized_horizontal = val
+    c.maximized_vertical   = val
 end
 
 focus_by_id = function (idx)
@@ -251,6 +256,24 @@ focus_relative = function(offset)
     awful.screen.focus_relative(offset)
 end
 
+swapWindow = function (c, offset)
+    isMax = c.maximized_vertical
+
+    if isMax then
+        set_maximized(c, false)
+    end
+
+    mouse_moved_by_screen_focus = true
+    awful.client.movetoscreen(c,c.screen+offset)
+
+    if isMax then
+        set_maximized(c, true)
+    end
+
+    c:raise()
+end
+
+
 -- {{{ Key bindings
 globalkeys = awful.util.table.join(
     -- Moving focus between clients, screens and tags
@@ -312,8 +335,8 @@ globalkeys = awful.util.table.join(
 
 clientkeys = awful.util.table.join(
     -- Moving clients around
-    awful.key({ modkey, "Control"   }, "h",      function(c) awful.client.movetoscreen(c,c.screen-1) end ),
-    awful.key({ modkey, "Control"   }, "l",      function(c) awful.client.movetoscreen(c,c.screen+1) end ),
+    awful.key({ modkey, "Control"   }, "h",      function(c) swapWindow(c,-1) end ),
+    awful.key({ modkey, "Control"   }, "l",      function(c) swapWindow(c,1) end ),
     -- http://awesome.naquadah.org/wiki/Move_Window_to_Workspace_Left/Right (should be updated for 3.5)
     awful.key({ modkey, "Control"   }, "p",
     function (c)
