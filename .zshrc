@@ -18,6 +18,7 @@ alias ack='ack-grep'
 ## Global aliases
 alias -g G='| grep -i'
 alias -g L='| less'
+alias -g MAP='| xargs -n 1'
 
 ## Flags on by default
 alias locate='locate -i'
