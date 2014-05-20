@@ -333,29 +333,29 @@ globalkeys = awful.util.table.join(
               end)
 )
 
+sendClient = function(c, offset) 
+    local tagindex = awful.tag.getidx(c:tags()[1]) + offset
+    tagindex = (tagindex-1)%9+1 -- assuming 9 tags
+    tag = screen[mouse.screen]:tags()[tagindex]
+    c:tags({tag})
+    return tag
+end
+
 clientkeys = awful.util.table.join(
     -- Moving clients around
     awful.key({ modkey, "Control"   }, "h",      function(c) swapWindow(c,-1) end ),
     awful.key({ modkey, "Control"   }, "l",      function(c) swapWindow(c,1) end ),
     -- http://awesome.naquadah.org/wiki/Move_Window_to_Workspace_Left/Right (should be updated for 3.5)
+    awful.key({ modkey, "Shift"     }, "p", function (c) sendClient(c, -1) end),
+    awful.key({ modkey, "Shift"     }, "n", function (c) sendClient(c, 1) end),
     awful.key({ modkey, "Control"   }, "p",
     function (c)
-            local curidx = awful.tag.getidx(c:tags()[1])
-            tag = screen[mouse.screen]:tags()[9]
-            if not (curidx == 1) then
-                tag = screen[mouse.screen]:tags()[curidx - 1]
-            end
-            c:tags({tag})
+            tag = sendClient(c, -1)
             awful.tag.viewonly(tag)
         end),
     awful.key({ modkey, "Control"   }, "n",
     function (c)
-            local curidx = awful.tag.getidx(c:tags()[1])
-            tag = screen[mouse.screen]:tags()[1]
-            if not (curidx == 9) then
-                tag = screen[mouse.screen]:tags()[curidx + 1]
-            end
-            c:tags({tag})
+            tag = sendClient(c, 1)
             awful.tag.viewonly(tag)
         end),
     awful.key({ modkey,           }, "m",      function (c) c:swap(awful.client.getmaster()) end),
