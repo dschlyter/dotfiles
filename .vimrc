@@ -174,6 +174,8 @@ nnoremap <leader>k :bp<cr>
 nnoremap <leader>- yypVr-
 nnoremap <leader>= yypVr=
 
+" insert current date
+nnoremap <leader>i "=strftime("%F")<CR>p
 
 " possibly breaking customizations
 " ================================
