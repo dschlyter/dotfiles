@@ -180,8 +180,11 @@ nnoremap <leader>i "=strftime("%F")<CR>p
 " possibly breaking customizations
 " ================================
 
+" repeat last command and move down a line 
+" (this chould be a nice plugin if expanded)
+noremap _ .j
 
-" move to start and end of line using bash-style shortcuts
+" move to start and end of line using readline-style shortcuts
 noremap <C-a> ^
 noremap <C-e> $
 inoremap <C-a> <C-o>^
