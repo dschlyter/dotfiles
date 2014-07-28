@@ -59,6 +59,11 @@ function retry {
     done
 }
 
+function fixenc {
+    mv "$1" "$1.orig"
+    iconv -f ISO-8859-1 -t UTF-8 "$1.orig" > "$1"
+}
+
 # Prompt
 
 autoload -U colors && colors
