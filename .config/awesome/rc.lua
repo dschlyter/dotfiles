@@ -321,6 +321,11 @@ globalkeys = awful.util.table.join(
     -- Dmenu prompt using the awesome theme - from: http://awesome.naquadah.org/wiki/Using_dmenu (awesome theme moved to ~/.xboomx/config)
     -- install xboomx before using this https://bitbucket.org/dehun/xboomx/wiki/Home
     awful.key({ modkey            }, "d",     function () 
+        -- HACK! dmenu does not want to spawn on empty screens if there is a focused client on another screen
+        -- Spawn a dummy terminal that dies immediately, this is not visible on empty screens
+        if mouse.screen ~= client.focus.screen then
+            awful.util.spawn("urxvt -e 'echo'") 
+        end
         awful.util.spawn("xboomx") 
     end),
     awful.key({ modkey            }, "r",     function () mypromptbox[mouse.screen]:run() end),
