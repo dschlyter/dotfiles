@@ -323,7 +323,7 @@ globalkeys = awful.util.table.join(
     awful.key({ modkey            }, "d",     function () 
         -- HACK! dmenu does not want to spawn on empty screens if there is a focused client on another screen
         -- Spawn a dummy terminal that dies immediately, this is not visible on empty screens
-        if mouse.screen ~= client.focus.screen then
+        if client.focus and mouse.screen ~= client.focus.screen then
             awful.util.spawn("urxvt -e 'echo'") 
         end
         awful.util.spawn("xboomx") 
