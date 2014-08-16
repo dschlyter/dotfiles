@@ -43,7 +43,7 @@
     br = branch
     rb = rebase
     co = checkout
-    lg = log --color --graph --date=iso --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --all
+    lg = log --color --graph --date=iso --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --all -n 15
     purge = !git branch -d $1 && git push origin --delete
     # add all changes interactively and then commit, including a hack to display and add untracked files
     pc = "!sh -c 'git ls-files --other --exclude-standard | while read f; do cat \"$f\"; echo \\\"$f\\\" | xargs -p git add; done; git add -p $@ && git commit -v || git reset' -"
