@@ -23,14 +23,14 @@ alias -g MAP='| xargs -n 1'
 
 ## Flags on by default
 alias locate='locate -i'
-alias ls='ls -h --color=auto'
+alias ls='ls -h --color=auto --group-directories-first'
 alias mv='mv -i'
 alias cp='cp -i'
 alias make='make -j 2'
 alias nautilus='nautilus --no-desktop'
 
 function md {
-    mkdir $1
+    mkdir -p $1
     cd $1
 }
 
