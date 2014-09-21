@@ -34,6 +34,14 @@ function md {
     cd $1
 }
 
+function ap {
+    if ! [ "$1" ]; then
+        local FILE="ansible/site.yml"
+        [[ -f "$FILE" ]] || FILE="$(git rev-parse --show-toplevel)/ansible/site.yml"
+    fi
+    ansible-playbook $FILE "$@"
+}
+
 # Default to date -Is if no args are supplied
 # iso-8601 is the one true date format
 if [ -f /bin/date ]; then
