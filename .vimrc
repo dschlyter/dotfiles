@@ -184,6 +184,8 @@ nnoremap <leader>i "=strftime("%F")<CR>p
 " (this chould be a nice plugin if expanded)
 noremap _ .j
 
+noremap <Cr> o<Esc>
+
 " move to start and end of line using readline-style shortcuts
 noremap <C-a> ^
 noremap <C-e> $
