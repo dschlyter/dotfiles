@@ -199,7 +199,7 @@ setopt pushdignoredups          # and don't duplicate them
 #setopt nohup                   # and don't kill them, either
 setopt listpacked               # compact completion lists
 setopt listtypes                # show types in completion
-#setopt extendedglob             # weird & wacky pattern matching - yay zsh!
+setopt extendedglob             # weird & wacky pattern matching - yay zsh!
 setopt nocaseglob
 setopt numericglobsort
 setopt completeinword           # not just at the end
