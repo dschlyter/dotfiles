@@ -52,7 +52,17 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
 
     " golang autocomplete
     Bundle 'Blackrush/vim-gocode'
-    "set completeopt-=preview "disable scratch buffer popup
+    " set completeopt-=preview "disable scratch buffer popup
+    " golang less anoying imports, requires:
+    " go get code.google.com/p/go.tools/cmd/goimports
+    let g:gofmt_command="goimports"
+    
+    " golang jump to def, requires:
+    " go get -v code.google.com/p/rog-go/exp/cmd/godef
+    " go install -v code.google.com/p/rog-go/exp/cmd/godef
+    Bundle 'dgryski/vim-godef'
+    let g:godef_split=0
+
     
     " julia support
     Bundle 'JuliaLang/julia-vim'
