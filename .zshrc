@@ -28,6 +28,7 @@ alias mv='mv -i'
 alias cp='cp -i'
 alias make='make -j 2'
 alias nautilus='nautilus --no-desktop'
+alias tig='tig --all'
 
 function md {
     mkdir -p $1
