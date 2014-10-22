@@ -165,7 +165,32 @@ end
 
 focus_by_id = function (idx)
     awful.client.focus.byidx(idx)
-    if client.focus then client.focus:raise() end
+    if client.focus then 
+        client.focus:raise() 
+        focusLayer(client.focus)
+    end
+end
+
+-- Having maximized clients that are only half visibile is kind of useless
+-- When one tiled window is in focus, all tiled windows should be shown (by lowering all maximized)
+focusLayer = function(focused_client)
+    if not awful.client.floating.get(focused_client) then
+
+        all_clients = client.get(focused_client.screen)
+        for key,other_client in pairs(all_clients) do 
+            if other_client.maximized_vertical and other_client:isvisible() then
+
+                -- Tricky edge case, placing an unfocused client under the mouse can steal focus
+                mouse_client = awful.mouse.client_under_pointer()
+                if mouse_client ~= nil and mouse_client.instance == other_client.instance then
+                    mouse_moved_by_screen_focus = true
+                end
+
+                other_client:lower()
+            end
+        end
+        
+    end
 end
 
 mytasklist = {}
@@ -488,28 +513,6 @@ client.add_signal("manage", function (c, startup)
             awful.placement.no_overlap(c)
             awful.placement.no_offscreen(c)
         end
-    end
-end)
-
--- Having maximized clients that are only half visibile is kind of useless
--- When one tiled window is in focus, all tiled windows should be shown (by lowering all maximized)
-client.add_signal("focus", function(focused_client)
-    if not awful.client.floating.get(focused_client) then
-
-        all_clients = client.get(focused_client.screen)
-        for key,other_client in pairs(all_clients) do 
-            if other_client.maximized_vertical and other_client:isvisible() then
-
-                -- Tricky edge case, placing an unfocused client under the mouse can steal focus
-                mouse_client = awful.mouse.client_under_pointer()
-                if mouse_client ~= nil and mouse_client.instance == other_client.instance then
-                    mouse_moved_by_screen_focus = true
-                end
-
-                other_client:lower()
-            end
-        end
-        
     end
 end)
 
