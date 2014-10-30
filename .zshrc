@@ -92,13 +92,13 @@ update_git_info() {
         else
             local GIT_REMOTE=$(git config branch.$GIT_BRANCH.remote)
             local GIT_REMOTE_BRANCH="$GIT_REMOTE/$GIT_BRANCH"
-            [[ $GIT_REMOTE == "" ]] && GIT_REMOTE_BRANCH="origin/master"
+            test -z "$GIT_REMOTE" && GIT_REMOTE_BRANCH="origin/master"
             local GIT_AHEAD="^$(git rev-list $GIT_REMOTE_BRANCH..HEAD 2> /dev/null | wc -l)"
             [[ $GIT_AHEAD == "^0" ]] && GIT_AHEAD=""
         fi
 
-        command git diff --quiet --ignore-submodules HEAD &>/dev/null
-        [[ $? -eq 1 ]] && local GIT_DIRTY='*'
+        GIT_DIRTY=""
+        test -n "$(git ls-files --modified --others --exclude-standard)" && GIT_DIRTY='*'
 
         GIT_INFO="%{$fg_bold[blue]%}@$GIT_BRANCH$GIT_AHEAD$GIT_DIRTY%{$reset_color%}"
     else
