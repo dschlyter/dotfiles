@@ -192,7 +192,7 @@ nnoremap <leader>i "=strftime("%F")<CR>p
 
 " repeat last command and move down a line 
 " (this chould be a nice plugin if expanded)
-noremap _ .j
+noremap - .j
 
 noremap <Cr> o<Esc>
 
