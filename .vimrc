@@ -130,8 +130,8 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     let g:airline_theme_patch_func = 'AirlineThemePatch'
 
     " show + - in the gutter for uncommited git change
-    Bundle "airblade/vim-gitgutter"
-    map <leader>g :GitGutterEnable<CR>
+    Bundle "mhinz/vim-signify"
+    let g:signify_vcs_list = [ 'git', 'hg' ]
 
     " enable dsb, cs'" and ysiw<div> syntax for changing surrounding elements
     Bundle "tpope/vim-surround"
