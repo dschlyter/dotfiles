@@ -123,25 +123,16 @@ if [ -f $AUTOJUMP_SCRIPT ]; then
     alias js='autojump --stat'
 fi
 
-# Vim mode while not messing up existing nice shortcuts
+# Readline keybindings with ability to enter vim-mode
 
-bindkey -v
-bindkey -M viins 'jj' vi-cmd-mode
+bindkey -e
+bindkey 'jj' vi-cmd-mode # enter vim-mode with jj
+bindkey '^[' vi-cmd-mode # enter vim-mode with Esc
 
-bindkey "^R" history-incremental-pattern-search-backward
-bindkey "^F" history-incremental-pattern-search-forward
-bindkey '^A' beginning-of-line
-bindkey '^E' end-of-line
-bindkey '^W' backward-kill-word
-bindkey '^B' backward-word
-bindkey '^V' forward-word
-# save current line and come back to it after running another command
-bindkey '^Y' push-line 
-
-bindkey '^P' up-line-or-history
-bindkey '^N' down-line-or-history
 bindkey '^K' up-line-or-history
 bindkey '^J' down-line-or-history
+bindkey -M vicmd '^A' beginning-of-line
+bindkey -M vicmd '^E' end-of-line
 bindkey -M vicmd '^K' up-line-or-history
 bindkey -M vicmd '^J' down-line-or-history
 
@@ -152,14 +143,6 @@ foreground-vim() {
 }
 zle -N foreground-vim
 bindkey '^Z' foreground-vim
-
-# Move to where the arguments belong.
-after-first-word() {
-   zle beginning-of-line
-   zle forward-word
-}
-zle -N after-first-word
-bindkey "^X1" after-first-word
 
 # Completition
 
