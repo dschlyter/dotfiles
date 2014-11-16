@@ -15,6 +15,7 @@ alias xo='xdg-open'
 alias se='sudoedit'
 alias ack='ack-grep'
 alias serve='python -m SimpleHTTPServer'
+alias vims='vim -S .vimsession'
 
 ## Global aliases
 alias -g G='| grep -i'

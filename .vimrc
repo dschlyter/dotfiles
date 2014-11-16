@@ -62,7 +62,6 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " go install -v code.google.com/p/rog-go/exp/cmd/godef
     Bundle 'dgryski/vim-godef'
     let g:godef_split=0
-
     
     " julia support
     Bundle 'JuliaLang/julia-vim'
@@ -132,6 +131,10 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " show + - in the gutter for uncommited git change
     Bundle "mhinz/vim-signify"
     let g:signify_vcs_list = [ 'git', 'hg' ]
+
+    " better session handling
+    Bundle 'tpope/vim-obsession'
+    command Obs Obsession .vimsession
 
     " enable dsb, cs'" and ysiw<div> syntax for changing surrounding elements
     Bundle "tpope/vim-surround"
