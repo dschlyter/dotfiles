@@ -146,6 +146,21 @@ mytaglist.buttons = awful.util.table.join(
                     awful.button({ }, 5, awful.tag.viewnext)
                     )
 
+-- tmux style zoom client, maximize and demaximize when switching focus
+zoomed_client = nil
+zoom_client = function (c)
+    zoomed_client = c
+    set_maximized(zoomed_client, true)
+end
+
+client.add_signal("unfocus", function(c)
+    if zoomed_client then
+        set_maximized(zoomed_client, false)
+        zoomed_client = nil
+    end
+end)
+
+
 toggle_maximized = function (c)
     float = awful.client.floating.get(c)
 
@@ -401,7 +416,8 @@ clientkeys = awful.util.table.join(
             -- minimized, since minimized clients can't have the focus.
             c.minimized = true
         end),
-    awful.key({ modkey,           }, "g",      toggle_maximized) 
+    awful.key({ modkey,           }, "g",      toggle_maximized),
+    awful.key({ modkey,           }, "z",      zoom_client) 
 )
 
 -- Compute the maximum number of digit we need, limited to 9
