@@ -62,6 +62,12 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " go install -v code.google.com/p/rog-go/exp/cmd/godef
     Bundle 'dgryski/vim-godef'
     let g:godef_split=0
+
+    " clojure leiningen support
+    Bundle 'tpope/vim-leiningen'
+
+    " clojure repl
+    Bundle 'tpope/vim-fireplace'
     
     " julia support
     Bundle 'JuliaLang/julia-vim'
