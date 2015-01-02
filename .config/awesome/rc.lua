@@ -116,6 +116,7 @@ mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesom
                                     { "Debian", debian.menu.Debian_menu.Debian },
                                     { "open terminal", terminal },
                                     { "open program", "xboomx" },
+                                    { "switch audio", "/home/david/bin/switch-audio-sink" },
                                     { "quit", myshutdownmenu }
                                   }
                         })
@@ -313,6 +314,13 @@ swapWindow = function (c, offset)
     c:raise()
 end
 
+changeVolume = function(change) 
+    awful.util.pread("amixer -D pulse sset Master " .. change)
+    volume = awful.util.pread("amixer -D pulse sget Master | grep %")
+    naughty.notify({ title = "Volume",
+                     text = volume,
+                     timeout = 2})
+end
 
 -- {{{ Key bindings
 globalkeys = awful.util.table.join(
@@ -356,6 +364,12 @@ globalkeys = awful.util.table.join(
     awful.key({ modkey, "Shift"   }, "q", awesome.quit),
     awful.key({ modkey,           }, "s",     function () awful.util.spawn( "bash -c 'sleep 1 && xset dpms force off'") end),
     awful.key({ modkey, "Shift"   }, "s",     function () awful.util.spawn( "/home/david/bin/suspend" ) end),
+
+    -- Audio controls
+    awful.key({ modkey,           }, "e",     function () awful.util.spawn( "/home/david/bin/switch-audio-sink") end),
+    awful.key({ modkey,           }, "w",     function () awful.util.spawn( "amixer -D pulse sset Master toggle") end),
+    awful.key({ modkey,           }, "a",     function () changeVolume("5%+") end),
+    awful.key({ modkey,           }, "x",     function () changeVolume("5%-") end),
 
     -- Prompt
     -- Dmenu prompt using the awesome theme - from: http://awesome.naquadah.org/wiki/Using_dmenu (awesome theme moved to ~/.xboomx/config)
