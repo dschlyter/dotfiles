@@ -92,7 +92,7 @@ function first_line(file)
 end
 
 bg_file = first_line("/home/david/.bg")
-theme.wallpaper_cmd = { "feh --bg-scale " .. bg_file }
+theme.wallpaper_cmd = { "nitrogen --set-centered " .. bg_file }
 
 -- You can use your own layout icons like this:
 theme.layout_fairh = "/usr/share/awesome/themes/zenburn/layouts/fairh.png"
