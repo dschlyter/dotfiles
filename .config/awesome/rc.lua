@@ -209,6 +209,15 @@ focusLayer = function(focused_client)
     end
 end
 
+global_minimize = function(m) 
+    for s = 1, screen.count() do
+        all_clients = awful.tag.selected(s):clients()
+        for _,c in pairs(all_clients) do 
+            c.minimized = m
+        end
+    end
+end
+
 mytasklist = {}
 mytasklist.buttons = awful.util.table.join(
                      awful.button({ }, 1, function (c)
@@ -370,6 +379,8 @@ globalkeys = awful.util.table.join(
     awful.key({ modkey,           }, "w",     function () awful.util.spawn( "amixer -D pulse sset Master toggle") end),
     awful.key({ modkey,           }, "a",     function () changeVolume("5%+") end),
     awful.key({ modkey,           }, "x",     function () changeVolume("5%-") end),
+    awful.key({ modkey, "Control" }, "b",     function () global_minimize(true) end),
+    awful.key({ modkey, "Control" }, "v",     function () global_minimize(false) end),
 
     -- Prompt
     -- Dmenu prompt using the awesome theme - from: http://awesome.naquadah.org/wiki/Using_dmenu (awesome theme moved to ~/.xboomx/config)
