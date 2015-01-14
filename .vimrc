@@ -294,7 +294,9 @@ endfunc
 autocmd CursorMoved * :call HighlightUnderCursor()
 
 " Diff with file on disk
-command DiffOrig vert new | set bt=nofile | r ++edit # | 0d_ | diffthis | wincmd p | diffthis
+if !exists(":DiffOrig")
+    command DiffOrig vert new | set bt=nofile | r ++edit # | 0d_ | diffthis | wincmd p | diffthis
+endif
 
 function! s:DiffWithSaved()
     let filetype=&ft
