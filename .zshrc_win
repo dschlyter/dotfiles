@@ -1,5 +1,8 @@
+# Zsh settings specific for zsh on cygwin/babun on windows
+
 # Autojump
-[[ -s /home/davsch/.autojump/etc/profile.d/autojump.sh ]] && source /home/davsch/.autojump/etc/profile.d/autojump.sh
+AUTOJUMP=$HOME/.autojump/etc/profile.d/autojump.sh 
+[[ -s $AUTOJUMP ]] && source $AUTOJUMP
 
 # Makes choco work https://github.com/git-tfs/git-tfs/issues/135
 unset tmp
@@ -10,10 +13,10 @@ unset TZ
 
 # Kill win process
 function wkill() {
+    if ! [ "$1" ]; then
+        echo "Usage: wkill <processname>"
+        return 1
+    fi
     ps -W G "$1" | awk '{print $1}' | xargs kill -f
 }
 alias jkill="wkill java"
-
-alias mvni='mvn clean install "-Dmaven.wagon.http.ssl.insecure=true" "-Dmaven.wagon.http.ssl.allowall=true" -U'
-alias mvnint='mvni -DskipTest=true'
-alias hgl='hg log -G --style compact -l 20'

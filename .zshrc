@@ -198,7 +198,8 @@ setopt recexact                 # recognise exact, ambiguous matches
 # Overriding configs goes in .zshrc_local
 
 LOCAL_ZSHRC=~/.zshrc_local
-if [ -f $LOCAL_ZSHRC ]; then
-    source $LOCAL_ZSHRC
-fi
+[ -f $LOCAL_ZSHRC ] && source $LOCAL_ZSHRC
+
+WIN_ZSHRC=~/.zshrc_win
+[ -f $WIN_ZSHRC ] && source $WIN_ZSHRC
 
