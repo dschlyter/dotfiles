@@ -406,3 +406,6 @@ set viminfo='10,\"100,:20,%,n~/.viminfo
 
 " modelines seldom used and possible security risk
 set modelines=0
+
+set nobackup
+set nowritebackup

@@ -1,0 +1,19 @@
+# Autojump
+[[ -s /home/davsch/.autojump/etc/profile.d/autojump.sh ]] && source /home/davsch/.autojump/etc/profile.d/autojump.sh
+
+# Makes choco work https://github.com/git-tfs/git-tfs/issues/135
+unset tmp
+unset temp
+
+# Fix time function problems in phantomjs
+unset TZ
+
+# Kill win process
+function wkill() {
+    ps -W G "$1" | awk '{print $1}' | xargs kill -f
+}
+alias jkill="wkill java"
+
+alias mvni='mvn clean install "-Dmaven.wagon.http.ssl.insecure=true" "-Dmaven.wagon.http.ssl.allowall=true" -U'
+alias mvnint='mvni -DskipTest=true'
+alias hgl='hg log -G --style compact -l 20'
