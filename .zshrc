@@ -99,7 +99,7 @@ update_git_info() {
         fi
 
         GIT_DIRTY=""
-        test -n "$(git ls-files --modified --others --exclude-standard)" && GIT_DIRTY='*'
+        test -n "$(git status --porcelain)" && GIT_DIRTY='*' # required git 1.7+
 
         GIT_INFO="%{$fg_bold[blue]%}@$GIT_BRANCH$GIT_AHEAD$GIT_DIRTY%{$reset_color%}"
     else
@@ -202,4 +202,3 @@ LOCAL_ZSHRC=~/.zshrc_local
 
 WIN_ZSHRC=~/.zshrc_win
 [ -f $WIN_ZSHRC ] && source $WIN_ZSHRC
-
