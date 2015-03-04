@@ -57,6 +57,8 @@
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "Warning: Untracked files!" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
     # --amend to a previous commit below HEAD
     fixup = !sh -c '(git diff-files --quiet || (echo "Unstaged changes, please commit or stash with --keep-index" && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -
-    checkpoint = !git stash && git stash apply
+    checkpoint = !git stash --include-untracked && git stash apply
+    # gitflow, check unreleased features on develop branch
+    features = !git lgh master..develop --merges -n 9999
 [web]
 	browser = google-chrome
