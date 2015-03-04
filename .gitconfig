@@ -42,8 +42,9 @@
     cm = commit -v
     br = branch
     rb = rebase
-    srb = !git stash --include-untracked && git rebase && git stash pop
-    spull = !git stash --include-untracked && git pull && git stash pop
+    changes = !test -n \"$(git status --porcelain)\" || (echo "No local changes" && exit 1) 
+    srb = !git changes && git stash --include-untracked && git rebase && git stash pop
+    spull = !git changes && git stash --include-untracked && git pull && git stash pop
     co = checkout
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
