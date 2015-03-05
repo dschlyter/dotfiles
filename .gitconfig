@@ -61,5 +61,9 @@
     checkpoint = !git stash --include-untracked && git stash apply
     # gitflow, check unreleased features on develop branch
     features = !git lgh master..develop --merges -n 9999
+    unpushed = !git lg --branches --not --remotes
 [web]
 	browser = google-chrome
+[include]
+    # local override of settings, file relative to .gitconfig. requires git 1.7.10+
+    path = .gitconfig_local
