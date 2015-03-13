@@ -67,3 +67,5 @@
 [include]
     # local override of settings, file relative to .gitconfig. requires git 1.7.10+
     path = .gitconfig_local
+[init]
+	templatedir = ~/.git_template
