@@ -62,6 +62,9 @@
     # gitflow, check unreleased features on develop branch
     features = !git lgh master..develop --merges -n 9999
     unpushed = !git lg --branches --not --remotes
+    # fast forward develop or master without checking them out
+    dup = branch -f develop origin/develop
+    mup = branch -f master origin/master
 [web]
 	browser = google-chrome
 [include]
