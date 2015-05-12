@@ -20,3 +20,6 @@ function wkill() {
     ps -W G "$1" | awk '{print $1}' | xargs kill -f
 }
 alias jkill="wkill java"
+
+# Start an ssh-agent (this will spawn one per terminal, not ideal but...)
+eval $(/usr/bin/ssh-agent -s)

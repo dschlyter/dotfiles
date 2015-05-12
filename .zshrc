@@ -198,5 +198,5 @@ setopt recexact                 # recognise exact, ambiguous matches
 LOCAL_ZSHRC=~/.zshrc_local
 [ -f $LOCAL_ZSHRC ] && source $LOCAL_ZSHRC
 
-WIN_ZSHRC=~/.zshrc_win
+WIN_ZSHRC=~/.zshrc_cygwin
 [ -f $WIN_ZSHRC ] && source $WIN_ZSHRC
