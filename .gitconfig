@@ -20,6 +20,7 @@
 [core]
     whitespace=fix,-indent-with-non-tab,trailing-space,cr-at-eol
 	excludesfile = /home/david/.gitignore
+    editor = vim
 [advice]
 	statusHints = false
 [branch]
@@ -30,7 +31,7 @@
 [diff]
 	renames = copies
 [push]
-	default = tracking
+	default = matching
 # Enable the recording of resolved conflicts, so that identical hunks can be resolved automatically later on.
 [rerere]
 	enabled = true
@@ -42,10 +43,10 @@
     cm = commit -v
     br = branch
     rb = rebase
+    co = checkout
     changes = !test -n \"$(git status --porcelain)\" || (echo "No local changes" && exit 1) 
     srb = !git changes && git stash --include-untracked && git rebase && git stash pop
     spull = !git changes && git stash --include-untracked && git pull && git stash pop
-    co = checkout
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
     lgh = log --color --graph --date=iso --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
@@ -72,3 +73,12 @@
     path = .gitconfig_local
 [init]
 	templatedir = ~/.git_template
+[credential]
+	helper = cache --timeout=3600
+[merge]
+	tool = vimdiff
+[mergetool]
+	keeptemporaries = false
+	keepbackups = false
+	prompt = false
+	trustexitcode = false
