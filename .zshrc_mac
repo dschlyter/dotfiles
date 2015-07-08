@@ -3,3 +3,4 @@ alias ls='ls -h -G'
 
 # use updated coreutils by default
 type gls > /dev/null && alias ls='gls -h --color=auto --group-directories-first'
+type wc > /dev/null && alias wc='gwc'
