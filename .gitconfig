@@ -1,6 +1,6 @@
 [user]
-	name = David Schlyter
-	email = dschlyter@gmail.com
+    name = David Schlyter
+    email = dschlyter@gmail.com
 [color]
     ui = auto
 [color "branch"]
@@ -23,19 +23,19 @@
     editor = vim
     trustctime = false
 [advice]
-	statusHints = false
+    statusHints = false
 [branch]
     # When branching off a remote branch, automatically let the local branch track the remote branch
-	autosetupmerge = true
+    autosetupmerge = true
     # Use rebase when pulling
-	autosetuprebase = always
+    autosetuprebase = always
 [diff]
-	renames = copies
+    renames = copies
 [push]
-	default = current
+    default = current
 # Enable the recording of resolved conflicts, so that identical hunks can be resolved automatically later on.
 [rerere]
-	enabled = true
+    enabled = true
 [interactive]
     # remove need to press enter in interactive or add -p modes, requires library readkey to be installed
     singlekey = true
@@ -71,18 +71,18 @@
     dup = !git fetch && git merge-base --is-ancestor develop origin/develop && git branch -f develop origin/develop
     mup = !git fetch && git merge-base --is-ancestor master origin/master && git branch -f master origin/master
 [web]
-	browser = google-chrome
+    browser = google-chrome
 [include]
     # local override of settings, file relative to .gitconfig. requires git 1.7.10+
     path = .gitconfig_local
 [init]
-	templatedir = ~/.git_template
+    templatedir = ~/.git_template
 [credential]
-	helper = cache --timeout=3600
+    helper = cache --timeout=3600
 [merge]
-	tool = vimdiff
+    tool = vimdiff
 [mergetool]
-	keeptemporaries = false
-	keepbackups = false
-	prompt = false
-	trustexitcode = false
+    keeptemporaries = false
+    keepbackups = false
+    prompt = false
+    trustexitcode = false
