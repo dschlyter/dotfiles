@@ -21,7 +21,7 @@
     whitespace=fix,-indent-with-non-tab,trailing-space,cr-at-eol
 	excludesfile = /home/david/.gitignore
     editor = vim
-	trustctime = false
+    trustctime = false
 [advice]
 	statusHints = false
 [branch]
@@ -32,7 +32,7 @@
 [diff]
 	renames = copies
 [push]
-	default = matching
+	default = current
 # Enable the recording of resolved conflicts, so that identical hunks can be resolved automatically later on.
 [rerere]
 	enabled = true
@@ -45,9 +45,10 @@
     br = branch
     rb = rebase
     co = checkout
-    changes = !test -n \"$(git status --porcelain)\" || (echo "No local changes" && exit 1) 
-    srb = !git changes && git stash --include-untracked && git rebase && git stash pop
-    spull = !git changes && git stash --include-untracked && git pull && git stash pop
+
+    # get latest changes even with local changes (but abort on conflicts)
+    up = !git fetch && git merge --ff-only
+
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
     lgh = log --color --graph --date=iso --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
@@ -61,12 +62,14 @@
     # --amend to a previous commit below HEAD
     fixup = !sh -c '(git diff-files --quiet || (echo "Unstaged changes, please commit or stash with --keep-index" && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -
     checkpoint = !git stash --include-untracked && git stash apply
+
     # gitflow, check unreleased features on develop branch
     features = !git lgh master..develop --merges -n 9999
     unpushed = !git lg --branches --not --remotes
     # fast forward develop or master without checking them out
-    dup = branch -f develop origin/develop
-    mup = branch -f master origin/master
+    dup = !git fetch && git merge-base --is-ancestor develop origin/develop && git branch -f develop origin/develop
+    mup = !git fetch && git merge-base --is-ancestor master origin/master && git branch -f master origin/master
+
 [web]
 	browser = google-chrome
 [include]
