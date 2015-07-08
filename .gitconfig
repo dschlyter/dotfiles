@@ -62,6 +62,7 @@
     # --amend to a previous commit below HEAD
     fixup = !sh -c '(git diff-files --quiet || (echo "Unstaged changes, please commit or stash with --keep-index" && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -
     checkpoint = !git stash --include-untracked && git stash apply
+    unstage = reset HEAD --
 
     # gitflow, check unreleased features on develop branch
     features = !git lgh master..develop --merges -n 9999
@@ -69,7 +70,6 @@
     # fast forward develop or master without checking them out
     dup = !git fetch && git merge-base --is-ancestor develop origin/develop && git branch -f develop origin/develop
     mup = !git fetch && git merge-base --is-ancestor master origin/master && git branch -f master origin/master
-
 [web]
 	browser = google-chrome
 [include]

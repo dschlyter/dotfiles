@@ -23,8 +23,8 @@ alias -g L='| less'
 alias -g MAP='| xargs -n 1'
 
 ## Flags on by default
-alias locate='locate -i'
 alias ls='ls -h --color=auto --group-directories-first'
+alias locate='locate -i'
 alias mv='mv -i'
 alias cp='cp -i'
 alias make='make -j 2'
@@ -202,3 +202,6 @@ LOCAL_ZSHRC=~/.zshrc_local
 
 WIN_ZSHRC=~/.zshrc_cygwin
 [ -f $WIN_ZSHRC ] && source $WIN_ZSHRC
+
+MAC_ZSHRC=~/.zshrc_mac
+[ -f $MAC_ZSHRC ] && source $MAC_ZSHRC
