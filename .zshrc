@@ -116,14 +116,6 @@ if [ "$SSH_CONNECTION" != "" ]; then
     RPROMPT="   %{$fg[blue]%}[%n@%m]%{$reset_color%}"
 fi
 
-# Fast cd with autojump
-
-AUTOJUMP_SCRIPT=/usr/share/autojump/autojump.zsh
-if [ -f $AUTOJUMP_SCRIPT ]; then
-    source $AUTOJUMP_SCRIPT
-    alias js='autojump --stat'
-fi
-
 # Readline keybindings with ability to enter vim-mode
 
 bindkey -e
@@ -205,3 +197,8 @@ WIN_ZSHRC=~/.zshrc_cygwin
 
 MAC_ZSHRC=~/.zshrc_mac
 [ -f $MAC_ZSHRC ] && source $MAC_ZSHRC
+
+export _Z_CMD="j"
+alias jc="j -c"
+Z_SH=~/.z.sh
+[ -f $Z_SH ] && source $Z_SH
