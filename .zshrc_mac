@@ -1,5 +1,6 @@
 # default alias makes OSX outdated binaries sad :(
 alias ls='ls -h -G'
+alias o='open'
 
 # use updated coreutils by default
 type gls > /dev/null && alias ls='gls -h --color=auto --group-directories-first'
