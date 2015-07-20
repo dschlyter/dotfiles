@@ -24,7 +24,7 @@ hi Cursor           ctermfg=black       ctermbg=white       cterm=reverse
 hi LineNr           ctermfg=green
 
 "highlighting
-hi Search           ctermfg=black       ctermbg=blue        cterm=BOLD
+hi Search           ctermfg=white       ctermbg=blue        cterm=BOLD
 hi MatchParen       ctermfg=white       ctermbg=darkgray    
 hi Visual           ctermfg=NONE        ctermbg=darkgray    
 
@@ -55,8 +55,8 @@ hi Comment      ctermfg=grey
 
 hi Statement    ctermfg=red
 hi Function		ctermfg=green
-hi PreProc      ctermfg=blue
-hi Type			ctermfg=blue
+hi PreProc      ctermfg=green
+hi Type         ctermfg=magenta
 hi Identifier   ctermfg=cyan
 
 hi Number		ctermfg=magenta

@@ -8,6 +8,13 @@ if !empty($COLORTERM) || $TERM == "xterm-256color" || $TERM == "screen-256color"
     set t_Co=256
 endif
 
+" default to colorscheme, then let plugins override
+try
+    colorscheme peksim
+catch
+    set background=dark
+    " use default colors
+endtry
 
 " plugins
 " =======
