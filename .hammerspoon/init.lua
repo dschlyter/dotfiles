@@ -15,6 +15,8 @@ hs.window.animationDuration = 0
 
 hs.hints.style = "vimperator" -- prefix hint with first letter in application name, to make it deterministic
 hs.hotkey.bind(modifierFocus, 'i', function()
+    -- threshold for showing full titles should increase based on number of screens
+    hs.hints.showTitleThresh = #hs.screen.allScreens() * 4
     hs.hints.windowHints()
 end)
 
@@ -53,7 +55,8 @@ function focusDirectionFrom(window, direction, strict)
     local otherWindows = window["windowsTo"..direction](window, nil, strict, strict)
 
     for k,v in pairs(otherWindows) do
-        if v:isStandard() then
+        -- when finding non-strict, stay on the same screen, to avoid completely confusing refocuses
+        if v:isStandard() and (strict or v:screen():id() == window:screen():id()) then
             v:focus()
             -- bug, if an application has multiple windows, a window on the current screen can steal focus
             -- solve this by focusing again if the intended window did not get the focus
