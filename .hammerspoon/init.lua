@@ -6,6 +6,7 @@
 local modifierFocus = {"alt"}
 local modifierResize = {"alt", "ctrl"}
 local modifierMoveScreen = {"alt", "ctrl", "cmd"}
+local minimumMoveDistance = 10
 
 hs.window.animationDuration = 0
 
@@ -20,9 +21,55 @@ end)
 -- hjkl to switch window focus
 ---------------------------------------
 
+hs.hotkey.bind(modifierFocus, 'k', function()
+    focusDirection("North")
+end)
 
-local findFocused = function(func) 
-    local window = hs.window.focusedWindow() 
+hs.hotkey.bind(modifierFocus, 'j', function()
+    focusDirection("South")
+end)
+
+hs.hotkey.bind(modifierFocus, 'l', function()
+    focusDirection("East")
+end)
+
+hs.hotkey.bind(modifierFocus, 'h', function()
+    focusDirection("West")
+end)
+
+-- reimplements focusWindowX with less buggy and more powerful functionality
+-- first try to find the best window, then fallback to all windows in that direction
+function focusDirection(direction)
+    findFocused(function(window) 
+        local found = focusDirectionFrom(window, direction, true)
+        if not found then
+            focusDirectionFrom(window, direction, false)
+        end
+    end)
+end
+
+function focusDirectionFrom(window, direction, strict)
+    -- otherWindows will be ordered with on-top window first
+    local otherWindows = window["windowsTo"..direction](window, nil, strict, strict)
+
+    for k,v in pairs(otherWindows) do
+        if v:isStandard() then
+            v:focus()
+            -- bug, if an application has multiple windows, a window on the current screen can steal focus
+            -- solve this by focusing again if the intended window did not get the focus
+            -- side effect: wrong window may remain on top
+            if v:id() ~= hs.window.focusedWindow():id() then
+                v:focus()
+            end
+            return true
+        end
+    end
+
+    return false
+end
+
+function findFocused(func)
+    local window = hs.window.focusedWindow()
     if window then
         func(window)
     else
@@ -30,47 +77,10 @@ local findFocused = function(func)
     end
 end
 
-hs.hotkey.bind(modifierFocus, 'k', function()
-    findFocused(function(window) 
-        window:focusWindowNorth()
-    end)
-end)
-
-hs.hotkey.bind(modifierFocus, 'j', function()
-    findFocused(function(window) 
-        window:focusWindowSouth()
-    end)
-end)
-
-hs.hotkey.bind(modifierFocus, 'l', function()
-    findFocused(function(window) 
-        window:focusWindowEast()
-    end)
-end)
-
-hs.hotkey.bind(modifierFocus, 'h', function()
-    findFocused(function(window) 
-        window:focusWindowWest()
-    end)
-end)
-
 -- u for fullscreen
 -- jkhl for half screen
 -- yinm for quarter window 
 -----------------------------------
-
-local scaleFocused = function(x, y, w, h)
-    findFocused(function(win)
-        local f = win:frame()
-        local max = win:screen():frame()
-
-        f.x = max.x + max.w * x
-        f.y = max.y + max.h * y
-        f.w = max.w * w
-        f.h = max.h * h
-        win:setFrame(f)
-    end)
-end
 
 hs.hotkey.bind(modifierResize, 'u', function()
     scaleFocused(0, 0, 1, 1)
@@ -108,18 +118,31 @@ hs.hotkey.bind(modifierResize, 'n', function()
     scaleFocused(0, 0.5, 0.5, 0.5)
 end)
 
+function scaleFocused(x, y, w, h)
+    findFocused(function(win)
+        local f = win:frame()
+        local max = win:screen():frame()
+
+        f.x = max.x + max.w * x
+        f.y = max.y + max.h * y
+        f.w = max.w * w
+        f.h = max.h * h
+        win:setFrame(f)
+    end)
+end
+
 -- hl for sending to next/prev monitor
 ------------------------------
 
 hs.hotkey.bind(modifierMoveScreen, 'h', function()
     findFocused(function(win)
-        win:moveToScreen(win:screen():next())
+        win:moveOneScreenWest()
     end)
 end)
 
 hs.hotkey.bind(modifierMoveScreen, 'l', function()
     findFocused(function(win)
-        win:moveToScreen(win:screen():previous())
+        win:moveOneScreenEast()
     end)
 end)
 
