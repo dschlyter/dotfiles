@@ -46,15 +46,18 @@ function ap {
 
 # Default to date -Is if no args are supplied
 # iso-8601 is the one true date format
-if [ -f /bin/date ]; then
-    func date() {
-        if [ "$*" ]; then
-            /bin/date $*
-        else
-            /bin/date -Is
-        fi
-    }
-fi
+func date() {
+    BINARY=/bin/date
+    BREW_BINARY=/usr/local/bin/gdate
+    if [ -f $BREW_BINARY ]; then
+        BINARY=$BREW_BINARY
+    fi
+    if [ "$*" ]; then
+        $BINARY $*
+    else
+        $BINARY -Is
+    fi
+}
 
 # Software beep
 export BEEP=/usr/share/sounds/KDE-Im-Message-In.ogg
