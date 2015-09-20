@@ -88,7 +88,7 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     let g:airline_theme_patch_func = 'AirlineThemePatch' " nicer colors
     function! AirlineThemePatch(palette)
         " calm blue instead of ugly yellow for normal mode
-        let normalColor = [ '', '', 255, 25, ]
+        let normalColor = [ '#eeeeee', '#005faf', 255, 25, ]
         let a:palette.normal.airline_a = normalColor
         let a:palette.normal.airline_z = normalColor
         
@@ -98,15 +98,9 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
 
         " subtle green for visual mode
         let a:palette.visual = copy(a:palette.normal)
-        let visualColor = [ '', '', 255, 22, ]
+        let visualColor = [ '#eeeeee', '#005f00', 255, 22, ]
         let a:palette.visual.airline_a = visualColor
         let a:palette.visual.airline_z = visualColor
-
-        " do not mark modified files in bottom bar (already marked on tabline)
-        let a:palette.normal_modified = {}
-        let a:palette.insert_modified = {}
-        let a:palette.visual_modified = {}
-        let a:palette.replace_modified = {}
     endfunction
 
     " show + - in the gutter for uncommited git change
