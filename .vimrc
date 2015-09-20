@@ -52,42 +52,6 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     let g:syntastic_enable_signs=1
     let g:syntastic_always_populate_loc_list = 1
 
-    " autocomplete engine
-    Bundle 'Valloric/YouCompleteMe'
-    let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
-    let g:ycm_extra_conf_globlist = ['~/code/dotfiles/*','~/Dropbox/code/dotfiles/*']
-
-    " golang autocomplete
-    Bundle 'Blackrush/vim-gocode'
-    " set completeopt-=preview "disable scratch buffer popup
-    " golang less anoying imports, requires:
-    " go get code.google.com/p/go.tools/cmd/goimports
-    let g:gofmt_command="goimports"
-    
-    " golang jump to def, requires:
-    " go get -v code.google.com/p/rog-go/exp/cmd/godef
-    " go install -v code.google.com/p/rog-go/exp/cmd/godef
-    Bundle 'dgryski/vim-godef'
-    let g:godef_split=0
-
-    " clojure leiningen support
-    Bundle 'tpope/vim-leiningen'
-
-    " clojure repl
-    Bundle 'tpope/vim-fireplace'
-    
-    " julia support
-    Bundle 'JuliaLang/julia-vim'
-    
-    " snippets-engine
-    Bundle "SirVer/ultisnips"
-    Bundle "honza/vim-snippets"
-    " UltiSnips does not work seamlessly with YCM yet, we need to rebind its triggers
-    " https://github.com/Valloric/YouCompleteMe/issues/420
-    let g:UltiSnipsExpandTrigger="<C-x>"
-    let g:UltiSnipsJumpForwardTrigger="<C-x>"
-    let g:UltiSnipsJumpBackwardTrigger="<A-x>"
-
     " filetree visualization and selection
     Bundle 'scrooloose/nerdtree'
     noremap <C-n> :NERDTreeToggle<cr>
@@ -99,7 +63,7 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " colorscheme for vim
     Bundle 'nanotech/jellybeans.vim'
 	let g:jellybeans_background_color_256 = 'none'
-    let g:jellybeans_overrides = { 'SignColumn': { 'guibg': 'NONE', '256ctermbg': 'NONE' }, }
+    let g:jellybeans_overrides = { 'SignColumn': { '256ctermbg': 'NONE' }, }
     try 
         colorscheme jellybeans
     catch
@@ -110,13 +74,18 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " fancier status line, with git integration etc
     Bundle 'bling/vim-airline'
     set laststatus=2 " always show statusline
-    let g:airline_detect_whitespace=0 " no warning for trailing whitespace
-    let g:airline_powerline_fonts = 1
+    let g:airline#extensions#whitespace#enabled = 0 " no warning for trailing whitespace
     let g:airline#extensions#tabline#enabled = 1
     let g:airline#extensions#tabline#left_sep = ' '
     let g:airline#extensions#tabline#left_alt_sep = '|'
 
+    " simple separators for bottom powerline, avoid font installation etc
+    let g:airline_powerline_fonts = 0
+    let g:airline_left_sep=' '
+    let g:airline_right_sep=' '
+
     let g:airline_theme='dark'
+    let g:airline_theme_patch_func = 'AirlineThemePatch' " nicer colors
     function! AirlineThemePatch(palette)
         " calm blue instead of ugly yellow for normal mode
         let normalColor = [ '', '', 255, 25, ]
@@ -139,7 +108,6 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
         let a:palette.visual_modified = {}
         let a:palette.replace_modified = {}
     endfunction
-    let g:airline_theme_patch_func = 'AirlineThemePatch'
 
     " show + - in the gutter for uncommited git change
     Bundle "mhinz/vim-signify"
@@ -152,28 +120,9 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " enable dsb, cs'" and ysiw<div> syntax for changing surrounding elements
     Bundle "tpope/vim-surround"
     Bundle "tpope/vim-repeat"
-
-    " color code parenthesis to show matching
-    Bundle 'kien/rainbow_parentheses.vim'
-    let g:rbpt_max = 6
-    au VimEnter * RainbowParenthesesToggleAll
-    au Syntax * RainbowParenthesesLoadRound
-    au Syntax * RainbowParenthesesLoadSquare
-    au Syntax * RainbowParenthesesLoadBraces
-
-    " comment and uncomment code
-    " use with <leader>cc and <leader>cu
-    Bundle 'scrooloose/nerdcommenter'
-
-    " write html with magic, use <C-e> to apply magic
-    Bundle 'tristen/vim-sparkup'
-
-    " close html tags quickly with <C-->
-    Bundle 'vim-scripts/closetag.vim'
 endif
 
 command BundleSetup !git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
-command YCMSetup !sh -c 'cd ~/.vim/bundle/YouCompleteMe; ./install.sh --clang-completer'
 
 " reenable filetype after plugin init
 filetype plugin indent on
