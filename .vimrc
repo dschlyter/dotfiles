@@ -56,9 +56,9 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     Bundle 'scrooloose/nerdtree'
     noremap <C-n> :NERDTreeToggle<cr>
 
-    " search code with ack from vim
-    Bundle 'mileszs/ack.vim'
-    noremap <C-g> :Ack 
+    " search code with ag from vim
+    Bundle 'rking/ag.vim'
+    noremap <C-g> :Ag
 
     " colorscheme for vim
     Bundle 'nanotech/jellybeans.vim'
