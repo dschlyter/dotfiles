@@ -140,6 +140,49 @@ foreground-vim() {
 zle -N foreground-vim
 bindkey '^Z' foreground-vim
 
+# Percol pgrep, pkill and history search
+# https://github.com/mooz/percol#zsh-history-search
+
+function exists { which $1 &> /dev/null }
+
+if exists percol; then
+    function ppgrep() {
+        if [[ $1 == "" ]]; then
+            PERCOL=percol
+        else
+            PERCOL="percol --query $1"
+        fi
+        ps aux | eval $PERCOL | awk '{ print $2 }'
+    }
+
+    function ppkill() {
+        if [[ $1 =~ "^-" ]]; then
+            QUERY=""            # options only
+        else
+            QUERY=$1            # with a query
+            [[ $# > 0 ]] && shift
+        fi
+        ppgrep $QUERY | xargs kill $*
+    }
+
+    function percol_select_history() {
+        local tac
+        exists gtac && tac="gtac" || { exists tac && tac="tac" || { tac="tail -r" } }
+        BUFFER=$(fc -l -n 1 | eval $tac | percol --query "$LBUFFER")
+        CURSOR=$#BUFFER         # move cursor
+        zle -R -c               # refresh
+    }
+
+    zle -N percol_select_history
+    bindkey '^R' percol_select_history
+
+    alias -g PERC='$(find . -not -path "*/\.*" | percol)'
+    alias vimp="vim PERC"
+
+    # autojump with percol
+    alias jp="cd \$(j -l | awk '{ print \$2 }' | tac | percol)"
+fi
+
 # Completition
 
 zstyle ':completion:*' use-cache on
@@ -205,3 +248,4 @@ export _Z_CMD="j"
 alias jc="j -c"
 Z_SH=~/.z.sh
 [ -f $Z_SH ] && source $Z_SH
+

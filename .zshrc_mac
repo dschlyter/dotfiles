@@ -11,3 +11,4 @@ use_gnu ls " -h --color=auto --group-directories-first"
 use_gnu wc
 use_gnu sed
 use_gnu sort
+use_gnu tac
