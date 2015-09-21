@@ -177,10 +177,18 @@ if exists percol; then
     bindkey '^R' percol_select_history
 
     alias -g PERC='$(find . -not -path "*/\.*" | percol)'
-    alias vimp="vim PERC"
+    alias pvim="vim PERC"
 
     # autojump with percol
-    alias jp="cd \$(j -l | awk '{ print \$2 }' | tac | percol)"
+    alias pj="cd \$(j -l | awk '{ print \$2 }' | tac | percol)"
+
+    # select a git commit from the fancy log with percol
+    alias -g PGIT="\$(git lg -n 10000 | percol | grep -E -o '[a-f0-9]{6}' -m 1)"
+
+    # fast-filter man pages with percol
+    function pman() {
+        man $1 | col -b | percol
+    }
 fi
 
 # Completition
