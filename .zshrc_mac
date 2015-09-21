@@ -3,5 +3,11 @@ alias ls='ls -h -G'
 alias o='open'
 
 # use updated coreutils by default
-type gls > /dev/null && alias ls='gls -h --color=auto --group-directories-first'
-type wc > /dev/null && alias wc='gwc'
+function use_gnu() {
+    type "g$1" > /dev/null && alias $1="g$1$2"
+}
+
+use_gnu ls " -h --color=auto --group-directories-first"
+use_gnu wc
+use_gnu sed
+use_gnu sort
