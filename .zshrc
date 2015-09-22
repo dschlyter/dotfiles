@@ -215,8 +215,6 @@ compinit
 HISTFILE=~/.zsh_history
 HISTSIZE=10000
 SAVEHIST=10000
-setopt HIST_IGNORE_DUPS         # ignore duplicates in history
-setopt HIST_IGNORE_SPACE        # ignore space appended commands
 setopt APPEND_HISTORY           # append history at close?
 
 ## mostly from ofb.net zshtricks
@@ -240,6 +238,8 @@ setopt nopromptcr               # don't add \r which overwrites cmd output with 
 setopt histverify               # when using ! cmds, confirm first
 setopt interactivecomments      # escape commands so i can use them later
 setopt recexact                 # recognise exact, ambiguous matches
+setopt histignorespace          # commands starting with space are not remembered
+setopt histignorealldups        # removes duplicate commands, even if non-sequential, useful for percol search
 
 # Overriding configs goes in .zshrc_local
 
