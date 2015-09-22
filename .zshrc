@@ -174,7 +174,7 @@ if exists percol; then
     }
 
     zle -N percol_select_history
-    bindkey '^R' percol_select_history
+    bindkey '^F' percol_select_history
 
     alias -g PERC='$(find . -not -path "*/\.*" | percol)'
     alias pvim="vim PERC"
