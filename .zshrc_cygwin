@@ -1,9 +1,5 @@
 # Zsh settings specific for zsh on cygwin/babun on windows
 
-# Autojump
-AUTOJUMP=$HOME/.autojump/etc/profile.d/autojump.sh 
-[[ -s $AUTOJUMP ]] && source $AUTOJUMP
-
 # Makes choco work https://github.com/git-tfs/git-tfs/issues/135
 unset tmp
 unset temp
