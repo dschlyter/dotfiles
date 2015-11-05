@@ -46,6 +46,7 @@
     br = branch
     rb = rebase
     co = checkout
+    fe = fetch --prune
 
     # get latest changes even with local changes (but abort on conflicts)
     up = !git fetch && git merge --ff-only
