@@ -273,7 +273,7 @@ au FocusGained,BufEnter * :silent! !
 
 " encryption should be strong 
 if exists("+cryptmethod")
-    set cryptmethod=blowfish
+    set cryptmethod=blowfish2
 endif
 
 " In many terminal emulators the mouse works just fine, thus enable it.
