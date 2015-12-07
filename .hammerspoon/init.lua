@@ -26,33 +26,33 @@ end)
 ---------------------------------------
 
 hs.hotkey.bind(modifierFocus, 'k', function()
-    local found = focusDirection("North")
+    local found = focusDirection("North", false)
     if not found then
         focusLayer(-1)
     end
 end)
 
 hs.hotkey.bind(modifierFocus, 'j', function()
-    local found = focusDirection("South")
+    local found = focusDirection("South", false)
     if not found then
         focusLayer(1)
     end
 end)
 
 hs.hotkey.bind(modifierFocus, 'l', function()
-    focusDirection("East")
+    focusDirection("East", true)
 end)
 
 hs.hotkey.bind(modifierFocus, 'h', function()
-    focusDirection("West")
+    focusDirection("West", true)
 end)
 
 -- reimplements focusWindowX with less buggy and more powerful functionality
 -- first try to find the best window, then fallback to all windows in that direction
-function focusDirection(direction)
+function focusDirection(direction, retryNonStrict)
     return findFocused(function(window) 
         local found = focusDirectionFrom(window, direction, true)
-        if not found then
+        if not found and retryNonStrict then
             found = focusDirectionFrom(window, direction, false)
         end
         return found
@@ -182,16 +182,17 @@ end
 
 function buildLayers()
     local windows = windowsForCurrentScreen()
-    -- TODO sort windows determistically
+    -- TODO sort here local windowIterator = spairs(windows, ordering)
     -- TODO group into layers
     return windows
 end
 
 function currentLayerIndex(layers)
-    local focusedWindow = hs.window.frontmostWindow()
+    local focusedWindow = hs.window.focusedWindow()
     for k,v in pairs(layers) do
+        log.d('searching '..tostring(k))
         if v == focusedWindow then
-            log.d('found focused')
+            log.d('found focused = '..tostring(k)..v:application():title())
             return k
         end
     end
@@ -206,12 +207,47 @@ function windowsForCurrentScreen()
     local currScreen = hs.window.frontmostWindow():screen()
     local windows = hs.window.visibleWindows()
     local ret = {}
-    for k,v in pairs(windows) do
+    for k,v in spairs(windows, windowOrdering) do
         -- log:d('found '..v:application():title())
         if v:isStandard() and v:screen():id() == currScreen:id() then
-            log:d('adding '..v:application():title())
+            log:d('adding '..v:application():title()..v:id())
             ret[#ret + 1] = v
+            -- TODO calculate window metadata for later sorting?
         end
     end
     return ret
+end
+
+-- http://stackoverflow.com/questions/15706270/sort-a-table-in-lua
+function spairs(t, order)
+    -- collect the keys
+    local keys = {}
+    for k in pairs(t) do keys[#keys+1] = k end
+
+    -- if order function given, sort by it by passing the table and keys a, b,
+    -- otherwise just sort the keys
+    if order then
+        table.sort(keys, function(a,b) return order(t, a, b) end)
+    else
+        table.sort(keys)
+    end
+
+    -- return the iterator function
+    local i = 0
+    return function()
+        i = i + 1
+        if keys[i] then
+            return keys[i], t[keys[i]]
+        end
+    end
+end
+
+function windowOrdering(t, a, b)
+    local aTitle = t[a]:application():title()
+    local bTitle = t[b]:application():title()
+    if aTitle ~= bTitle then
+        return bTitle < aTitle
+    end
+
+    return t[b]:id() < t[a]:id()
 end
