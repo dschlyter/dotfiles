@@ -10,6 +10,8 @@ local minimumMoveDistance = 10
 
 hs.window.animationDuration = 0
 
+local log = hs.logger.new('logger','debug')
+
 -- i to show window hints
 ----------------------------------
 
@@ -24,11 +26,17 @@ end)
 ---------------------------------------
 
 hs.hotkey.bind(modifierFocus, 'k', function()
-    focusDirection("North")
+    local found = focusDirection("North")
+    if not found then
+        focusLayer(-1)
+    end
 end)
 
 hs.hotkey.bind(modifierFocus, 'j', function()
-    focusDirection("South")
+    local found = focusDirection("South")
+    if not found then
+        focusLayer(1)
+    end
 end)
 
 hs.hotkey.bind(modifierFocus, 'l', function()
@@ -42,11 +50,12 @@ end)
 -- reimplements focusWindowX with less buggy and more powerful functionality
 -- first try to find the best window, then fallback to all windows in that direction
 function focusDirection(direction)
-    findFocused(function(window) 
+    return findFocused(function(window) 
         local found = focusDirectionFrom(window, direction, true)
         if not found then
-            focusDirectionFrom(window, direction, false)
+            found = focusDirectionFrom(window, direction, false)
         end
+        return found
     end)
 end
 
@@ -62,6 +71,7 @@ function focusDirectionFrom(window, direction, strict)
             -- solve this by focusing again if the intended window did not get the focus
             -- side effect: wrong window may remain on top
             if v:id() ~= hs.window.focusedWindow():id() then
+                log.d('Application stole focus, refocusing')
                 v:focus()
             end
             return true
@@ -74,9 +84,10 @@ end
 function findFocused(func)
     local window = hs.window.frontmostWindow()
     if window then
-        func(window)
+        return func(window)
     else
         hs.alert.show("No window found")
+        return false
     end
 end
 
@@ -157,3 +168,50 @@ function reload_config(files)
 end
 hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reload_config):start()
 hs.alert.show("Hammerspoon config loaded")
+
+-- advanced window focus - separate windows for current screen into layers and toggle between then
+--------------------------------------------------------------------------------------------------
+
+function focusLayer(dir)
+    hs.alert.show("focus dir "..dir)
+
+    local layers = buildLayers()
+    local newLayerIndex = (currentLayerIndex(layers) - 1 + dir) % #layers + 1
+    focusLayerWithIndex(layers, newLayerIndex)
+end
+
+function buildLayers()
+    local windows = windowsForCurrentScreen()
+    -- TODO sort windows determistically
+    -- TODO group into layers
+    return windows
+end
+
+function currentLayerIndex(layers)
+    local focusedWindow = hs.window.frontmostWindow()
+    for k,v in pairs(layers) do
+        if v == focusedWindow then
+            log.d('found focused')
+            return k
+        end
+    end
+    return 1
+end
+
+function focusLayerWithIndex(layers, newLayerIndex)
+    layers[newLayerIndex]:focus()
+end
+
+function windowsForCurrentScreen()
+    local currScreen = hs.window.frontmostWindow():screen()
+    local windows = hs.window.visibleWindows()
+    local ret = {}
+    for k,v in pairs(windows) do
+        -- log:d('found '..v:application():title())
+        if v:isStandard() and v:screen():id() == currScreen:id() then
+            log:d('adding '..v:application():title())
+            ret[#ret + 1] = v
+        end
+    end
+    return ret
+end
