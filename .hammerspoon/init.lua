@@ -72,18 +72,18 @@ function focusDirectionFrom(window, direction, strict)
 end
 
 function findFocused(func)
-    local window = hs.window.focusedWindow()
+    local window = hs.window.frontmostWindow()
     if window then
         func(window)
     else
-        hs.alert.show("No active window")
+        hs.alert.show("No window found")
     end
 end
 
 -- u for fullscreen
 -- jkhl for half screen
 -- yinm for quarter window 
------------------------------------
+--------------------------
 
 hs.hotkey.bind(modifierResize, 'u', function()
     scaleFocused(0, 0, 1, 1)
@@ -135,7 +135,7 @@ function scaleFocused(x, y, w, h)
 end
 
 -- hl for sending to next/prev monitor
-------------------------------
+--------------------------------------
 
 hs.hotkey.bind(modifierMoveScreen, 'h', function()
     findFocused(function(win)
