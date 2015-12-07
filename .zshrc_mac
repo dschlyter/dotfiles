@@ -12,3 +12,5 @@ use_gnu wc
 use_gnu sed
 use_gnu sort
 use_gnu tac
+use_gnu cp
+use_gnu ln
