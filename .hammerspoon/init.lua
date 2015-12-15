@@ -174,8 +174,10 @@ hs.alert.show("Hammerspoon config loaded")
 
 function focusLayer(dir)
     local layers = buildLayers()
-    local newLayerIndex = (currentLayerIndex(layers) - 1 + dir) % #layers + 1
-    focusLayerWithIndex(layers, newLayerIndex)
+    if #layers > 1 then
+        local newLayerIndex = (currentLayerIndex(layers) - 1 + dir) % #layers + 1
+        focusLayerWithIndex(layers, newLayerIndex)
+    end
 end
 
 function buildLayers()
