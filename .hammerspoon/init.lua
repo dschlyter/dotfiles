@@ -169,8 +169,8 @@ end
 hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reload_config):start()
 hs.alert.show("Hammerspoon config loaded")
 
--- advanced window focus - separate windows for current screen into layers and toggle between then
---------------------------------------------------------------------------------------------------
+-- advanced window focus - separate windows for current screen into non-overlapping layers and toggle between them
+------------------------------------------------------------------------------------------------------------------
 
 function focusLayer(dir)
     local layers = buildLayers()
@@ -186,7 +186,7 @@ function buildLayers()
         local added = false
         for i,layer in ipairs(layers) do
             if fitsInLayer(layer, window) then
-                layer[#layer] = window
+                layer[#layer + 1] = window
                 added = true
             end
         end
@@ -201,7 +201,14 @@ function buildLayers()
 end
 
 function fitsInLayer(layer, window)
-    return false
+    for i,otherWindow in ipairs(layer) do
+        local intersection = window:frame():intersect(otherWindow:frame())
+        if intersection.w * intersection.h > 0 then
+            return false
+        end
+    end
+
+    return true
 end
 
 function currentLayerIndex(layers)
@@ -226,11 +233,8 @@ function windowsForCurrentScreen()
     local windows = hs.window.visibleWindows()
     local ret = {}
     for k,v in pairs(windows) do
-        -- log:d('found '..v:application():title())
         if v:isStandard() and v:screen():id() == currScreen:id() then
-            log:d('adding '..v:application():title()..v:id())
             ret[#ret + 1] = v
-            -- TODO calculate window metadata for later sorting?
         end
     end
     return ret
@@ -267,5 +271,5 @@ function windowOrdering(t, a, b)
         return bTitle < aTitle
     end
 
-    return t[b]:id() < t[a]:id()
+    return t[b]:id() > t[a]:id()
 end
