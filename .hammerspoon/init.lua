@@ -173,8 +173,6 @@ hs.alert.show("Hammerspoon config loaded")
 --------------------------------------------------------------------------------------------------
 
 function focusLayer(dir)
-    hs.alert.show("focus dir "..dir)
-
     local layers = buildLayers()
     local newLayerIndex = (currentLayerIndex(layers) - 1 + dir) % #layers + 1
     focusLayerWithIndex(layers, newLayerIndex)
@@ -182,32 +180,52 @@ end
 
 function buildLayers()
     local windows = windowsForCurrentScreen()
-    -- TODO sort here local windowIterator = spairs(windows, ordering)
-    -- TODO group into layers
-    return windows
+    local layers = {}
+
+    for k,window in spairs(windows, windowOrdering) do
+        local added = false
+        for i,layer in ipairs(layers) do
+            if fitsInLayer(layer, window) then
+                layer[#layer] = window
+                added = true
+            end
+        end
+
+        if not added then
+            layers[#layers + 1] = {}
+            layers[#layers][1] = window
+        end
+    end
+
+    return layers
+end
+
+function fitsInLayer(layer, window)
+    return false
 end
 
 function currentLayerIndex(layers)
     local focusedWindow = hs.window.focusedWindow()
-    for k,v in pairs(layers) do
-        log.d('searching '..tostring(k))
-        if v == focusedWindow then
-            log.d('found focused = '..tostring(k)..v:application():title())
-            return k
+    for i,layer in ipairs(layers) do
+        for j,window in ipairs(layer) do
+            if window == focusedWindow then
+                return i
+            end
         end
     end
     return 1
 end
 
 function focusLayerWithIndex(layers, newLayerIndex)
-    layers[newLayerIndex]:focus()
+    -- TODO actually focus best window
+    layers[newLayerIndex][1]:focus()
 end
 
 function windowsForCurrentScreen()
     local currScreen = hs.window.frontmostWindow():screen()
     local windows = hs.window.visibleWindows()
     local ret = {}
-    for k,v in spairs(windows, windowOrdering) do
+    for k,v in pairs(windows) do
         -- log:d('found '..v:application():title())
         if v:isStandard() and v:screen():id() == currScreen:id() then
             log:d('adding '..v:application():title()..v:id())
