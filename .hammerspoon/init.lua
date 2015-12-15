@@ -224,8 +224,28 @@ function currentLayerIndex(layers)
 end
 
 function focusLayerWithIndex(layers, newLayerIndex)
-    -- TODO actually focus best window
-    layers[newLayerIndex][1]:focus()
+    local layer = layers[newLayerIndex]
+
+    local focusedWindow = hs.window.frontmostWindow()
+    local closestWindow = nil
+    local bestDistance = nil
+    for i,window in ipairs(layer) do
+        local distance = window:frame():distance(focusedWindow:frame())
+        if closestWindow == nil or distance < bestDistance then
+            bestDistance = distance
+            closestWindow = window
+        end
+    end
+
+    for i,window in ipairs(layers[newLayerIndex]) do
+        log.d(i)
+        if window ~= closestWindow then
+            log.d('raise')
+            window:raise()
+        end
+    end
+
+    closestWindow:focus()
 end
 
 function windowsForCurrentScreen()
