@@ -153,12 +153,14 @@ end
 hs.hotkey.bind(modifierMoveScreen, 'h', function()
     findFocused(function(win)
         win:moveOneScreenWest()
+        store_window_pos()
     end)
 end)
 
 hs.hotkey.bind(modifierMoveScreen, 'l', function()
     findFocused(function(win)
         win:moveOneScreenEast()
+        store_window_pos()
     end)
 end)
 
