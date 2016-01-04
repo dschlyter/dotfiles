@@ -13,7 +13,7 @@ hs.window.animationDuration = 0
 local log = hs.logger.new('logger','debug')
 
 -- i to show window hints
-----------------------------------
+-------------------------
 
 hs.hints.style = "vimperator" -- prefix hint with first letter in application name, to make it deterministic
 hs.hotkey.bind(modifierFocus, 'i', function()
@@ -23,7 +23,7 @@ hs.hotkey.bind(modifierFocus, 'i', function()
 end)
 
 -- hjkl to switch window focus
----------------------------------------
+------------------------------
 
 hs.hotkey.bind(modifierFocus, 'k', function()
     local found = focusDirection("North", false)
@@ -142,6 +142,8 @@ function scaleFocused(x, y, w, h)
         f.w = max.w * w
         f.h = max.h * h
         win:setFrame(f)
+
+        store_window_pos()
     end)
 end
 
@@ -168,6 +170,42 @@ function reload_config(files)
 end
 hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reload_config):start()
 hs.alert.show("Hammerspoon config loaded")
+
+-- save and restore window positions when switching monitors
+------------------------------------------------------------
+local windowPositions = {}
+
+function store_window_pos()
+    local screenCount = #hs.screen.allScreens()
+    windowPositions[screenCount] = {}
+    local screenPositions = windowPositions[screenCount]
+
+    local windows = hs.window.visibleWindows()
+    for i,window in pairs(windows) do
+        screenPositions[window:id()] = window:frame()
+        log.d(k, window:application():title())
+    end
+end
+
+function restore_window_pos()
+    local screenCount = #hs.screen.allScreens()
+    local screenPositions = windowPositions[screenCount]
+
+    if screenPositions then
+        local windows = hs.window.visibleWindows()
+        for i,window in pairs(windows) do
+            local frame = screenPositions[window:id()]
+            if frame then
+                window:setFrame(frame)
+                log.d(k, window:application():title())
+            end
+        end
+    end
+end
+
+hs.hotkey.bind(modifierResize, 'o', function()
+    restore_window_pos()
+end)
 
 -- advanced window focus - separate windows for current screen into non-overlapping layers and toggle between them
 ------------------------------------------------------------------------------------------------------------------
@@ -240,9 +278,7 @@ function focusLayerWithIndex(layers, newLayerIndex)
     end
 
     for i,window in ipairs(layers[newLayerIndex]) do
-        log.d(i)
         if window ~= closestWindow then
-            log.d('raise')
             window:raise()
         end
     end
