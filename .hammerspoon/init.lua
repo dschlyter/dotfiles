@@ -184,8 +184,10 @@ function store_window_pos()
 
     local windows = hs.window.visibleWindows()
     for i,window in pairs(windows) do
-        screenPositions[window:id()] = window:frame()
-        log.d(k, window:application():title())
+        if window:id() then -- finder bugs out in el capitan
+            screenPositions[window:id()] = window:frame()
+            log.d(window:id(), window:application():title())
+        end
     end
 end
 
