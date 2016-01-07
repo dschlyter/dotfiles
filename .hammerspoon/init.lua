@@ -173,6 +173,23 @@ end
 hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reload_config):start()
 hs.alert.show("Hammerspoon config loaded")
 
+-- hotkeys
+----------
+
+hs.hotkey.bind({'alt'}, 'space', function()
+    hs.application.launchOrFocus("iTerm")
+    hs.eventtap.keyStroke({'cmd'}, 'n')
+end)
+
+-- enable readline style word navigation
+hs.hotkey.bind({'alt'}, 'f', function()
+    hs.eventtap.event.newKeyEvent({'alt'}, 'right', true):post()
+end)
+
+hs.hotkey.bind({'alt'}, 'b', function()
+    hs.eventtap.event.newKeyEvent({'alt'}, 'left', true):post()
+end)
+
 -- save and restore window positions when switching monitors
 ------------------------------------------------------------
 local windowPositions = {}
