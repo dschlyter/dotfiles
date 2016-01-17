@@ -177,8 +177,13 @@ hs.alert.show("Hammerspoon config loaded")
 ----------
 
 hs.hotkey.bind({'alt'}, 'space', function()
+    local existingWindows = windowsExist("iTerm")
     hs.application.launchOrFocus("iTerm")
-    hs.eventtap.keyStroke({'cmd'}, 'n')
+    if existingWindows then
+        hs.eventtap.keyStroke({'cmd'}, 'n')
+    else
+        -- opening iTerm without open windows will open a new window, no need for cmd-n
+    end
 end)
 
 -- enable readline style word navigation
@@ -189,6 +194,15 @@ end)
 hs.hotkey.bind({'alt'}, 'b', function()
     hs.eventtap.event.newKeyEvent({'alt'}, 'left', true):post()
 end)
+
+function windowsExist(appName)
+    local windows = hs.window.allWindows()
+    for i,window in pairs(windows) do
+        if window:application():title() == appName then
+            return true
+        end
+    end
+end
 
 -- save and restore window positions when switching monitors
 ------------------------------------------------------------
