@@ -195,6 +195,14 @@ hs.hotkey.bind({'alt'}, 'b', function()
     hs.eventtap.event.newKeyEvent({'alt'}, 'left', true):post()
 end)
 
+hs.hotkey.bind({'ctrl', 'alt'}, 'b', function()
+    os.execute('curl -X POST 192.168.1.66:29330/blank')
+end)
+
+hs.hotkey.bind({'ctrl', 'alt'}, 's', function()
+    os.execute('curl -X POST 192.168.1.66:29330/sleep')
+end)
+
 function windowsExist(appName)
     local windows = hs.window.allWindows()
     for i,window in pairs(windows) do
