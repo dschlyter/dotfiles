@@ -1,0 +1,6 @@
+set ic
+
+" note to self: use :actionlist to find IDE commands to map
+map gr :source ~/.ideavimrc<CR>
+map gf :action FindUsages<CR>
+map gi :action GotoImplementation<CR>
