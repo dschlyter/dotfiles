@@ -6,6 +6,7 @@
 local modifierFocus = {"alt"}
 local modifierResize = {"alt", "ctrl"}
 local modifierMoveScreen = {"alt", "ctrl", "cmd"}
+local modifierMoveSpace = {"ctrl", "cmd"}
 local minimumMoveDistance = 10
 
 hs.window.animationDuration = 0
@@ -71,7 +72,7 @@ function focusDirectionFrom(window, direction, strict)
             -- solve this by focusing again if the intended window did not get the focus
             -- side effect: wrong window may remain on top
             if v:id() ~= hs.window.focusedWindow():id() then
-                log.d('Application stole focus, refocusing')
+                log.i('Application stole focus, refocusing')
                 v:focus()
             end
             return true
@@ -163,6 +164,34 @@ hs.hotkey.bind(modifierMoveScreen, 'l', function()
         store_window_pos()
     end)
 end)
+
+-- cmd-ctrl left-right for sending to next/prev space
+-- (this is pretty much a hack that captures the mouse, and sends ctrl-left/right)
+
+hs.hotkey.bind(modifierMoveSpace, 'left', function()
+    findFocused(function(focusedWindow)
+        moveToSpace(focusedWindow, 'left')
+    end)
+end)
+
+hs.hotkey.bind(modifierMoveSpace, 'right', function()
+    findFocused(function(focusedWindow)
+        moveToSpace(focusedWindow, 'right')
+    end)
+end)
+
+function moveToSpace(focusedWindow, direction)
+    local startMousePos = hs.mouse.getAbsolutePosition()
+
+    local mouseDragPosition = focusedWindow:frame().topleft
+    mouseDragPosition:move(hs.geometry(5,15))
+
+    hs.eventtap.event.newMouseEvent(hs.eventtap.event.types.leftMouseDown, mouseDragPosition):post()
+    hs.eventtap.event.newKeyEvent({'ctrl'}, direction, true):post()
+    hs.eventtap.event.newMouseEvent(hs.eventtap.event.types.leftMouseUp, mouseDragPosition):post()
+
+    hs.mouse.setAbsolutePosition(startMousePos)
+end
 
 
 -- Reload config on write
