@@ -46,10 +46,11 @@
     br = branch
     rb = rebase
     co = checkout
+    cp = cherry-pick
     fe = fetch --prune
 
     # get latest changes even with local changes (but abort on conflicts)
-    up = !git fetch && git merge --ff-only
+    fm = !git fetch && git merge --ff-only
 
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
@@ -65,7 +66,6 @@
     # --amend to a previous commit below HEAD
     fixup = !sh -c '(git diff-files --quiet || (echo "Unstaged changes, please commit or stash with --keep-index" && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -
     checkpoint = !git stash --include-untracked && git stash apply
-    unstage = reset HEAD --
 
     # gitflow, check unreleased features on develop branch
     features = !git lgh master..develop --merges -n 9999
