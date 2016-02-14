@@ -252,25 +252,26 @@ local windowPositions = {}
 
 function store_window_pos()
     local screenCount = #hs.screen.allScreens()
-    windowPositions[screenCount] = {}
-    local screenPositions = windowPositions[screenCount]
 
     local windows = visibleWindows_fixed()
     for i,window in pairs(windows) do
-        if window:id() then -- finder bugs out in el capitan
-            screenPositions[window:id()] = window:frame()
+        local id = window:id()
+        if id then -- finder bugs out in el capitan
+            local key = screenCount .. "--" .. id
+            windowPositions[key] = window:frame()
         end
     end
 end
 
 function restore_window_pos()
     local screenCount = #hs.screen.allScreens()
-    local screenPositions = windowPositions[screenCount]
 
-    if screenPositions then
-        local windows = visibleWindows_fixed()
-        for i,window in pairs(windows) do
-            local frame = screenPositions[window:id()]
+    local windows = visibleWindows_fixed()
+    for i,window in pairs(windows) do
+        local id = window:id()
+        if id then -- finder bugs out in el capitan
+            local key = screenCount .. "--" .. id
+            local frame = windowPositions[key]
             if frame then
                 window:setFrame(frame)
             end
