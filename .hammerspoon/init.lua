@@ -336,7 +336,7 @@ end
 function fitsInLayer(layer, window)
     for i,otherWindow in ipairs(layer) do
         local intersection = window:frame():intersect(otherWindow:frame())
-        if intersection.w * intersection.h > 0 then
+        if intersection.w > 5 and intersection.h > 5 then
             return false
         end
     end
@@ -372,7 +372,9 @@ function focusLayerWithIndex(layers, newLayerIndex)
 
     for i,window in ipairs(layers[newLayerIndex]) do
         if window ~= closestWindow then
-            window:raise()
+            -- raise would be better, but does not seem to work
+            -- window:raise()
+            window:focus()
         end
     end
 
