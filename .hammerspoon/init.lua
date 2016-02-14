@@ -212,6 +212,11 @@ hs.hotkey.bind({'alt'}, 'space', function()
         hs.eventtap.keyStroke({'cmd'}, 'n')
     else
         -- opening iTerm without open windows will open a new window, no need for cmd-n
+        
+        -- unless we are on a new space, and have the setting of auto-switch space disabled
+        if not windowsExist("iTerm") then
+            hs.eventtap.keyStroke({'cmd'}, 'n')
+        end
     end
 end)
 
@@ -250,11 +255,10 @@ function store_window_pos()
     windowPositions[screenCount] = {}
     local screenPositions = windowPositions[screenCount]
 
-    local windows = hs.window.visibleWindows()
+    local windows = visibleWindows_fixed()
     for i,window in pairs(windows) do
         if window:id() then -- finder bugs out in el capitan
             screenPositions[window:id()] = window:frame()
-            log.d(window:id(), window:application():title())
         end
     end
 end
@@ -264,15 +268,31 @@ function restore_window_pos()
     local screenPositions = windowPositions[screenCount]
 
     if screenPositions then
-        local windows = hs.window.visibleWindows()
+        local windows = visibleWindows_fixed()
         for i,window in pairs(windows) do
             local frame = screenPositions[window:id()]
             if frame then
                 window:setFrame(frame)
-                log.d(k, window:application():title())
             end
         end
     end
+end
+
+-- copy of hs.window.visibleWindows with some add robustness to keep it from crashing
+function visibleWindows_fixed() 
+    local r = {}
+    for _,app in ipairs(hs.application.runningApplications()) do
+        -- speedup by excluding hidden app
+        if app:kind() > 0 and not app:isHidden() then 
+            log.d(app:name())
+            log.d(app:visibleWindows())
+            for _,w in ipairs(app:visibleWindows()) do 
+                r[#r+1] = w 
+            end 
+        end
+    end
+    return r
+
 end
 
 hs.hotkey.bind(modifierResize, 'o', function()
