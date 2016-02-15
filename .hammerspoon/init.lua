@@ -362,13 +362,22 @@ function currentLayerIndex(layers)
 end
 
 function focusLayerWithIndex(layers, newLayerIndex)
+    -- idea:
+    -- 1. focus the closest window to the current window to preserve location (ie. right window to right window)
+    -- 2. apply a small bias towards recently focused windows (ie. fullscreen window to right window, if more recently focused)
+
+    local focusBias = {}
+    for i,window in ipairs(hs.window.orderedWindows()) do
+        focusBias[window:id()] = i;
+    end
+
     local layer = layers[newLayerIndex]
 
     local focusedWindow = hs.window.frontmostWindow()
     local closestWindow = nil
     local bestDistance = nil
     for i,window in ipairs(layer) do
-        local distance = window:frame():distance(focusedWindow:frame())
+        local distance = window:frame():distance(focusedWindow:frame()) + focusBias[window:id()]
         if closestWindow == nil or distance < bestDistance then
             bestDistance = distance
             closestWindow = window
