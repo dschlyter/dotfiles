@@ -237,6 +237,11 @@ hs.hotkey.bind({'ctrl', 'alt'}, 's', function()
     os.execute('curl -X POST 192.168.1.66:29330/sleep')
 end)
 
+-- automatic reload does not always work
+hs.hotkey.bind({'ctrl', 'alt'}, 'r', function()
+    hs.reload()
+end)
+
 function windowsExist(appName)
     local windows = hs.window.allWindows()
     for i,window in pairs(windows) do
@@ -318,7 +323,7 @@ function buildLayers()
     for k,window in spairs(windows, windowOrdering) do
         local added = false
         for i,layer in ipairs(layers) do
-            if fitsInLayer(layer, window) then
+            if not added and fitsInLayer(layer, window) then
                 layer[#layer + 1] = window
                 added = true
             end
