@@ -277,7 +277,7 @@ local windowPositions = {}
 function store_window_pos()
     local screenCount = #hs.screen.allScreens()
 
-    local windows = visibleWindows_fixed()
+    local windows = hs.window.visibleWindows()
     for i,window in pairs(windows) do
         local id = window:id()
         if id then -- finder bugs out in el capitan
@@ -290,7 +290,7 @@ end
 function restore_window_pos()
     local screenCount = #hs.screen.allScreens()
 
-    local windows = visibleWindows_fixed()
+    local windows = hs.window.visibleWindows()
     for i,window in pairs(windows) do
         local id = window:id()
         if id then -- finder bugs out in el capitan
@@ -304,6 +304,7 @@ function restore_window_pos()
 end
 
 -- copy of hs.window.visibleWindows with some add robustness to keep it from crashing
+-- TODO unused, remove unless problems surface again
 function visibleWindows_fixed() 
     local r = {}
     for _,app in ipairs(hs.application.runningApplications()) do
@@ -317,8 +318,10 @@ function visibleWindows_fixed()
         end
     end
     return r
-
 end
+
+-- hs.window.visibleWindows() fails after startup / config reload, calling this api seems to fix it, quite strange
+hs.application.runningApplications()
 
 hs.hotkey.bind(modifierResize, 'o', function()
     restore_window_pos()
