@@ -27,17 +27,15 @@ end)
 ------------------------------
 
 hs.hotkey.bind(modifierFocus, 'k', function()
-    local found = focusDirection("North", false)
-    if not found then
+    orChain(focusDirection("North", false), function()
         focusLayer(-1)
-    end
+    end)
 end)
 
 hs.hotkey.bind(modifierFocus, 'j', function()
-    local found = focusDirection("South", false)
-    if not found then
+    orChain(focusDirection("South", false), function() 
         focusLayer(1)
-    end
+    end)
 end)
 
 hs.hotkey.bind(modifierFocus, 'l', function()
@@ -110,11 +108,11 @@ hs.hotkey.bind(modifierResize, 'k', function()
 end)
 
 hs.hotkey.bind(modifierResize, 'h', function()
-    scaleFocused(0, 0, 0.5, 1)
+    orChain(scaleFocused(0, 0, 0.5, 1), moveWindowOneScreenWest)
 end)
 
 hs.hotkey.bind(modifierResize, 'l', function()
-    scaleFocused(0.5, 0, 0.5, 1)
+    orChain(scaleFocused(0.5, 0, 0.5, 1), moveWindowOneScreenEast)
 end)
 
 hs.hotkey.bind(modifierResize, 'y', function()
@@ -134,7 +132,8 @@ hs.hotkey.bind(modifierResize, 'n', function()
 end)
 
 function scaleFocused(x, y, w, h)
-    findFocused(function(win)
+    return findFocused(function(win)
+        local existingFrame = win:frame()
         local f = win:frame()
         local max = win:screen():frame()
 
@@ -142,28 +141,48 @@ function scaleFocused(x, y, w, h)
         f.y = max.y + max.h * y
         f.w = max.w * w
         f.h = max.h * h
-        win:setFrame(f)
 
-        store_window_pos()
+        if not existingFrame:equals(f) then
+            win:setFrame(f)
+            store_window_pos()
+            return true
+        end
+
+        return false
     end)
+end
+
+function orChain(f1ret, f2)
+    if not f1ret then
+        f2()
+    end
 end
 
 -- hl for sending to next/prev monitor
 --------------------------------------
 
 hs.hotkey.bind(modifierMoveScreen, 'h', function()
+    moveWindowOneScreenWest()
+end)
+
+
+hs.hotkey.bind(modifierMoveScreen, 'l', function()
+    moveWindowOneScreenEast()
+end)
+
+function moveWindowOneScreenWest()
     findFocused(function(win)
         win:moveOneScreenWest()
         store_window_pos()
     end)
-end)
+end
 
-hs.hotkey.bind(modifierMoveScreen, 'l', function()
+function moveWindowOneScreenEast()
     findFocused(function(win)
         win:moveOneScreenEast()
         store_window_pos()
     end)
-end)
+end
 
 -- cmd-ctrl left-right for sending to next/prev space
 -- (this is pretty much a hack that captures the mouse, and sends ctrl-left/right)
