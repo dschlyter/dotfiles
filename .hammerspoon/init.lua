@@ -221,9 +221,16 @@ end
 hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reload_config):start()
 hs.alert.show("Hammerspoon config loaded")
 
+-- automatic reload does not always work - so allow manual reload
+hs.hotkey.bind({'ctrl', 'alt'}, 'r', function()
+    hs.reload()
+end)
+
+
 -- hotkeys
 ----------
 
+-- spawn a new iterm window
 hs.hotkey.bind({'alt'}, 'space', function()
     local existingWindows = windowsExist("iTerm")
     hs.application.launchOrFocus("iTerm")
@@ -238,6 +245,15 @@ hs.hotkey.bind({'alt'}, 'space', function()
         end
     end
 end)
+
+function windowsExist(appName)
+    local windows = hs.window.allWindows()
+    for i,window in pairs(windows) do
+        if window:application():title() == appName then
+            return true
+        end
+    end
+end
 
 -- enable readline style word navigation
 hs.hotkey.bind({'alt'}, 'f', function()
@@ -255,20 +271,6 @@ end)
 hs.hotkey.bind({'ctrl', 'alt'}, 's', function()
     os.execute('curl -X POST 192.168.1.66:29330/sleep')
 end)
-
--- automatic reload does not always work
-hs.hotkey.bind({'ctrl', 'alt'}, 'r', function()
-    hs.reload()
-end)
-
-function windowsExist(appName)
-    local windows = hs.window.allWindows()
-    for i,window in pairs(windows) do
-        if window:application():title() == appName then
-            return true
-        end
-    end
-end
 
 -- save and restore window positions when switching monitors
 ------------------------------------------------------------
