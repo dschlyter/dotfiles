@@ -1,8 +1,10 @@
 #!/bin/bash
-
-# Prepend feature/hotfix/bugfix name to commit message
+# Prepend jira-issue to commit message
 # Inspired by http://www.hascode.com/2012/12/creating-pre-commit-hooks-in-git-and-mercurial-prefix-commit-messages-for-featurestory-branches/
+
 BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
-if [ -n "$(echo $BRANCH_NAME | grep -E '^(feature|hotfix|bugfix)/')" ]; then
-    echo "$(echo $BRANCH_NAME | sed -e 's,[^/]*/,,') - $(cat $1)" > $1
+JIRA_ISSUE=$(echo $BRANCH_NAME | grep -oE "[a-zA-Z]+[-][0-9]+" | head -n 1)
+
+if [ -n "$JIRA_ISSUE" ]; then
+    echo "$JIRA_ISSUE - $(cat $1)" > $1
 fi
