@@ -176,8 +176,12 @@ if exists percol; then
     zle -N percol_select_history
     bindkey '^F' percol_select_history
 
-    alias -g PERC='$(find . -not -path "*/\.*" | percol)'
-    alias pvim="vim PERC"
+    alias -g PF='$(find . -not -path "*/\.*" | percol)'
+    alias pvim='vim PF'
+
+    # jump to child dir
+    alias pc='cd $(find . -not -path "*/\.*" -type d | percol)'
+    alias pcf='cd $(dirname PF)'
 
     # autojump with percol
     alias pj="cd \$(j -l | awk '{ print \$2 }' | tac | percol)"
@@ -190,6 +194,7 @@ if exists percol; then
         man $1 | col -b | percol
     }
 fi
+
 
 # Completition
 
@@ -252,8 +257,8 @@ WIN_ZSHRC=~/.zshrc_cygwin
 MAC_ZSHRC=~/.zshrc_mac
 [ -f $MAC_ZSHRC ] && source $MAC_ZSHRC
 
+# Autojump with z (pure sh implementation)
 export _Z_CMD="j"
 alias jc="j -c"
 Z_SH=~/.z.sh
 [ -f $Z_SH ] && source $Z_SH
-
