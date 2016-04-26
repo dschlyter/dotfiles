@@ -187,7 +187,8 @@ if exists percol; then
     alias pj="cd \$(j -l | awk '{ print \$2 }' | tac | percol)"
 
     # select a git commit from the fancy log with percol
-    alias -g PGIT="\$(git lg -n 10000 | percol | grep -E -o '[a-f0-9]{6}' -m 1)"
+    alias -g PCM="\$(git lg -n 10000 | percol | grep -E -o '[a-f0-9]{6}' -m 1)"
+    alias -g PBR="\$(git branch -a | percol | awk '{print \$1}')"
 
     # fast-filter man pages with percol
     function pman() {
