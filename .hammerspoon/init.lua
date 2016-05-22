@@ -231,7 +231,7 @@ end)
 ----------
 
 -- spawn a new iterm window
-hs.hotkey.bind({'alt'}, 'space', function()
+hs.hotkey.bind({'ctrl', 'alt'}, 'space', function()
     local existingWindows = windowsExist("iTerm")
     hs.application.launchOrFocus("iTerm")
     if existingWindows then
