@@ -189,6 +189,18 @@ if exists percol; then
     }
 fi
 
+# Docker setup
+
+if exists docker-machine; then
+    docker() {
+        unset -f docker
+        echo Setting up docker env...
+        # TODO start docker-machine?
+        eval $(docker-machine env default)
+        docker "$@"
+    }
+fi
+alias k='kubectl'
 
 # Completition
 
