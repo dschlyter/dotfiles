@@ -20,7 +20,12 @@ alias vims='vim -S .vimsession'
 ## Global aliases
 alias -g G='| grep -i'
 alias -g L='| less'
+alias -g C1='| cl 1'
 alias -g MAP='| xargs -n 1'
+
+function cl() {
+    awk "{print \$$1}"
+}
 
 ## Flags on by default
 alias ls='ls -h --color=auto --group-directories-first'
@@ -34,14 +39,6 @@ alias tig='tig --all'
 function md {
     mkdir -p $1
     cd $1
-}
-
-function ap {
-    if ! [ "$1" ]; then
-        local FILE="ansible/site.yml"
-        [[ -f "$FILE" ]] || FILE="$(git rev-parse --show-toplevel)/ansible/site.yml"
-    fi
-    ansible-playbook $FILE "$@"
 }
 
 # Default to date -Is if no args are supplied
@@ -58,10 +55,6 @@ func date() {
         $BINARY -Is
     fi
 }
-
-# Software beep
-export BEEP=/usr/share/sounds/KDE-Im-Message-In.ogg
-alias beep='paplay $BEEP'
 
 # Functions
 
