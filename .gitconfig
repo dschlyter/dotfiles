@@ -51,6 +51,8 @@
 
     # get latest changes even with local changes (but abort on conflicts)
     fm = !git fetch && git merge --ff-only
+    # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
+    tv = "!f() { git tag -m \"Version $1\" $1; }; f"
 
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
