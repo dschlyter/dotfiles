@@ -209,7 +209,7 @@ zstyle ':completion:*' cache-path ~/.zsh/cache
 
 zstyle ':completion:*' completer _expand _complete _match _correct _approximate
 zstyle ':completion:*:match:*' original only
-zstyle ':completion:*:approximate:*' max-errors 1 numeric
+zstyle ':completion:*:approximate:*' max-errors 4 numeric
 zstyle ':completion:*' expand prefix suffix
 zstyle ':completion:*' squeeze-slashes true
 zstyle ':completion:*' list-suffixes true
@@ -217,6 +217,10 @@ zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z} r:|[._-]=** r:|=**' 'm:{a-z}=
 zstyle :compinstall filename '/home/david/.zshrc'
 zstyle ':completion:*' special-dirs true    # autocomplete on ../
 zstyle ':completion:*' menu select
+
+setopt completeinword           # not just at the end
+setopt alwaystoend              # when complete from middle, move cursor
+setopt correct                  # spelling correction
 
 autoload -Uz compinit
 compinit
@@ -242,9 +246,6 @@ setopt listtypes                # show types in completion
 setopt extendedglob             # weird & wacky pattern matching - yay zsh!
 setopt nocaseglob
 setopt numericglobsort
-setopt completeinword           # not just at the end
-setopt alwaystoend              # when complete from middle, move cursor
-setopt correct                  # spelling correction
 setopt nopromptcr               # don't add \r which overwrites cmd output with no \n
 setopt histverify               # when using ! cmds, confirm first
 setopt interactivecomments      # escape commands so i can use them later
