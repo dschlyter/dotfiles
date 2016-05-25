@@ -17,8 +17,10 @@
     added = yellow
     changed = green
     untracked = cyan
+[apply]
+    whitespace=fix
 [core]
-    whitespace=fix,-indent-with-non-tab,trailing-space,cr-at-eol
+    whitespace=-indent-with-non-tab,trailing-space,cr-at-eol
     excludesfile = ~/.gitignore
     editor = vim
     trustctime = false
@@ -62,6 +64,8 @@
     # patched commit with a file review and untracked sanity check first
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "Warning: Untracked files!" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
+    # remove all whitespace changes - with a checkpoint for paranoia
+    rw = !git diff -w --no-color | git apply --cached --ignore-whitespace && git checkout . && git reset
 
     # amend and rebase
     # amend without changing git commit message
