@@ -41,6 +41,7 @@
     # remove need to press enter in interactive or add -p modes, requires library readkey to be installed
     singlekey = true
 [alias]
+    # shorthands with good defaults
     st = status -sb
     cm = commit -v
     br = branch
@@ -49,11 +50,6 @@
     cp = cherry-pick
     fe = fetch --prune
 
-    # get latest changes even with local changes (but abort on conflicts)
-    fm = !git fetch && git merge --ff-only
-    # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
-    tv = "!f() { git tag -m \"Version $1\" $1; }; f"
-
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
     lgh = log --color --graph --date=iso --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
@@ -61,16 +57,28 @@
     lg = !git lgh --all
     # log including all branchless (rebased, amended, dropped) commits
     lga = !git lg $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
-    purge = !git branch -d $1 && git push origin --delete
-    prune-local = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
+
+    # commit
     # patched commit with a file review and untracked sanity check first
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "Warning: Untracked files!" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
+    checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
+
+    # amend and rebase
+    # amend without changing git commit message
+    amend = commit --amend --reuse-message=HEAD
     # --amend to a previous commit below HEAD
     fixup = !sh -c '(git diff-files --quiet || (echo "Unstaged changes, please commit or stash with --keep-index" && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -
-    checkpoint = !git stash --include-untracked && git stash apply
-
-    amend = commit --amend --reuse-message=HEAD
+    # rebase the last n commits
     rbn = "!r() { git rebase -i HEAD~$1; }; r"
+
+    # branch and merge
+    # get latest changes even with local changes (but abort on conflicts)
+    fm = !git fetch && git merge --ff-only
+    purge = !git branch -d $1 && git push origin --delete
+    prune-local = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
+
+    # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
+    tv = "!f() { git tag -m \"Version $1\" $1; }; f"
 
     # gitflow, check unreleased features on develop branch
     features = !git lgh master..develop --merges -n 9999
