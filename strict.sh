@@ -7,11 +7,13 @@ IFS=$'\n\t'
 
 # Trap and print errors even in functions
 set -o errtrace
-trap 'err_handler $?' ERR
-err_handler() {
-  trap - ERR
-  let i=0 exit_status=$1
-  echo "Aborting on error $exit_status:"
-  while caller $i; do ((i++)); done
-  exit $exit_status
+trap err_exit ERR
+function err_exit() {
+    err=${1:-$?}
+    trap - ERR
+    echo "ERROR: '${BASH_COMMAND}' exited with status $err"
+    for ((i=0; i<${#FUNCNAME[@]}-1; i++)); do
+        echo " $i: ${BASH_SOURCE[$i+1]}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}"
+    done
+    exit "$err"
 }
