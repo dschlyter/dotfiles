@@ -5,7 +5,7 @@
 
 local modifierFocus = {"alt"}
 local modifierResize = {"alt", "ctrl"}
-local modifierMoveScreen = {"alt", "ctrl", "cmd"}
+local modifierMoveScreen = {"alt", "shift"}
 local modifierMoveSpace = {"ctrl", "cmd"}
 local minimumMoveDistance = 10
 
@@ -23,16 +23,16 @@ hs.hotkey.bind(modifierFocus, 'i', function()
     hs.hints.windowHints()
 end)
 
--- hjkl to switch window focus
+-- hjnp to switch window focus
 ------------------------------
 
-hs.hotkey.bind(modifierFocus, 'k', function()
+hs.hotkey.bind(modifierFocus, 'p', function()
     orChain(focusDirection("North", false), function()
         focusLayer(-1)
     end)
 end)
 
-hs.hotkey.bind(modifierFocus, 'j', function()
+hs.hotkey.bind(modifierFocus, 'n', function()
     orChain(focusDirection("South", false), function() 
         focusLayer(1)
     end)
@@ -270,6 +270,14 @@ end)
 
 hs.hotkey.bind({'ctrl', 'alt'}, 's', function()
     os.execute('curl -X POST 192.168.1.66:29330/sleep')
+end)
+
+hs.hotkey.bind({'alt'}, 'k', function()
+    hs.eventtap.event.newKeyEvent({}, 'up', true):post()
+end)
+
+hs.hotkey.bind({'alt'}, 'j', function()
+    hs.eventtap.event.newKeyEvent({}, 'down', true):post()
 end)
 
 -- save and restore window positions when switching monitors
