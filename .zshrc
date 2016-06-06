@@ -195,12 +195,18 @@ if exists docker-machine; then
     docker() {
         unset -f docker
         echo Setting up docker env...
-        # TODO start docker-machine?
+        docker-machine default start
         eval $(docker-machine env default)
         docker "$@"
     }
 fi
+
 alias k='kubectl'
+
+dcleanup(){
+    docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
+    docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2>/dev/null
+}
 
 # Completition
 
