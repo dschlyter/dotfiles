@@ -71,6 +71,15 @@ function fixenc {
     iconv -f ISO-8859-1 -t UTF-8 "$1.orig" > "$1"
 }
 
+function eachdir {
+    for dir in *(/); do
+        pushd .
+        cd $dir
+        "$@"
+        popd
+    done
+}
+
 # Prompt
 
 autoload -U colors && colors
