@@ -29,6 +29,7 @@ function cl() {
 
 ## Flags on by default
 alias ls='ls -h --color=auto --group-directories-first'
+export TIME_STYLE=long-iso # iso8601 for ls
 alias locate='locate -i'
 alias mv='mv -i'
 alias cp='cp -i'
