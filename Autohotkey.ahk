@@ -25,6 +25,22 @@ $Capslock::
 !y::Send '
 !o::Send ~{Space} ; space after key is required on swedish keyboard layouts
 
+; Toggle sound between first two outputs (like external TV)
+!^b::
+Run, mmsys.cpl
+WinWait,Sound
+ControlSend,SysListView321,{Down}
+ControlGet, isEnabled, Enabled,,&Set Default
+if(!isEnabled)
+{
+ControlSend,SysListView321,{Down}
+}
+ControlClick,&Set Default
+ControlClick,OK
+WinWaitClose
+SoundPlay, *-1
+return
+
 ; mac-style same-application-window switch, forwards and backwards
 !?:: ; Next window
 WinGetClass, ActiveClass, A
