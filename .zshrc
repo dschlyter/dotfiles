@@ -20,11 +20,19 @@ alias vims='vim -S .vimsession'
 ## Global aliases
 alias -g G='| grep -i'
 alias -g L='| less'
+alias -g MAP='| xargs --no-run-if-empty -n 1'
 alias -g C1='| cl 1'
-alias -g MAP='| xargs -n 1'
 
 function cl() {
     awk "{print \$$1}"
+}
+
+function take() {
+    head -n $1
+}
+
+function drop() {
+    tail -n +$(($1 + 2))
 }
 
 ## Flags on by default
