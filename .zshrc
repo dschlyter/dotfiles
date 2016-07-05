@@ -212,9 +212,9 @@ fi
 if exists docker-machine; then
     docker() {
         unset -f docker
-        echo Setting up docker env...
-        docker-machine default start
-        eval $(docker-machine env default)
+        echo Setting up docker-machine...
+        docker-machine start default
+        eval $(docker-machine env default --shell zsh)
         docker "$@"
     }
 fi
@@ -224,6 +224,11 @@ alias k='kubectl'
 dcleanup(){
     docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
     docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2>/dev/null
+}
+
+dnuke() {
+    docker ps | cl 1 | drop 1 | xargs --no-run-if-empty -n 1 docker kill
+    dcleanup
 }
 
 # Completition
