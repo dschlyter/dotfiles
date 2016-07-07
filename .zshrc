@@ -221,13 +221,17 @@ fi
 
 alias k='kubectl'
 
+dkill() {
+    docker ps | cl 1 | drop 1 | xargs --no-run-if-empty -n 1 docker kill
+}
+
 dcleanup(){
     docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
     docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2>/dev/null
 }
 
 dnuke() {
-    docker ps | cl 1 | drop 1 | xargs --no-run-if-empty -n 1 docker kill
+    dkill
     dcleanup
 }
 
