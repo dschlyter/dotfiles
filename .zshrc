@@ -32,7 +32,7 @@ function take() {
 }
 
 function drop() {
-    tail -n +$(($1 + 2))
+    tail -n +$(($1 + 1))
 }
 
 ## Flags on by default
