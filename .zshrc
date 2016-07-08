@@ -219,7 +219,8 @@ if exists docker-machine; then
     }
 fi
 
-alias k='kubectl'
+alias d='docker'
+alias dm='docker-machine'
 
 dcleanup(){
     docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
