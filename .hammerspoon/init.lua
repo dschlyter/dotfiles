@@ -280,6 +280,10 @@ hs.hotkey.bind({'alt'}, 'j', function()
     hs.eventtap.event.newKeyEvent({}, 'down', true):post()
 end)
 
+hs.hotkey.bind({'ctrl', 'alt'}, 'r', function()
+    os.execute('osascript switchMouse.AppleScript')
+end)
+
 -- save and restore window positions when switching monitors
 ------------------------------------------------------------
 local windowPositions = {}
