@@ -2,6 +2,9 @@
 alias ls='ls -h -G'
 alias o='open'
 
+# flag is not supported or needed on oxs
+alias -g MAP='| xargs -n 1'
+
 # use updated coreutils by default
 function use_gnu() {
     type "g$1" > /dev/null && alias $1="g$1$2"
