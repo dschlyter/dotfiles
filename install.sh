@@ -5,12 +5,12 @@ set -euo pipefail
 DOTFILES="$(pwd)"
 
 link() {
-   cd "$HOME"
-   SOURCE="$1"
-   LINK="$DOTFILES/$1"
+   FILE="$1"
+   SOURCE="$HOME/$FILE"
+   LINK="$DOTFILES/$FILE"
 
    if [ -L "$SOURCE" ]; then
-       echo "file $SOURCE already linked"
+       echo "file $FILE already linked"
    else
        echo "linking $LINK"
        ln -s "$LINK" "$SOURCE"
@@ -22,10 +22,9 @@ link .z.sh # autojump
 link .vimrc
 link .gitconfig
 link .gitignore
+link .git_template
 
-if ! [ -e .vim ]; then
-    mkdir .vim
-fi
+mkdir -p "$HOME/.vim"
 link .vim/colors
 link .ideavimrc
 link .percol.d
@@ -58,4 +57,14 @@ elif [ -f /bin/zsh ]; then
     chsh -s /bin/zsh
 else
     echo zsh not found, please install and chsh manually
+fi
+
+if [[ "$@" == *"--vundle"* ]]; then
+    echo "Installing vim vundle plugins"
+    if ! [ -d ~/.vim/bundle/vundle ]; then
+        git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
+    fi
+    vim +PluginInstall +qall
+else
+    echo "Not installing vim vundle plugins, run with --vundle to enable"
 fi
