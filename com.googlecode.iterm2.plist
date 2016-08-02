@@ -834,11 +834,11 @@
 	<key>LeftOption</key>
 	<integer>2</integer>
 	<key>LoadPrefsFromCustomFolder</key>
-	<false/>
+	<true/>
 	<key>MaxVertically</key>
 	<false/>
 	<key>NSNavLastRootDirectory</key>
-	<string>~/Dropbox/code/dotfiles</string>
+	<string>~/code/dotfiles</string>
 	<key>NSNavPanelExpandedSizeForOpenMode</key>
 	<string>{712, 448}</string>
 	<key>NSQuotedKeystrokeBinding</key>
@@ -3508,20 +3508,10 @@
 			<string>/Users/david</string>
 		</dict>
 	</array>
-	<key>NoSyncConfirmBeta</key>
-	<true/>
-	<key>NoSyncHaveShownPromoWithId_4</key>
-	<true/>
 	<key>NoSyncInstallationId</key>
-	<string>B8A63393-6B2F-44B5-911A-E6C88B206683</string>
-	<key>NoSyncPermissionToShowTip</key>
-	<false/>
+	<string>FD71CE60-7A1A-43A7-AEF1-7D8BD05F0381</string>
 	<key>NoSyncTimeOfFirstLaunchOfVersionWithTip</key>
-	<real>486503319.66759098</real>
-	<key>NoSyncTimeOfLastPromo</key>
-	<real>477603783.67130899</real>
-	<key>NoSyncTimeOfLastPromoDownload</key>
-	<real>486502461.66863102</real>
+	<real>491843497.39709097</real>
 	<key>OnlyWhenMoreTabs</key>
 	<true/>
 	<key>OpenArrangementAtStartup</key>

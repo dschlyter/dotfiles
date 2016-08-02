@@ -17,12 +17,6 @@ link() {
    fi
 }
 
-install_plist() {
-    echo "installing plist $1"
-    cd "$DOTFILES"
-    cp "$1" "$HOME/Library/Preferences/$1"
-}
-
 link .zshrc
 link .z.sh # autojump
 link .vimrc
@@ -42,7 +36,6 @@ case "$(uname -s)" in
         echo "Detected Mac OSX"
         link .zshrc_mac
         link .hammerspoon
-        install_plist com.googlecode.iterm2.plist
         ;;
 
     CYGWIN*|MINGW32*|MSYS*)
