@@ -262,7 +262,12 @@ setopt alwaystoend              # when complete from middle, move cursor
 setopt correct                  # spelling correction
 
 autoload -Uz compinit
-compinit
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    # skip single-user security checks to allow for multi user homebrew
+    compinit -u
+else
+    compinit
+fi
 
 # Settings
 
