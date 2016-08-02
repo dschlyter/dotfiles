@@ -3560,7 +3560,7 @@
 		</dict>
 	</dict>
 	<key>PrefsCustomFolder</key>
-	<string>/Users/david/Dropbox/code/dotfiles/iterm</string>
+	<string>/Users/david/Dropbox/code/dotfiles</string>
 	<key>PromptOnQuit</key>
 	<true/>
 	<key>QuitWhenAllWindowsClosed</key>
