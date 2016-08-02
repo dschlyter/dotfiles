@@ -98,6 +98,24 @@ function s {
     fi
 }
 
+# allows one or multiple files to be "tagged"
+# then used in other commands like: j otherdir; mv $=TAG .
+function tag {
+    if [[ "$@" == "" ]]; then
+        echo "$TAG"
+        return
+    fi
+
+    BASE=""
+    if [[ "$1" == "-a" ]]; then
+        BASE="$TAG\n"
+        shift
+    fi
+    export TAG="$BASE$(realpath "$@")"
+}
+alias cpt='cp $=TAG .'
+alias mvt='mv $=TAG .'
+
 # Prompt
 
 autoload -U colors && colors
