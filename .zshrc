@@ -89,6 +89,15 @@ function eachdir {
     done
 }
 
+# explore a file tree with a combined ls and cat
+function s {
+    if [ -d "$1" ]; then
+        /bin/ls "$@"
+    else
+        cat "$@"
+    fi
+}
+
 # Prompt
 
 autoload -U colors && colors
