@@ -2,12 +2,12 @@
 
 set -euo pipefail
 
-WD="$(pwd)"
+DOTFILES="$(pwd)"
 
 link() {
    cd "$HOME"
    SOURCE="$1"
-   LINK="$WD/$1"
+   LINK="$DOTFILES/$1"
 
    if [ -L "$SOURCE" ]; then
        echo "file $SOURCE already linked"
@@ -15,6 +15,12 @@ link() {
        echo "linking $LINK"
        ln -s "$LINK" "$SOURCE"
    fi
+}
+
+install_plist() {
+    echo "installing plist $1"
+    cd "$DOTFILES"
+    cp "$1" "$HOME/Library/Preferences/$1"
 }
 
 link .zshrc
@@ -36,6 +42,7 @@ case "$(uname -s)" in
         echo "Detected Mac OSX"
         link .zshrc_mac
         link .hammerspoon
+        install_plist com.googlecode.iterm2.plist
         ;;
 
     CYGWIN*|MINGW32*|MSYS*)
