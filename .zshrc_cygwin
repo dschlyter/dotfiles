@@ -32,3 +32,6 @@ if [ $? = 2 ]; then
    echo $SSH_AGENT_PID >| ~/.ssh-agent-pid
    rm /tmp/.ssh-script
 fi
+
+# cd to the absolute url stripping the /cygdrive prefix, useful for docker-machine mounts
+alias cda='cd $(pwd -P | sed -e "s,^/cygdrive,,")'
