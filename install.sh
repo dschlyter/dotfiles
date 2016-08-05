@@ -65,6 +65,7 @@ if [[ "$@" == *"--vundle"* ]]; then
         git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
     fi
     vim +PluginInstall +qall
+    echo "Plugins installed!"
 else
     echo "Not installing vim vundle plugins, run with --vundle to enable"
 fi
