@@ -92,6 +92,10 @@ bindkey '^Z' foreground-vim
 # Percol pgrep, pkill and history search
 # https://github.com/mooz/percol#zsh-history-search
 
+exists() {
+    type $1 &> /dev/null
+}
+
 if exists percol; then
     function ppgrep() {
         if [[ $1 == "" ]]; then
