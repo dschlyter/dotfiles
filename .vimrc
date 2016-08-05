@@ -33,6 +33,9 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " improve f and t commands
     Bundle 'svermeulen/vim-extended-ft'
 
+    " highlight bad trailing whitespace
+    Plugin 'ntpeters/vim-better-whitespace'
+
     " open files with fuzzy search
     " use with <C-p>
     Bundle 'kien/ctrlp.vim'
