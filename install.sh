@@ -17,7 +17,17 @@ link() {
    fi
 }
 
+bak_nonlink() {
+   FILE="$1"
+   SOURCE="$HOME/$FILE"
+   if [[ -f "$SOURCE" && ! -L "$SOURCE" ]]; then
+       echo "backing up non-linked file $SOURCE"
+       mv "$SOURCE" "${SOURCE}.bak"
+   fi
+}
+
 link .zshrc
+bak_nonlink .bashrc
 link .bashrc
 link .shellrc
 
