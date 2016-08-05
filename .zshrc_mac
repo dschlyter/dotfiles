@@ -2,8 +2,9 @@
 alias ls='ls -h -G'
 alias o='open'
 
-# flag is not supported or needed on oxs
+# flag is not supported or needed on OS X
 alias -g MAP='| xargs -n 1'
+alias -g MAPI='| xargs -n 1 -i'
 
 # use updated coreutils by default
 function use_gnu() {
