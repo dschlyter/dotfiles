@@ -2,8 +2,8 @@
 
 ## Conveniences
 alias b='popd'
-alias zshrc='vim ~/.zshrc; rz'
-alias rz='source ~/.zshrc'
+alias zshrc='vim ~/.zshrc; rc'
+alias rc='source ~/.zshrc'
 
 ## Global aliases
 alias -g G='| grep -i'
