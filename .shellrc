@@ -17,7 +17,6 @@ export PATH="$HOME/bin:$PATH"
 
 alias se='sudoedit'
 alias ack='ack-grep'
-alias serve='python -m SimpleHTTPServer'
 alias vims='vim -S .vimsession'
 
 ## Flags on by default
@@ -116,6 +115,11 @@ retry() {
         echo "Exit $? - Retrying in 1 second"
         sleep 1
     done
+}
+
+serve() {
+    PORT=${1:-8000}
+    python -m SimpleHTTPServer "$PORT"
 }
 
 #
