@@ -18,6 +18,7 @@ export PATH="$HOME/bin:$PATH"
 alias se='sudoedit'
 alias ack='ack-grep'
 alias vims='vim -S .vimsession'
+alias i='unset HISTFILE'
 
 ## Flags on by default
 alias ls='ls -h --color=auto --group-directories-first'
