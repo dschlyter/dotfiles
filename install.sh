@@ -19,6 +19,8 @@ link() {
 
 link .zshrc
 link .bashrc
+link .shellrc
+
 link .z.sh # autojump
 link .vimrc
 link .gitconfig

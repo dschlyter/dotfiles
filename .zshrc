@@ -1,21 +1,9 @@
-# Env Variables
-
-export EDITOR="vim"
-export VISUAL="vim"
-
-export PATH="$HOME/bin:$PATH"
-
 # Aliases
 
 ## Conveniences
 alias b='popd'
 alias zshrc='vim ~/.zshrc; rz'
 alias rz='source ~/.zshrc'
-alias xo='xdg-open'
-alias se='sudoedit'
-alias ack='ack-grep'
-alias serve='python -m SimpleHTTPServer'
-alias vims='vim -S .vimsession'
 
 ## Global aliases
 alias -g G='| grep -i'
@@ -23,62 +11,7 @@ alias -g L='| less'
 alias -g MAP='| xargs --no-run-if-empty -n 1'
 alias -g C1='| cl 1'
 
-function cl() {
-    awk "{print \$$1}"
-}
-
-function take() {
-    head -n $1
-}
-
-function drop() {
-    tail -n +$(($1 + 1))
-}
-
-## Flags on by default
-alias ls='ls -h --color=auto --group-directories-first'
-export TIME_STYLE=long-iso # iso8601 for ls
-alias locate='locate -i'
-alias mv='mv -i'
-alias cp='cp -i'
-alias make='make -j 2'
-alias nautilus='nautilus --no-desktop'
-alias tig='tig --all'
-
-function md {
-    mkdir -p $1
-    cd $1
-}
-
-# Default to date -Is if no args are supplied
-# iso-8601 is the one true date format
-func date() {
-    BINARY=/bin/date
-    BREW_BINARY=/usr/local/bin/gdate
-    if [ -f $BREW_BINARY ]; then
-        BINARY=$BREW_BINARY
-    fi
-    if [ "$*" ]; then
-        $BINARY $*
-    else
-        $BINARY -Is
-    fi
-}
-
 # Functions
-
-function retry {
-    while true; do
-        eval $* && return 0
-        echo "Exit $? - Retrying in 1 second"
-        sleep 1
-    done
-}
-
-function fixenc {
-    mv "$1" "$1.orig"
-    iconv -f ISO-8859-1 -t UTF-8 "$1.orig" > "$1"
-}
 
 function eachdir {
     for dir in *(/); do
@@ -89,32 +22,10 @@ function eachdir {
     done
 }
 
-# explore a file tree with a combined ls and cat
-function s {
-    if [ -d "$1" ]; then
-        /bin/ls "$@"
-    else
-        cat "$@"
-    fi
-}
+# Aliases and functions shared with bash config
 
-# allows one or multiple files to be "tagged"
-# then used in other commands like: j otherdir; mv $=TAG .
-function tag {
-    if [[ "$@" == "" ]]; then
-        echo "$TAG"
-        return
-    fi
-
-    BASE=""
-    if [[ "$1" == "-a" ]]; then
-        BASE="$TAG\n"
-        shift
-    fi
-    export TAG="$BASE$(realpath "$@")"
-}
-alias cpt='cp $=TAG .'
-alias mvt='mv $=TAG .'
+SHELLRC=~/.shellrc
+[ -f $SHELLRC ] && source $SHELLRC
 
 # Prompt
 
@@ -181,8 +92,6 @@ bindkey '^Z' foreground-vim
 # Percol pgrep, pkill and history search
 # https://github.com/mooz/percol#zsh-history-search
 
-function exists { which $1 &> /dev/null }
-
 if exists percol; then
     function ppgrep() {
         if [[ $1 == "" ]]; then
@@ -233,31 +142,6 @@ if exists percol; then
         man $1 | col -b | percol
     }
 fi
-
-# Docker setup
-
-if exists docker-machine; then
-    docker() {
-        unset -f docker
-        echo Setting up docker-machine...
-        docker-machine start default
-        eval $(docker-machine env default --shell zsh)
-        docker "$@"
-    }
-fi
-
-alias d='docker'
-alias dm='docker-machine'
-
-dcleanup(){
-    docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
-    docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2>/dev/null
-}
-
-dnuke() {
-    docker ps | cl 1 | drop 1 | xargs --no-run-if-empty -n 1 docker kill
-    dcleanup
-}
 
 # Completition
 
@@ -325,9 +209,3 @@ WIN_ZSHRC=~/.zshrc_cygwin
 
 MAC_ZSHRC=~/.zshrc_mac
 [ -f $MAC_ZSHRC ] && source $MAC_ZSHRC
-
-# Autojump with z (pure sh implementation)
-export _Z_CMD="j"
-alias jc="j -c"
-Z_SH=~/.z.sh
-[ -f $Z_SH ] && source $Z_SH

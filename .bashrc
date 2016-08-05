@@ -31,8 +31,8 @@ complete -d cd
 bind "set completion-ignore-case on"
 bind "set show-all-if-ambiguous on"
 
-if [ -f ~/.shell_common ]; then
-    . ~/.shell_common
+if [ -f ~/.shellrc ]; then
+    . ~/.shellrc
 fi
 
 if [ -f ~/.bash_aliases ]; then
