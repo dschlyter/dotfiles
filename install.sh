@@ -32,6 +32,7 @@ link .bashrc
 link .shellrc
 
 link .z.sh # autojump
+link .fasd.sh # autojump for files (but slower, so we still use z.sh)
 link .vimrc
 link .gitconfig
 link .gitignore
