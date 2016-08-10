@@ -35,3 +35,9 @@ fi
 
 # cd to the absolute url stripping the /cygdrive prefix, useful for docker-machine mounts
 alias cda='cd $(pwd -P | sed -e "s,^/cygdrive,,")'
+
+# Autojump with z (fasd is a bit to sluggish under cygwin, but it is still available for files)
+export _Z_CMD="j"
+alias jc="j -c"
+Z_SH=~/.z.sh
+[ -f $Z_SH ] && source $Z_SH

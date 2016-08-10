@@ -31,8 +31,7 @@ bak_nonlink .bashrc
 link .bashrc
 link .shellrc
 
-link .z.sh # autojump
-link .fasd.sh # autojump for files (but slower, so we still use z.sh)
+link .fasd.sh # autojump
 link .vimrc
 link .gitconfig
 link .gitignore
@@ -54,6 +53,7 @@ case "$(uname -s)" in
     CYGWIN*|MINGW32*|MSYS*)
         echo Detected Windows/Cygwin
         link .zshrc_cygwin
+        link .z.sh # alt autojump that is faster on windows
         ;;
 
     Linux)

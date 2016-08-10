@@ -182,15 +182,10 @@ dnuke() {
 # External libraries
 #
 
-# Autojump with z
-export _Z_CMD="j"
-alias jc="j -c"
-Z_SH=~/.z.sh
-[ -f $Z_SH ] && source $Z_SH
-
 # Autojump with fasd - for autojump selecting of files
 export _FASD_IGNORE="fasd echo" # don't ignore ls history when finding files
 FASD_SH=~/.fasd.sh
 [ -f $FASD_SH ] && source $FASD_SH
 eval "$(fasd --init auto)"
+alias j="z"
 alias v="f -e vim"
