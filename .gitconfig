@@ -23,8 +23,8 @@
     whitespace=-indent-with-non-tab,trailing-space,cr-at-eol
     excludesfile = ~/.gitignore
     editor = vim
-    trustctime = false
     autocrlf = input
+    trustctime = false
 [advice]
     statusHints = false
 [branch]
