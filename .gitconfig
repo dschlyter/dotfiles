@@ -76,10 +76,12 @@
     rbn = "!r() { git rebase -i HEAD~$1; }; r"
 
     # branch and merge
-    # get latest changes even with local changes (but abort on conflicts)
+    # get remote updates even with local uncommited changes (but abort on conflicts)
     fm = !git fetch && git merge --ff-only
     purge = !git branch -d $1 && git push origin --delete
     prune-local = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
+    # quick alias for setting upstream
+    su = !sh -c 'git branch -u "origin/$(git rev-parse --abbrev-ref HEAD)"'
 
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
     tv = "!f() { git tag -m \"Version $1\" $1; }; f"
