@@ -123,6 +123,34 @@ serve() {
     python -m SimpleHTTPServer "$PORT"
 }
 
+# because "time" does not always work for shell builtins etc
+timing() {
+    local PREV_TIMING="$LAST_TIMING"
+    LAST_TIMING="$(date +%s%N)"
+    if [ -n "$*" ] && [ "$PREV_TIMING" ]; then
+        echo "Timing $*: $((($LAST_TIMING - $PREV_TIMING) / 1000000))"
+    fi
+}
+
+# tmp benchmark
+function ct {
+    timing
+    cd "$@"
+    timing change dir
+}
+
+function tj {
+    timing
+    j "$@"
+    timing j
+}
+
+function tz {
+    timing
+    z "$@"
+    timing z
+}
+
 #
 # Docker utils
 #
