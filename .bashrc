@@ -3,7 +3,7 @@
 # If not running interactively, don't do anything
 [[ "$-" != *i* ]] && return
 
-alias rc='source ~/.bashrc'
+alias rc='BASHRC_LOADED=""; source ~/.bashrc'
 
 # Basic options
 export HISTCONTROL=ignoredups:ignorespace
@@ -24,6 +24,9 @@ BBLUE='\[\033[1;34m\]'
 BLUE='\[\033[0;34m\]'
 NORMAL='\[\033[00m\]'
 PS1="${BLUE}\u@\h:${GREEN}\w${RED}\$ ${NORMAL}"
+
+# allow .bashrc to be loaded multiple times (avoid prompt overwrite) but don't load heavy stuff below
+[ "$BASHRC_LOADED" ] && return || BASHRC_LOADED=1
 
 # Completition
 complete -d cd
