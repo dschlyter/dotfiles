@@ -24,7 +24,8 @@
     excludesfile = ~/.gitignore
     editor = vim
     autocrlf = input
-    trustctime = false
+    # for some reasong this value is always automatically re-indented with a tab instead of spaces, I give up on reseting it everytime
+	trustctime = false
 [advice]
     statusHints = false
 [branch]
