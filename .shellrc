@@ -72,7 +72,7 @@ md() {
 }
 
 # explore a file tree with a combined ls and cat
-s() {
+function s() {
     if [ -d "$1" ]; then
         /bin/ls "$@"
     else

@@ -204,6 +204,8 @@ setopt recexact                 # recognise exact, ambiguous matches
 setopt histignorespace          # commands starting with space are not remembered
 setopt histignorealldups        # removes duplicate commands, even if non-sequential, useful for percol search
 
+export REPORTTIME=10 # print stats for commands running longer than 10 secs
+
 # Overriding configs goes in .zshrc_local
 
 LOCAL_ZSHRC=~/.zshrc_local
