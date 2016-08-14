@@ -133,7 +133,7 @@ filetype plugin indent on
 nnoremap <leader>u :GundoToggle<cr>
 nnoremap <leader>p <Plug>yankstack_substitute_older_paste
 nnoremap <leader>P <Plug>yankstack_substitute_newer_paste
-nnoremap <leader>w :StripWhitespace
+nnoremap <leader>w :StripWhitespace<cr>
 
 nnoremap <leader>d :DiffOrig
 
