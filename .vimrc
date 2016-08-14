@@ -67,7 +67,7 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     Bundle 'nanotech/jellybeans.vim'
 	let g:jellybeans_background_color_256 = 'none'
     let g:jellybeans_overrides = { 'SignColumn': { '256ctermbg': 'NONE' }, }
-    try 
+    try
         colorscheme jellybeans
     catch
         set background=dark
@@ -94,7 +94,7 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
         let normalColor = [ '#eeeeee', '#005faf', 255, 25, ]
         let a:palette.normal.airline_a = normalColor
         let a:palette.normal.airline_z = normalColor
-        
+
         " bright yellow from visual mode used for insert instead
         " will also mark changed files bright yellow on tabline (side effect)
         let a:palette.insert = copy(a:palette.visual)
@@ -153,7 +153,7 @@ nnoremap <leader>i "=strftime("%F")<CR>p
 " possibly breaking customizations
 " ================================
 
-" repeat last command and move down a line 
+" repeat last command and move down a line
 " (this chould be a nice plugin if expanded)
 noremap - .j
 
@@ -198,7 +198,7 @@ inoremap <C-l> <C-o>:bn<CR>
 " Copy/Paste to system clipboard with regular ctrl-c, ctrl-v
 " Paste also tries to keep correct indentation (but does not always work)
 " NOTE: For + register to work, gvim might need to be installed (not used)
-vnoremap <C-c> "+y 
+vnoremap <C-c> "+y
 inoremap <C-v> <ESC>"+]p`]a
 
 " Make shift-tab work in reverse of tab in insert mode
@@ -275,7 +275,7 @@ au FocusGained,BufEnter * :silent! !
 " =========================
 
 
-" encryption should be strong 
+" encryption should be strong
 if exists("+cryptmethod")
     try
         set cryptmethod=blowfish2
@@ -291,7 +291,7 @@ endif
 
 syntax enable
 
-" linenumbers 
+" linenumbers
 set number
 " set relativenumber
 
@@ -350,8 +350,8 @@ set backspace=indent,eol,start
 if exists("+undofile")
     set undofile
     set undodir=~/.vim_undo//
-    set undolevels=1000 
-    set undoreload=10000 
+    set undolevels=1000
+    set undoreload=10000
 endif
 
 " Tell vim to remember certain things when we exit
