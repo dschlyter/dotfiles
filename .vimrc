@@ -157,6 +157,9 @@ nnoremap <leader>i "=strftime("%F")<CR>p
 " (this chould be a nice plugin if expanded)
 noremap - .j
 
+" allow . and Q to execute once for each line of a visual selection
+vnoremap . :normal .<CR>
+
 noremap <Cr> o<Esc>
 
 " move to start and end of line using readline-style shortcuts
