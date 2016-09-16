@@ -178,6 +178,11 @@ dnuke() {
     dcleanup
 }
 
+# "docker stats" with names instead of hash, until https://github.com/docker/docker/issues/20973 is solved
+dstat() {
+    docker stats $(docker ps --format={{.Names}})
+}
+
 #
 # External libraries
 #
