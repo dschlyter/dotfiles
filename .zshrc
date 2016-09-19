@@ -181,7 +181,7 @@ fi
 HISTFILE=~/.zsh_history
 HISTSIZE=10000
 SAVEHIST=10000
-setopt APPEND_HISTORY           # append history at close?
+setopt INC_APPEND_HISTORY       # append history incrementally as commands are entered
 
 ## mostly from ofb.net zshtricks
 
