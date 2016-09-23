@@ -9,3 +9,21 @@ map gi :action GotoImplementation<CR>
 
 " enable the surround plugin added in 0.46
 set surround
+
+"
+" customizations from real vimrc
+"
+
+let mapleader = "ö"
+nnoremap <leader>- yyp^v$r-
+nnoremap <leader>= yyp^v$r=
+
+noremap - .j
+noremap <Cr> o<Esc>
+
+" use Q to run the macro on q
+noremap Q @q
+" use K to delete without writing to register
+nnoremap K "_d
+nnoremap KK "_dd
+vnoremap K "_d
