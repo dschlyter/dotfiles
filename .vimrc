@@ -1,133 +1,12 @@
 " use Vim settings, rather than Vi settings
 set nocompatible
 
-" key for custom commands, to prevent overwrite of standard commands
-let mapleader = "ö"
-
-if !empty($COLORTERM) || $TERM == "xterm-256color" || $TERM == "screen-256color"
-    set t_Co=256
-endif
-
-" default to colorscheme, then let plugins override
-try
-    colorscheme peksim
-catch
-    set background=dark
-    " use default colors
-endtry
-
-" plugins
-" =======
-
-
-" some basic security
-" do not run plugins when using sudo / sudoedit
-" also only run if vundle is installed
-if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/vundle')
-    " use vundle for plugins
-    filetype off " required for vundle on older vim versions
-    set rtp+=~/.vim/bundle/vundle/
-    call vundle#rc()
-    Bundle 'gmarik/vundle'
-
-    " improve f and t commands
-    Bundle 'svermeulen/vim-extended-ft'
-
-    " highlight bad trailing whitespace
-    Plugin 'ntpeters/vim-better-whitespace'
-
-    " open files with fuzzy search
-    " use with <C-p>
-    Bundle 'kien/ctrlp.vim'
-
-    " git / github commands, diff, blame, etc
-    Bundle 'tpope/vim-fugitive'
-
-    " visualize undo tree, and revert to previous states
-    Bundle 'sjl/gundo.vim'
-
-    " paste previous yanks easily
-    Bundle 'maxbrunsfeld/vim-yankstack'
-
-    " syntax error highlights and descriptions
-    Bundle 'scrooloose/syntastic'
-    let g:syntastic_check_on_open=1
-    let g:syntastic_enable_signs=1
-    let g:syntastic_always_populate_loc_list = 1
-
-    " filetree visualization and selection
-    Bundle 'scrooloose/nerdtree'
-    noremap <C-n> :NERDTreeToggle<cr>
-
-    " search code with ag from vim
-    Bundle 'rking/ag.vim'
-    noremap <C-g> :Ag
-
-    " colorscheme for vim
-    Bundle 'nanotech/jellybeans.vim'
-	let g:jellybeans_background_color_256 = 'none'
-    let g:jellybeans_overrides = { 'SignColumn': { '256ctermbg': 'NONE' }, }
-    try
-        colorscheme jellybeans
-    catch
-        set background=dark
-        " use default colors
-    endtry
-
-    " fancier status line, with git integration etc
-    Bundle 'bling/vim-airline'
-    set laststatus=2 " always show statusline
-    let g:airline#extensions#whitespace#enabled = 0 " no warning for trailing whitespace
-    let g:airline#extensions#tabline#enabled = 1
-    let g:airline#extensions#tabline#left_sep = ' '
-    let g:airline#extensions#tabline#left_alt_sep = '|'
-
-    " simple separators for bottom powerline, avoid font installation etc
-    let g:airline_powerline_fonts = 0
-    let g:airline_left_sep=' '
-    let g:airline_right_sep=' '
-
-    let g:airline_theme='dark'
-    let g:airline_theme_patch_func = 'AirlineThemePatch' " nicer colors
-    function! AirlineThemePatch(palette)
-        " calm blue instead of ugly yellow for normal mode
-        let normalColor = [ '#eeeeee', '#005faf', 255, 25, ]
-        let a:palette.normal.airline_a = normalColor
-        let a:palette.normal.airline_z = normalColor
-
-        " bright yellow from visual mode used for insert instead
-        " will also mark changed files bright yellow on tabline (side effect)
-        let a:palette.insert = copy(a:palette.visual)
-
-        " subtle green for visual mode
-        let a:palette.visual = copy(a:palette.normal)
-        let visualColor = [ '#eeeeee', '#005f00', 255, 22, ]
-        let a:palette.visual.airline_a = visualColor
-        let a:palette.visual.airline_z = visualColor
-    endfunction
-
-    " show + - in the gutter for uncommited git change
-    Bundle "mhinz/vim-signify"
-    let g:signify_vcs_list = [ 'git', 'hg' ]
-
-    " better session handling
-    Bundle 'tpope/vim-obsession'
-    command Obs Obsession .vimsession
-
-    " enable dsb, cs'" and ysiw<div> syntax for changing surrounding elements
-    Bundle "tpope/vim-surround"
-    Bundle "tpope/vim-repeat"
-endif
-
-command BundleSetup !git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
-
-" reenable filetype after plugin init
-filetype plugin indent on
-
 
 " leader customizations
 " =====================
 
+" key for custom commands, to prevent overwrite of standard commands
+let mapleader = "ö"
 
 " plugin leader commands
 nnoremap <leader>u :GundoToggle<cr>
@@ -276,6 +155,131 @@ com! DiffSaved call s:DiffWithSaved()
 
 " check if file has changed when changing buffer or file
 au FocusGained,BufEnter * :silent! !
+
+" default color settings
+" ======================
+
+
+if !empty($COLORTERM) || $TERM == "xterm-256color" || $TERM == "screen-256color"
+    set t_Co=256
+endif
+
+" default to colorscheme, then let plugins override
+try
+    colorscheme peksim
+catch
+    set background=dark
+    " use default colors
+endtry
+
+
+" plugins
+" =======
+
+
+" some basic security
+" do not run plugins when using sudo / sudoedit
+" also only run if vundle is installed
+if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/vundle')
+    " use vundle for plugins
+    filetype off " required for vundle on older vim versions
+    set rtp+=~/.vim/bundle/vundle/
+    call vundle#rc()
+    Bundle 'gmarik/vundle'
+
+    " improve f and t commands
+    Bundle 'svermeulen/vim-extended-ft'
+
+    " highlight bad trailing whitespace
+    Plugin 'ntpeters/vim-better-whitespace'
+
+    " open files with fuzzy search
+    " use with <C-p>
+    Bundle 'kien/ctrlp.vim'
+
+    " git / github commands, diff, blame, etc
+    Bundle 'tpope/vim-fugitive'
+
+    " visualize undo tree, and revert to previous states
+    Bundle 'sjl/gundo.vim'
+
+    " paste previous yanks easily
+    Bundle 'maxbrunsfeld/vim-yankstack'
+
+    " syntax error highlights and descriptions
+    Bundle 'scrooloose/syntastic'
+    let g:syntastic_check_on_open=1
+    let g:syntastic_enable_signs=1
+    let g:syntastic_always_populate_loc_list = 1
+
+    " filetree visualization and selection
+    Bundle 'scrooloose/nerdtree'
+    noremap <C-n> :NERDTreeToggle<cr>
+
+    " search code with ag from vim
+    Bundle 'rking/ag.vim'
+    noremap <C-g> :Ag
+
+    " colorscheme for vim
+    Bundle 'nanotech/jellybeans.vim'
+	let g:jellybeans_background_color_256 = 'none'
+    let g:jellybeans_overrides = { 'SignColumn': { '256ctermbg': 'NONE' }, }
+    try
+        colorscheme jellybeans
+    catch
+        set background=dark
+        " use default colors
+    endtry
+
+    " fancier status line, with git integration etc
+    Bundle 'bling/vim-airline'
+    set laststatus=2 " always show statusline
+    let g:airline#extensions#whitespace#enabled = 0 " no warning for trailing whitespace
+    let g:airline#extensions#tabline#enabled = 1
+    let g:airline#extensions#tabline#left_sep = ' '
+    let g:airline#extensions#tabline#left_alt_sep = '|'
+
+    " simple separators for bottom powerline, avoid font installation etc
+    let g:airline_powerline_fonts = 0
+    let g:airline_left_sep=' '
+    let g:airline_right_sep=' '
+
+    let g:airline_theme='dark'
+    let g:airline_theme_patch_func = 'AirlineThemePatch' " nicer colors
+    function! AirlineThemePatch(palette)
+        " calm blue instead of ugly yellow for normal mode
+        let normalColor = [ '#eeeeee', '#005faf', 255, 25, ]
+        let a:palette.normal.airline_a = normalColor
+        let a:palette.normal.airline_z = normalColor
+
+        " bright yellow from visual mode used for insert instead
+        " will also mark changed files bright yellow on tabline (side effect)
+        let a:palette.insert = copy(a:palette.visual)
+
+        " subtle green for visual mode
+        let a:palette.visual = copy(a:palette.normal)
+        let visualColor = [ '#eeeeee', '#005f00', 255, 22, ]
+        let a:palette.visual.airline_a = visualColor
+        let a:palette.visual.airline_z = visualColor
+    endfunction
+
+    " show + - in the gutter for uncommited git change
+    Bundle "mhinz/vim-signify"
+    let g:signify_vcs_list = [ 'git', 'hg' ]
+
+    " better session handling
+    Bundle 'tpope/vim-obsession'
+    command Obs Obsession .vimsession
+
+    " enable dsb, cs'" and ysiw<div> syntax for changing surrounding elements
+    Bundle "tpope/vim-surround"
+    Bundle "tpope/vim-repeat"
+endif
+
+command BundleSetup !git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
+
+" reenable filetype after plugin init
+filetype plugin indent on
 
 
 " plain old boring settings
