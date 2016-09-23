@@ -23,8 +23,8 @@ nnoremap <leader>j :bn<cr>
 nnoremap <leader>k :bp<cr>
 
 " Fast underline (markdown)
-nnoremap <leader>- yypVr-
-nnoremap <leader>= yypVr=
+nnoremap <leader>- yyp^v$r-
+nnoremap <leader>= yyp^v$r=
 
 " insert current date
 nnoremap <leader>i "=strftime("%F")<CR>p
@@ -42,7 +42,8 @@ vnoremap . :normal .<CR>
 noremap <Cr> o<Esc>
 
 " move to start and end of line using readline-style shortcuts
-noremap <C-a> ^
+" in normal mode C-a increments number, use _ or ^
+" $ is a bit annoying to type on swedish keyboards, so enable C-e in normal mode
 noremap <C-e> $
 inoremap <C-a> <C-o>^
 inoremap <C-e> <C-o>$
