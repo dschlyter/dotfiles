@@ -99,6 +99,8 @@ nnoremap K "_d
 nnoremap KK "_dd
 vnoremap K "_d
 
+" break undo in sensible places
+inoremap <CR>  <C-G>u<CR>
 
 " cute hacks
 " ==========
