@@ -25,3 +25,8 @@ use_gnu tac
 use_gnu cp
 use_gnu ln
 use_gnu du
+
+function handlemail() {
+    cat /var/mail/$USER
+    sudo rm /var/mail/$USER
+}
