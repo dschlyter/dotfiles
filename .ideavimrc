@@ -18,7 +18,7 @@ let mapleader = "ö"
 nnoremap <leader>- yyp^v$r-
 nnoremap <leader>= yyp^v$r=
 
-noremap - .j
+noremap - mt.`tj
 noremap <Cr> o<Esc>
 
 " use Q to run the macro on q

@@ -34,7 +34,7 @@ nnoremap <leader>i "=strftime("%F")<CR>p
 
 " repeat last command and move down a line
 " (this chould be a nice plugin if expanded)
-noremap - .j
+noremap - mt.`tj
 
 " allow . and Q to execute once for each line of a visual selection
 vnoremap . :normal .<CR>
