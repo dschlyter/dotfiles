@@ -6,7 +6,8 @@
 local modifierFocus = {"alt"}
 local modifierResize = {"alt", "ctrl"}
 local modifierMoveScreen = {"alt", "shift"}
-local modifierMoveSpace = {"ctrl", "cmd"}
+local modifierMoveScreenIndex = {"alt", "ctrl"}
+local modifierMoveSpace = {"alt", "ctrl"}
 local minimumMoveDistance = 10
 
 hs.window.animationDuration = 0
@@ -26,13 +27,13 @@ end)
 -- hjnp to switch window focus
 ------------------------------
 
-hs.hotkey.bind(modifierFocus, 'p', function()
+hs.hotkey.bind(modifierFocus, 'k', function()
     orChain(focusDirection("North", false), function()
         focusLayer(-1)
     end)
 end)
 
-hs.hotkey.bind(modifierFocus, 'n', function()
+hs.hotkey.bind(modifierFocus, 'j', function()
     orChain(focusDirection("South", false), function() 
         focusLayer(1)
     end)
@@ -184,6 +185,29 @@ function moveWindowOneScreenEast()
     end)
 end
 
+-- 123 for move to screen by index (better than above)
+------------------------------------------------------
+
+hs.hotkey.bind(modifierMoveScreenIndex, '1', function()
+    moveWindowToScreen(1)
+end)
+
+hs.hotkey.bind(modifierMoveScreenIndex, '2', function()
+    moveWindowToScreen(2)
+end)
+
+hs.hotkey.bind(modifierMoveScreenIndex, '3', function()
+    moveWindowToScreen(3)
+end)
+
+function moveWindowToScreen(index)
+    findFocused(function(win)
+        local target = hs.screen.allScreens()[index]
+        win:moveToScreen(target)
+        store_window_pos()
+    end)
+end
+
 -- cmd-ctrl left-right for sending to next/prev space
 -- (this is pretty much a hack that captures the mouse, and sends ctrl-left/right)
 
@@ -272,11 +296,11 @@ hs.hotkey.bind({'ctrl', 'alt'}, 's', function()
     os.execute('curl -X POST 192.168.1.66:29330/sleep')
 end)
 
-hs.hotkey.bind({'alt'}, 'k', function()
+hs.hotkey.bind({'alt'}, 'p', function()
     hs.eventtap.event.newKeyEvent({}, 'up', true):post()
 end)
 
-hs.hotkey.bind({'alt'}, 'j', function()
+hs.hotkey.bind({'alt'}, 'n', function()
     hs.eventtap.event.newKeyEvent({}, 'down', true):post()
 end)
 
