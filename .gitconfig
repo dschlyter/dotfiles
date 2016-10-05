@@ -55,11 +55,12 @@
 
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
-    lgh = log --color --graph --date=iso --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
+    lh = log --color --graph --date=iso --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
     # lg shows all branches
-    lg = !git lgh --all
+    lg = !git lh --all
+    ll = !git lg -n 9999
     # log including all branchless (rebased, amended, dropped) commits
-    lga = !git lg $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
+    la = !git lg $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
 
     # commit
     # patched commit with a file review and untracked sanity check first
@@ -73,6 +74,8 @@
     amend = commit --amend --reuse-message=HEAD
     # --amend to a previous commit below HEAD
     fixup = !sh -c '(git diff-files --quiet || (echo "Unstaged changes, please commit or stash with --keep-index" && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -
+    # reset back n commits
+    rsn = "!r() { git reset HEAD~$1; }; r"
     # rebase the last n commits
     rbn = "!r() { git rebase -i HEAD~$1; }; r"
 
@@ -88,8 +91,8 @@
     tv = "!f() { git tag -m \"Version $1\" $1; }; f"
 
     # gitflow, check unreleased features on develop branch
-    features = !git lgh master..develop --merges -n 9999
-    unpushed = !git lg --branches --not --remotes
+    features = !git lh master..develop --merges -n 9999
+    local = !git lg --branches --not --remotes
     # fast forward develop or master without checking them out
     dup = !git fetch && git merge-base --is-ancestor develop origin/develop && git branch -f develop origin/develop
     mup = !git fetch && git merge-base --is-ancestor master origin/master && git branch -f master origin/master
