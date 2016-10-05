@@ -6,14 +6,14 @@ DOTFILES="$(pwd)"
 
 link() {
    FILE="$1"
-   SOURCE="$HOME/$FILE"
-   LINK="$DOTFILES/$FILE"
+   SOURCE="$HOME/${2:-$FILE}"
+   TARGET="$DOTFILES/$FILE"
 
    if [ -L "$SOURCE" ]; then
        echo "file $FILE already linked"
    else
-       echo "linking $LINK"
-       ln -s "$LINK" "$SOURCE"
+       echo "linking $TARGET"
+       ln -s "$TARGET" "$SOURCE"
    fi
 }
 
@@ -25,6 +25,9 @@ bak_nonlink() {
        mv "$SOURCE" "${SOURCE}.bak"
    fi
 }
+
+link . dotfiles
+link bin
 
 link .zshrc
 bak_nonlink .bashrc
