@@ -33,6 +33,7 @@ link .zshrc
 bak_nonlink .bashrc
 link .bashrc
 link .shellrc
+link .kubectl_aliases
 
 link .fasd.sh # autojump
 link .vimrc

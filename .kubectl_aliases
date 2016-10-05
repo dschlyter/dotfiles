@@ -1,0 +1,129 @@
+# because we are too lazy to write kubectl all the time, alias it to k
+alias k='kubectl'
+
+# select all pods matching a pattern
+# this allows to write a unique substring of a pod instead of the full name
+# example: k logs $(kp omziz)
+# instead of: kubctl logs mypodname-myrcname-123123-mziz
+#
+# optionally send in a number as second arg, then only select the n:th pod matching the pattern
+# example: k logs $(kp podname 2)
+# (this is of course not stable across deployments)
+#
+# this is reused by other commands
+kp() {
+    PODS="$(k get pods | grep $1 | awk '{print $1}')"
+
+    if [ "$2" ]; then
+        echo "$PODS" | sed -n "${2}p"
+    else
+        echo "$PODS"
+    fi
+}
+
+# run kp but split a single arg on ":" (makes it simpler to reuse for other commands)
+# indicies start on 1, not 0
+# example: k logs $(kps podname:2)
+kps() {
+    SAVED_IFS="$IFS"
+    IFS=":"
+    kp $*
+    IFS="$SAVED_IFS"
+}
+
+# like kp but for replication controllers
+# example: kr podname
+kr() {
+    k get rc | grep $1 | awk '{print $1}'
+}
+
+# kr with exact match
+# example: kre infotorg (will only match infotorg and not infotorg-company-api etc)
+kre() {
+    k get rc | grep "app=$1[, ]" | awk '{print $1}'
+}
+
+# like kp but for services, exact match
+# example: kse podname
+kse() {
+    k get svc | awk '{print $1}' | grep "^$1$"
+}
+
+
+# output the logs from one pod
+# example: kl podname:2
+# or: kl podname:2 -p
+kl() {
+    k logs $2 $(kps $1)
+}
+
+# desctibe a pod
+# example: kd podname:2
+kd() {
+    k describe pod $(kps $1)
+}
+
+# execute a command on one pod, ie. ke
+# example: ke podname:2 ls /opt/tomcat
+ke() {
+    POD=$1
+    shift
+    k exec $(kps $POD) -- "$@"
+}
+
+# merge all the logs, sorted by timestamp, from all pods matching pattern
+# example: klm podname
+klm() {
+    kp $1 | log_sorted
+}
+
+# merge and follow all the logs, sorted by timestamp, from all pods matching pattern
+# similar to tail -f but a bit buggy and unreliable, seems to get stuck sometimes
+# example: klmf podname
+klmf() {
+    kp $1 | log_sorted -f
+}
+
+log_sorted() {
+    while read podName
+    do
+        # prefix with ZZ to all timestamps to make non-timestamped lines get sorted first
+        # this means multi-line logs (ie. stacktraces) gets appended sorted after their timestamp
+        podStreams="$podStreams <(kl $podName $1 | sed 's/^201/ZZ 201/')"
+    done
+
+    eval "sort -m $podStreams"
+}
+
+# scale a service
+# example kscale podname 1
+kscale() {
+    k scale rc $(kre $1) --replicas=$2
+}
+
+kdel() {
+    # Make sure the match is exact, we don't wan't too fuzzy
+    RC="$(kre $1)"
+    SVC="$(kse $1)"
+
+    # Sanity check
+    RC_COUNT="$(echo "$RC" | wc -w)"
+    SVC_COUNT="$(echo "$SVC" | wc -w)"
+    if [ "$RC_COUNT" -ne 1 ] || [ "$SVC_COUNT" -ne 1 ]; then
+        echo "Error! Sanity check failed. Input must match exactly one rc and one svc"
+        echo ""
+        echo "## $RC_COUNT Matching rc"
+        echo "$RC"
+        echo ""
+        echo "## $SVC_COUNT Matching svc"
+        echo "$SVC"
+        return 1
+    fi
+
+    k delete rc $RC
+    k delete svc $SVC
+}
+
+kwatch() {
+    watch "kubectl get rc,po -l app=$1"
+}
