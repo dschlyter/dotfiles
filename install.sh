@@ -11,6 +11,8 @@ link() {
 
    if [ -L "$SOURCE" ]; then
        echo "file $FILE already linked"
+   elif [ -e "$SOURCE" ]; then
+       echo "!!! ERROR file $FILE exists but is not a link"
    else
        echo "linking $TARGET"
        ln -s "$TARGET" "$SOURCE"
