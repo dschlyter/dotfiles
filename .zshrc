@@ -18,7 +18,7 @@ function eachdir {
     for dir in *(/); do
         pushd .
         cd $dir
-        "$@"
+        eval "$@"
         popd
     done
 }

@@ -13,6 +13,23 @@ export PAGER="less"
 
 export PATH="$HOME/bin:$HOME/local/bin:$PATH"
 
+#
+# Autojump with fasd - define early so we can override its alias
+#
+
+# Autojump with fasd - for autojump selecting of files
+export _FASD_IGNORE="fasd echo" # don't ignore ls history when finding files
+FASD_SH=~/.fasd.sh
+if [ -f $FASD_SH ]; then
+    source $FASD_SH
+    eval "$(fasd --init auto)"
+
+    alias j="z"
+    alias v="f -e vim"
+    unalias s # used by function
+    unalias d # used by function
+fi
+
 # Aliases
 
 alias se='sudoedit'
@@ -50,10 +67,14 @@ date() {
 }
 
 
-# Functional helpers
+# Functional-style helpers
 
+# print specific column(s)
+# ie. echo a b c d e | cl 2 4 5
 cl() {
-    awk "{print \$$1}"
+    # print $ before first arg and join remaining with ',$'
+    COLS=$(echo "\$$*" | sed -e 's/ /,$/g')
+    awk "{print $COLS}"
 }
 
 take() {
@@ -64,6 +85,21 @@ drop() {
     tail -n +$(($1 + 1))
 }
 
+nth () {
+    sed -n "${1}p"
+}
+
+# each word on one line
+flatten() {
+    xargs -n 1 echo
+}
+
+# many lines to single line
+chunk() {
+    LINE_GROUP_SIZE="$(test $1 && echo -L $1)"
+    xargs $LINE_GROUP_SIZE echo
+}
+
 # Exploring the file system
 
 md() {
@@ -71,10 +107,18 @@ md() {
     cd $1
 }
 
+function c() {
+    s "$@"
+
+    if [ -d "$1" ]; then
+        cd "$1"
+    fi
+}
+
 # explore a file tree with a combined ls and cat
 function s() {
     if [ -d "$1" ]; then
-        /bin/ls "$@"
+        ls "$@"
     else
         cat "$@"
     fi
@@ -118,6 +162,14 @@ retry() {
     done
 }
 
+loop() {
+    COUNT=$1
+    shift
+    for i in $(seq $COUNT); do
+        eval "$@"
+    done
+}
+
 serve() {
     PORT=${1:-8000}
     python -m SimpleHTTPServer "$PORT"
@@ -130,25 +182,6 @@ timing() {
     if [ -n "$*" ] && [ "$PREV_TIMING" ]; then
         echo "Timing $*: $((($LAST_TIMING - $PREV_TIMING) / 1000000))"
     fi
-}
-
-# tmp benchmark
-function ct {
-    timing
-    cd "$@"
-    timing change dir
-}
-
-function tj {
-    timing
-    j "$@"
-    timing j
-}
-
-function tz {
-    timing
-    z "$@"
-    timing z
 }
 
 #
@@ -186,15 +219,3 @@ dstat() {
 if type kubectl &> /dev/null; then
     source ~/.kubectl_aliases
 fi
-
-#
-# External libraries
-#
-
-# Autojump with fasd - for autojump selecting of files
-export _FASD_IGNORE="fasd echo" # don't ignore ls history when finding files
-FASD_SH=~/.fasd.sh
-[ -f $FASD_SH ] && source $FASD_SH
-eval "$(fasd --init auto)"
-alias j="z"
-alias v="f -e vim"
