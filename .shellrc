@@ -32,6 +32,11 @@ fi
 
 # Aliases
 
+alias ll='ls -l'
+alias la='ls -a'
+alias lla='ls -la'
+alias lt='ls -ltr'
+
 alias se='sudoedit'
 alias ack='ack-grep'
 alias vims='vim -S .vimsession'
