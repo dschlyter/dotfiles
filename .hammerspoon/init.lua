@@ -289,11 +289,11 @@ hs.hotkey.bind({'alt'}, 'b', function()
 end)
 
 hs.hotkey.bind({'ctrl', 'alt'}, 'b', function()
-    os.execute('curl -X POST 192.168.1.66:29330/blank')
+    os.execute('curl -X POST 192.168.10.124:29330/blank')
 end)
 
 hs.hotkey.bind({'ctrl', 'alt'}, 's', function()
-    os.execute('curl -X POST 192.168.1.66:29330/sleep')
+    os.execute('curl -X POST 192.168.10.124:29330/sleep')
 end)
 
 hs.hotkey.bind({'alt'}, 'p', function()
