@@ -75,7 +75,7 @@
     # --amend to a previous commit below HEAD
     fixup = !sh -c '(git diff-files --quiet || (echo "Unstaged changes, please commit or stash with --keep-index" && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -
     # reset back n commits
-    rsn = "!r() { git reset HEAD~$1; }; r"
+    rsn = "!r() { COUNT=$1; shift; git reset HEAD~$COUNT $@; }; r"
     # rebase the last n commits
     rbn = "!r() { git rebase -i HEAD~$1; }; r"
 
