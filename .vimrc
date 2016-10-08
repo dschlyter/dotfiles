@@ -14,17 +14,22 @@ nnoremap <leader>p <Plug>yankstack_substitute_older_paste
 nnoremap <leader>P <Plug>yankstack_substitute_newer_paste
 nnoremap <leader>w :StripWhitespace<cr>
 
-nnoremap <leader>d :DiffOrig
+nnoremap <leader>d :DiffOrig<cr>
 
 nnoremap <leader>n :noh<cr>
-nnoremap <leader>o :only<cr>
-nnoremap <leader>t :tabnew<cr>
-nnoremap <leader>j :bn<cr>
-nnoremap <leader>k :bp<cr>
 
-" Fast underline (markdown)
+" handle buffers and tabs
+nnoremap <leader>o :only<cr>
+nnoremap <leader>b :bd<cr>
+nnoremap <leader>B :bd!<cr>
+nnoremap <leader>t :tabnew<cr>
+nnoremap <leader>j :tabnext<cr>
+nnoremap <leader>k :tabprev<cr>
+
+" Fast markdown
 nnoremap <leader>- yyp^v$r-
 nnoremap <leader>= yyp^v$r=
+nnoremap <leader>* I**<Esc>A**<Esc>
 
 " insert current date
 nnoremap <leader>i "=strftime("%F")<CR>p
@@ -58,10 +63,6 @@ vnoremap <C-k> :m '<-2<CR>gv=gv
 
 " leave insert with jj
 " inoremap jj <ESC>
-
-" close buffer
-noremap <C-b> :bd<CR>
-inoremap <C-b> <C-o>:bd<CR>
 
 " better handling of wrapped lines
 noremap j gj
