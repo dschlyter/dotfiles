@@ -34,6 +34,9 @@ nnoremap <leader>* I**<Esc>A**<Esc>
 " insert current date
 nnoremap <leader>i "=strftime("%F")<CR>p
 
+" fugitive shortcuts
+nnoremap <leader>g :Gstatus<cr>
+
 " possibly breaking customizations
 " ================================
 
