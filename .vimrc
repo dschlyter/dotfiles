@@ -9,14 +9,8 @@ set nocompatible
 let mapleader = "ö"
 
 " plugin leader commands
-nnoremap <leader>u :GundoToggle<cr>
-nnoremap <leader>p <Plug>yankstack_substitute_older_paste
-nnoremap <leader>P <Plug>yankstack_substitute_newer_paste
-nnoremap <leader>w :StripWhitespace<cr>
-
-nnoremap <leader>d :DiffOrig<cr>
-
 nnoremap <leader>n :noh<cr>
+nnoremap <leader>w :StripWhitespace<cr>
 
 " handle buffers and tabs
 nnoremap <leader>o :only<cr>
@@ -34,8 +28,15 @@ nnoremap <leader>* I**<Esc>A**<Esc>
 " insert current date
 nnoremap <leader>i "=strftime("%F")<CR>p
 
-" fugitive shortcuts
+" git shortcuts from plugings
 nnoremap <leader>g :Gstatus<cr>
+nnoremap <leader>r :GitGutterUndoHunk<CR>
+nnoremap <leader>d :GitGutterPreviewHunk<CR>
+
+" other plugin leader hotkeys
+nnoremap <leader>u :GundoToggle<cr>
+nnoremap <leader>p <Plug>yankstack_substitute_older_paste
+nnoremap <leader>P <Plug>yankstack_substitute_newer_paste
 
 " possibly breaking customizations
 " ================================
@@ -145,11 +146,6 @@ func! HighlightUnderCursor()
     endif
 endfunc
 autocmd CursorMoved * :call HighlightUnderCursor()
-
-" Diff with file on disk
-if !exists(":DiffOrig")
-    command DiffOrig vert new | set bt=nofile | r ++edit # | 0d_ | diffthis | wincmd p | diffthis
-endif
 
 function! s:DiffWithSaved()
     let filetype=&ft
@@ -271,8 +267,8 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     endfunction
 
     " show + - in the gutter for uncommited git change
-    Bundle "mhinz/vim-signify"
-    let g:signify_vcs_list = [ 'git', 'hg' ]
+    " jumo with [c ]c and operate on text object ic
+    Bundle "airblade/vim-gitgutter"
 
     " better session handling
     Bundle 'tpope/vim-obsession'
