@@ -256,15 +256,15 @@ end)
 
 -- spawn a new iterm window
 hs.hotkey.bind({'ctrl', 'alt'}, 'space', function()
-    local existingWindows = windowsExist("iTerm")
+    local existingWindows = windowsExist("iTerm2")
     hs.application.launchOrFocus("iTerm")
     if existingWindows then
         hs.eventtap.keyStroke({'cmd'}, 'n')
     else
         -- opening iTerm without open windows will open a new window, no need for cmd-n
-        
+
         -- unless we are on a new space, and have the setting of auto-switch space disabled
-        if not windowsExist("iTerm") then
+        if not windowsExist("iTerm2") then
             hs.eventtap.keyStroke({'cmd'}, 'n')
         end
     end
