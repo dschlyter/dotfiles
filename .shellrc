@@ -221,6 +221,15 @@ dstat() {
     docker stats $(docker ps --format={{.Names}})
 }
 
+source_if_exists() {
+    if [ -f "$1" ]; then
+        source "$1"
+    fi
+}
+
+source_if_exists ~/.shellrc_local
+source_if_exists ~/.shellrc_linux
+
 if type kubectl &> /dev/null; then
     source ~/.kubectl_aliases
 fi

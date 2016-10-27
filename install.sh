@@ -64,6 +64,7 @@ case "$(uname -s)" in
 
     Linux)
         echo Detected Linux
+        link .shellrc_linux
         ;;
 
     *)

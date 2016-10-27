@@ -208,11 +208,6 @@ export REPORTTIME=10 # print stats for commands running longer than 10 secs
 
 # Overriding configs goes in .zshrc_local
 
-LOCAL_ZSHRC=~/.zshrc_local
-[ -f $LOCAL_ZSHRC ] && source $LOCAL_ZSHRC
-
-WIN_ZSHRC=~/.zshrc_cygwin
-[ -f $WIN_ZSHRC ] && source $WIN_ZSHRC
-
-MAC_ZSHRC=~/.zshrc_mac
-[ -f $MAC_ZSHRC ] && source $MAC_ZSHRC
+source_if_exists ~/.zshrc_local
+source_if_exists ~/.zshrc_cygwin
+source_if_exists ~/.zshrc_mac
