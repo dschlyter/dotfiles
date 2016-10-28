@@ -11,10 +11,10 @@ export EDITOR="vim"
 export VISUAL="vim"
 export PAGER="less"
 
-export PATH="$HOME/bin:$HOME/local/bin:$PATH"
+export PATH="$HOME/bin:$HOME/local/bin:$HOME/code/server-setup/bin:$PATH"
 
 #
-# Autojump with fasd - define early so we can override its alias
+# Autojump with fasd - define early so we can override its aliases
 #
 
 # Autojump with fasd - for autojump selecting of files
@@ -178,6 +178,12 @@ loop() {
 serve() {
     PORT=${1:-8000}
     python -m SimpleHTTPServer "$PORT"
+}
+
+genpass() {
+    PWLEN="${1:-60}"
+    openssl rand -base64 $PWLEN | head -c $PWLEN
+    echo
 }
 
 # because "time" does not always work for shell builtins etc
