@@ -1,3 +1,6 @@
+# conviniences
+alias bup="brew update && brew upgrade"
+
 # default alias makes OSX outdated binaries sad :(
 alias ls='ls -h -G'
 alias o='open'
@@ -6,15 +9,15 @@ alias o='open'
 alias -g MAP='| xargs -n 1'
 alias -g MAPI='| xargs -n 1 -i'
 
-# use updated coreutils by default
-function use_gnu() {
-    type "g$1" > /dev/null && alias $1="g$1$2"
-}
-
 # set iterm title to current dir
 # credit to https://gist.github.com/phette23/5270658
 precmd() {
     echo -ne "\e]1;${PWD##*/}\a"
+}
+
+# use updated coreutils by default
+function use_gnu() {
+    type "g$1" > /dev/null && alias $1="g$1$2"
 }
 
 use_gnu ls " -h --color=auto --group-directories-first"
