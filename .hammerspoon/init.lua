@@ -354,26 +354,6 @@ function restore_window_pos()
     end
 end
 
--- copy of hs.window.visibleWindows with some add robustness to keep it from crashing
--- TODO unused, remove unless problems surface again
-function visibleWindows_fixed() 
-    local r = {}
-    for _,app in ipairs(hs.application.runningApplications()) do
-        -- speedup by excluding hidden app
-        if app:kind() > 0 and not app:isHidden() then 
-            log.d(app:name())
-            log.d(app:visibleWindows())
-            for _,w in ipairs(app:visibleWindows()) do 
-                r[#r+1] = w 
-            end 
-        end
-    end
-    return r
-end
-
--- hs.window.visibleWindows() fails after startup / config reload, calling this api seems to fix it, quite strange
-hs.application.runningApplications()
-
 hs.hotkey.bind(modifierResize, 'o', function()
     restore_window_pos()
 end)
