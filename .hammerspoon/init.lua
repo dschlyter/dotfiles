@@ -200,6 +200,19 @@ hs.hotkey.bind(modifierMoveScreenIndex, '3', function()
     moveWindowToScreen(3)
 end)
 
+-- duplicate keys for easier two hand access
+hs.hotkey.bind(modifierMoveScreenIndex, '7', function()
+    moveWindowToScreen(1)
+end)
+
+hs.hotkey.bind(modifierMoveScreenIndex, '8', function()
+    moveWindowToScreen(2)
+end)
+
+hs.hotkey.bind(modifierMoveScreenIndex, '9', function()
+    moveWindowToScreen(3)
+end)
+
 function moveWindowToScreen(index)
     findFocused(function(win)
         local target = hs.screen.allScreens()[index]
