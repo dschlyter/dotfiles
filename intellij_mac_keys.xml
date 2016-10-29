@@ -6,6 +6,10 @@
   <action id="CloseProject">
     <keyboard-shortcut first-keystroke="shift meta w" />
   </action>
+  <action id="FullyExpandTreeNode">
+    <keyboard-shortcut first-keystroke="multiply" />
+    <keyboard-shortcut first-keystroke="ctrl meta e" />
+  </action>
   <action id="Git.Branches">
     <keyboard-shortcut first-keystroke="ctrl meta b" />
   </action>
