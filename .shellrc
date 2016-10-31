@@ -239,7 +239,7 @@ fasd_setup() {
         eval "$(fasd --init auto)"
 
         alias j="z"
-        alias v="f -e vim"
+        alias v="f -e vim -B viminfo"
         unalias s # used by function
         unalias d # used by function
     fi
