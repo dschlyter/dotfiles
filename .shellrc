@@ -11,7 +11,7 @@ export EDITOR="vim"
 export VISUAL="vim"
 export PAGER="less"
 
-export PATH="$HOME/bin:$HOME/local/bin:$HOME/code/server-setup/bin:$PATH"
+export PATH="$HOME/bin:$HOME/local/bin:$HOME/code/server-setup/bin:/opt/sudo:$PATH"
 
 #
 # Autojump with fasd - define early so we can override its aliases
@@ -207,10 +207,15 @@ if type docker-machine &> /dev/null; then
         eval $(docker-machine env default --shell zsh)
         docker "$@"
     }
+    alias dm='docker-machine'
+fi
+
+# alias docker to docker-restricted if available, when running as sudo alias will be ignored
+if type docker-restricted > /dev/null; then
+    alias docker="sudo $(which docker-restricted)"
 fi
 
 alias d='docker'
-alias dm='docker-machine'
 
 dcleanup(){
     docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
@@ -237,5 +242,5 @@ source_if_exists ~/.shellrc_local
 source_if_exists ~/.shellrc_linux
 
 if type kubectl &> /dev/null; then
-    source ~/.kubectl_aliases
+    source_if_exists ~/.kubectl_aliases
 fi
