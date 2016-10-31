@@ -1,4 +1,3 @@
-#/bin/bash
 # common shell settings that should work in both zsh and bash
 
 #
@@ -12,23 +11,6 @@ export VISUAL="vim"
 export PAGER="less"
 
 export PATH="$HOME/bin:$HOME/local/bin:$HOME/code/server-setup/bin:/opt/sudo:$PATH"
-
-#
-# Autojump with fasd - define early so we can override its aliases
-#
-
-# Autojump with fasd - for autojump selecting of files
-export _FASD_IGNORE="fasd echo" # don't ignore ls history when finding files
-FASD_SH=~/.fasd.sh
-if [ -f $FASD_SH ]; then
-    source $FASD_SH
-    eval "$(fasd --init auto)"
-
-    alias j="z"
-    alias v="f -e vim"
-    unalias s # used by function
-    unalias d # used by function
-fi
 
 # Aliases
 
@@ -215,7 +197,9 @@ if type docker-restricted > /dev/null; then
     alias docker="sudo $(which docker-restricted)"
 fi
 
-alias d='docker'
+d() {
+    docker "$@"
+}
 
 dcleanup(){
     docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
@@ -238,9 +222,37 @@ source_if_exists() {
     fi
 }
 
-source_if_exists ~/.shellrc_local
-source_if_exists ~/.shellrc_linux
-
 if type kubectl &> /dev/null; then
     source_if_exists ~/.kubectl_aliases
 fi
+
+#
+# Autojump with fasd
+#
+
+export _FASD_IGNORE="fasd echo" # don't ignore ls history when finding files
+fasd_setup() {
+    local FASD_SH=~/.fasd.sh
+
+    if [ -f $FASD_SH ]; then
+        source $FASD_SH
+        eval "$(fasd --init auto)"
+
+        alias j="z"
+        alias v="f -e vim"
+        unalias s # used by function
+        unalias d # used by function
+    fi
+}
+
+# Source right away with bash, for zsh we need to wait for autocomplete to setup properly
+if [ "$BASH_VERSION" ]; then
+    fasd_setup
+fi
+
+#
+# Local overrides (note: this may be overridden by again .bashrc or .zshrc)
+#
+
+source_if_exists ~/.shellrc_local
+source_if_exists ~/.shellrc_linux

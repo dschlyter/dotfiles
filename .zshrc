@@ -176,6 +176,9 @@ else
     compinit
 fi
 
+# fasd should be setup after compinit
+fasd_setup
+
 # Settings
 
 HISTFILE=~/.zsh_history
