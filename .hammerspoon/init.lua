@@ -24,7 +24,7 @@ hs.hotkey.bind(modifierFocus, 'i', function()
     hs.hints.windowHints()
 end)
 
--- hjnp to switch window focus
+-- hjkl to switch window focus
 ------------------------------
 
 hs.hotkey.bind(modifierFocus, 'k', function()
@@ -189,36 +189,40 @@ end
 ------------------------------------------------------
 
 hs.hotkey.bind(modifierMoveScreenIndex, '1', function()
-    moveWindowToScreen(1)
+    moveFocusedWindowToScreen(1)
 end)
 
 hs.hotkey.bind(modifierMoveScreenIndex, '2', function()
-    moveWindowToScreen(2)
+    moveFocusedWindowToScreen(2)
 end)
 
 hs.hotkey.bind(modifierMoveScreenIndex, '3', function()
-    moveWindowToScreen(3)
+    moveFocusedWindowToScreen(3)
 end)
 
 -- duplicate keys for easier two hand access
 hs.hotkey.bind(modifierMoveScreenIndex, '7', function()
-    moveWindowToScreen(1)
+    moveFocusedWindowToScreen(1)
 end)
 
 hs.hotkey.bind(modifierMoveScreenIndex, '8', function()
-    moveWindowToScreen(2)
+    moveFocusedWindowToScreen(2)
 end)
 
 hs.hotkey.bind(modifierMoveScreenIndex, '9', function()
-    moveWindowToScreen(3)
+    moveFocusedWindowToScreen(3)
 end)
 
-function moveWindowToScreen(index)
+function moveFocusedWindowToScreen(index)
     findFocused(function(win)
-        local target = hs.screen.allScreens()[index]
-        win:moveToScreen(target)
-        store_window_pos()
+        moveWindowToScreen(win, index)
     end)
+end
+
+function moveWindowToScreen(window, index)
+    local target = hs.screen.allScreens()[index]
+    window:moveToScreen(target)
+    store_window_pos()
 end
 
 -- cmd-ctrl left-right for sending to next/prev space
@@ -354,8 +358,29 @@ function restore_window_pos()
     end
 end
 
+local windowPresetTable = {}
+windowPresetTable["Spotify"] = 2
+windowPresetTable["IntelliJ IDEA"] = 2
+windowPresetTable["iTerm2"] = 2
+windowPresetTable["Google Chrome"] = 3
+
+function position_windows_by_preset()
+    local windows = hs.window.visibleWindows()
+    for i,window in pairs(windows) do
+        local name = window:application():name()
+        local index = windowPresetTable[name]
+        if index then
+            moveWindowToScreen(window, index)
+        end
+    end
+end
+
 hs.hotkey.bind(modifierResize, 'o', function()
     restore_window_pos()
+end)
+
+hs.hotkey.bind(modifierResize, 'p', function()
+    position_windows_by_preset()
 end)
 
 -- advanced window focus - separate windows for current screen into non-overlapping layers and toggle between them
