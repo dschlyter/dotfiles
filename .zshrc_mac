@@ -1,6 +1,3 @@
-# conviniences
-alias bup="brew update && brew upgrade"
-
 # default alias makes OSX outdated binaries sad :(
 alias ls='ls -h -G'
 alias o='open'
@@ -33,3 +30,13 @@ function handlemail() {
     cat /var/mail/$USER
     sudo rm /var/mail/$USER
 }
+
+# brew convinience function
+alias bup="brew update && brew upgrade && date %s > ~/.brew_lastupdate"
+
+local NOW="$(date +%s)"
+local LAST_UPDATE="0$(cat ~/.brew_lastupdate)"
+local DIFF_DAYS=$((($NOW - $LAST_UPDATE) / (3600 * 24)))
+if [ $DIFF_DAYS -gt 7 ]; then
+    echo "Homebrew has not been updated in $DIFF_DAYS days. Run update with 'bup'"
+fi
