@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-DOTFILES="$(pwd)"
+DOTFILES="$(dirname $0)"
 
 link() {
    FILE="$1"
@@ -57,27 +57,27 @@ case "$(uname -s)" in
         ;;
 
     CYGWIN*|MINGW32*|MSYS*)
-        echo Detected Windows/Cygwin
+        echo "Detected Windows/Cygwin"
         link .zshrc_cygwin
         link .z.sh # alt autojump that is faster on windows
         ;;
 
     Linux)
-        echo Detected Linux
+        echo "Detected Linux"
         link .shellrc_linux
         ;;
 
     *)
-        echo Unable to detect OS
+        echo "!!! WARNING Unable to detect OS"
         ;;
 esac
 
 if [ "$SHELL" == "/bin/zsh" ]; then
-    echo zsh is the current active shell
+    echo "zsh is the current active shell"
 elif [ -f /bin/zsh ]; then
     chsh -s /bin/zsh
 else
-    echo zsh not found, please install and chsh manually
+    echo "zsh not found, please install and chsh manually"
 fi
 
 if [ ! "$(ls -A submodules/*)" ]; then
