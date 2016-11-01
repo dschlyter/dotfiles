@@ -209,8 +209,9 @@ setopt histignorealldups        # removes duplicate commands, even if non-sequen
 
 export REPORTTIME=10 # print stats for commands running longer than 10 secs
 
-# Overriding configs goes in .zshrc_local
+source_if_exists ~/.dotfiles/submodules/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
+# Overriding configs goes in .zshrc_local
 source_if_exists ~/.zshrc_local
 source_if_exists ~/.zshrc_cygwin
 source_if_exists ~/.zshrc_mac

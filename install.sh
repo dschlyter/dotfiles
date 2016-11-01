@@ -28,7 +28,7 @@ bak_nonlink() {
    fi
 }
 
-link . dotfiles
+link . .dotfiles
 link bin
 
 link .zshrc
