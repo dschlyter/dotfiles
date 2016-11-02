@@ -88,6 +88,19 @@ else
     echo "Submodules already initialized"
 fi
 
+if [[ "$@" == *"--fzf"* ]]; then
+    if [ ! -d ~/.fzf ]; then
+        git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+    else
+        cd ~/.fzf
+        git pull
+        cd "$DOTFILES"
+    fi
+    ~/.fzf/install --key-bindings --completion --no-update-rc
+else
+    echo "Not installing fzf, run with --vundle to enable"
+fi
+
 if [[ "$@" == *"--vundle"* ]]; then
     echo "Installing vim vundle plugins"
     if ! [ -d ~/.vim/bundle/vundle ]; then

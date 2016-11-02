@@ -90,64 +90,6 @@ foreground-vim() {
 zle -N foreground-vim
 bindkey '^Z' foreground-vim
 
-# Percol pgrep, pkill and history search
-# https://github.com/mooz/percol#zsh-history-search
-
-exists() {
-    type $1 &> /dev/null
-}
-
-if exists percol; then
-    function ppgrep() {
-        if [[ $1 == "" ]]; then
-            PERCOL=percol
-        else
-            PERCOL="percol --query $1"
-        fi
-        ps aux | eval $PERCOL | awk '{ print $2 }'
-    }
-
-    function ppkill() {
-        if [[ $1 =~ "^-" ]]; then
-            QUERY=""            # options only
-        else
-            QUERY=$1            # with a query
-            [[ $# > 0 ]] && shift
-        fi
-        ppgrep $QUERY | xargs kill $*
-    }
-
-    function percol_select_history() {
-        local tac
-        exists gtac && tac="gtac" || { exists tac && tac="tac" || { tac="tail -r" } }
-        BUFFER=$(fc -l -n 1 | eval $tac | percol --query "$LBUFFER")
-        CURSOR=$#BUFFER         # move cursor
-        zle -R -c               # refresh
-    }
-
-    zle -N percol_select_history
-    bindkey '^F' percol_select_history
-
-    alias -g PF='$(find . -not -path "*/\.*" | percol)'
-    alias pvim='vim PF'
-
-    # jump to child dir
-    alias pc='cd $(find . -not -path "*/\.*" -type d | percol)'
-    alias pcf='cd $(dirname PF)'
-
-    # autojump with percol
-    alias pj="cd \$(j -l | awk '{ print \$2 }' | tac | percol)"
-
-    # select a git commit from the fancy log with percol
-    alias -g PCM="\$(git lg -n 10000 | percol | grep -E -o '[a-f0-9]{6}' -m 1)"
-    alias -g PBR="\$(git branch -a | percol | awk '{print \$1}')"
-
-    # fast-filter man pages with percol
-    function pman() {
-        man $1 | col -b | percol
-    }
-fi
-
 # Completition
 
 zstyle ':completion:*' use-cache on
@@ -182,6 +124,19 @@ fi
 
 # fasd should be setup after compinit
 fasd_setup
+
+# setup fzf
+# ctrl-r history search
+# ctrl-t insert file in subfolder
+# alt-c cd to subdir
+# TODO ctrl-f: file from history
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+# jump with fasd using zfz filtering
+zj() {
+    local dir
+    dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m)" && cd "${dir}" || return 1
+}
 
 # Settings
 
