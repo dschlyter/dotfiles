@@ -55,6 +55,9 @@ date() {
     fi
 }
 
+st() {
+    ssh -t "$@" tmux
+}
 
 # Functional-style helpers
 
@@ -256,5 +259,5 @@ fi
 # Local overrides (note: this may be overridden by again .bashrc or .zshrc)
 #
 
-source_if_exists ~/.shellrc_local
 source_if_exists ~/.shellrc_linux
+source_if_exists ~/.shellrc_local
