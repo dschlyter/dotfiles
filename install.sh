@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
-DOTFILES="$(dirname $0)"
+pushd `dirname $0` > /dev/null
+DOTFILES=`pwd`
+popd > /dev/null
 
 link() {
    FILE="$1"

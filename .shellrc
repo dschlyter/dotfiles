@@ -17,6 +17,7 @@ export PATH="$HOME/bin:$HOME/local/bin:$HOME/code/server-setup/bin:/opt/sudo:$PA
 alias ll='ls -l'
 alias la='ls -a'
 alias lla='ls -la'
+alias lal='ls -la'
 alias lt='ls -ltr'
 
 alias se='sudoedit'
@@ -181,6 +182,10 @@ timing() {
 # Docker utils
 #
 
+d() {
+    docker "$@"
+}
+
 if type docker-machine &> /dev/null; then
     docker() {
         unset -f docker
@@ -195,26 +200,22 @@ fi
 # alias docker to docker-restricted if available, when running as sudo alias will be ignored
 if type docker-restricted > /dev/null; then
     alias docker="sudo $(which docker-restricted)"
+else
+    dcleanup(){
+        docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
+        docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2>/dev/null
+    }
+
+    dnuke() {
+        docker ps | cl 1 | drop 1 | xargs --no-run-if-empty -n 1 docker kill
+        dcleanup
+    }
+
+    # "docker stats" with names instead of hash, until https://github.com/docker/docker/issues/20973 is solved
+    dstat() {
+        docker stats $(docker ps --format={{.Names}})
+    }
 fi
-
-d() {
-    docker "$@"
-}
-
-dcleanup(){
-    docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
-    docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2>/dev/null
-}
-
-dnuke() {
-    docker ps | cl 1 | drop 1 | xargs --no-run-if-empty -n 1 docker kill
-    dcleanup
-}
-
-# "docker stats" with names instead of hash, until https://github.com/docker/docker/issues/20973 is solved
-dstat() {
-    docker stats $(docker ps --format={{.Names}})
-}
 
 source_if_exists() {
     if [ -f "$1" ]; then
