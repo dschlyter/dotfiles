@@ -20,6 +20,7 @@ alias lla='ls -la'
 alias lal='ls -la'
 alias lt='ls -ltr'
 
+alias please='sudo $(fc -ln -1)'
 alias se='sudoedit'
 alias ack='ack-grep'
 alias vims='vim -S .vimsession'

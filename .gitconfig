@@ -51,6 +51,7 @@
     rb = rebase
     co = checkout
     cb = checkout -b
+    cop = checkout -p
     cp = cherry-pick
     fe = fetch --prune
 
