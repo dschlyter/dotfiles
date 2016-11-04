@@ -128,15 +128,11 @@ fasd_setup
 # setup fzf
 # ctrl-r history search
 # ctrl-t insert file in subfolder
+# ctrl-f file from history (custom plugin)
 # alt-c cd to subdir
-# TODO ctrl-f: file from history
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-# jump with fasd using zfz filtering
-zj() {
-    local dir
-    dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m)" && cd "${dir}" || return 1
-}
+# tmux switch pane
+source_if_exists ~/.fzf.zsh
+source_if_exists ~/.dotfiles/.fzf_extensions.zsh
 
 # Settings
 
