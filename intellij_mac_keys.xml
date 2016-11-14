@@ -25,8 +25,18 @@
   <action id="Maven.Reimport">
     <keyboard-shortcut first-keystroke="ctrl meta i" />
   </action>
+  <action id="NextTab">
+    <keyboard-shortcut first-keystroke="shift meta close_bracket" />
+    <keyboard-shortcut first-keystroke="ctrl right" />
+    <keyboard-shortcut first-keystroke="ctrl meta j" />
+  </action>
   <action id="OpenProjectWindows">
     <keyboard-shortcut first-keystroke="ctrl meta p" />
+  </action>
+  <action id="PreviousTab">
+    <keyboard-shortcut first-keystroke="shift meta open_bracket" />
+    <keyboard-shortcut first-keystroke="ctrl left" />
+    <keyboard-shortcut first-keystroke="ctrl meta k" />
   </action>
   <action id="RecentProjectListGroup">
     <keyboard-shortcut first-keystroke="ctrl meta o" />
