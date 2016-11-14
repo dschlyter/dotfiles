@@ -32,10 +32,11 @@ function handlemail() {
 }
 
 # brew convinience function
-alias bup="brew update && brew upgrade && date +%s > ~/.brew_lastupdate"
+local BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
+alias bup="brew update && brew upgrade && date +%s > $BREW_UPDATE_FILE"
 
 local NOW="$(date +%s)"
-local LAST_UPDATE="0$(cat ~/.brew_lastupdate)"
+local LAST_UPDATE="0$(cat $BREW_UPDATE_FILE)"
 local DIFF_DAYS=$((($NOW - $LAST_UPDATE) / (3600 * 24)))
 if [ $DIFF_DAYS -gt 7 ]; then
     echo "Homebrew has not been upgraded in $DIFF_DAYS days. Run upgrade with 'bup'"
