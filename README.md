@@ -20,6 +20,7 @@ Run `./osx.sh` for some sane default configs.
 * To use iterm2-settings, open iterm preferences and select load config from file and select com.googlecode.iterm2.plist in the dotfiles dir.
 * To export config, open iterm preferences and press save config to file.
 
-* To use intellij keymap run (change depending on your current intellij version)
+* To use intellij keymap run
 
-    ln -s $(pwd)/intellij_mac_keys.xml /Users/$USER/Library/Preferences/IntellijIdea2016.2/keymaps
+    ln -s $(pwd)/intellij_mac_keys.xml \
+        "$(echo /Users/$USER/Library/Preferences/IntellijIdea* | xargs -n 1 echo | tail -n 1)/keymaps/intellij_mac_keys.xml"
