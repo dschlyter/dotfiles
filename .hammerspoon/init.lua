@@ -359,9 +359,9 @@ function restore_window_pos()
 end
 
 local windowPresetTable = {}
-windowPresetTable["Spotify"] = 2
+windowPresetTable["iTerm2"] = 1
+windowPresetTable["Spotify"] = 1
 windowPresetTable["IntelliJ IDEA"] = 2
-windowPresetTable["iTerm2"] = 2
 windowPresetTable["Google Chrome"] = 3
 
 function position_windows_by_preset()
