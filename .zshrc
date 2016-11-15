@@ -131,6 +131,10 @@ fasd_setup
 # ctrl-f file from history (custom plugin)
 # alt-c cd to subdir
 # tmux switch pane
+
+# recent commands search should do exact matching by default
+export FZF_CTRL_R_OPTS="-e"
+
 source_if_exists ~/.fzf.zsh
 source_if_exists ~/.dotfiles/.fzf_extensions.zsh
 
