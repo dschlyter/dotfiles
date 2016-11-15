@@ -219,10 +219,17 @@ function moveFocusedWindowToScreen(index)
     end)
 end
 
+function orderedScreens()
+    return sorted(hs.screen.allScreens(), function(t,a,b)
+        return t[a]:position() < t[b]:position()
+    end)
+end
+
 function moveWindowToScreen(window, index)
-    local target = hs.screen.allScreens()[index]
+    local target = orderedScreens()[index]
     window:moveToScreen(target)
     store_window_pos()
+    return ret
 end
 
 -- cmd-ctrl left-right for sending to next/prev space
@@ -359,20 +366,47 @@ function restore_window_pos()
 end
 
 local windowPresetTable = {}
-windowPresetTable["iTerm2"] = 1
-windowPresetTable["Spotify"] = 1
-windowPresetTable["IntelliJ IDEA"] = 2
-windowPresetTable["Google Chrome"] = 3
+windowPresetTable["iTerm2"] = "internal"
+windowPresetTable["Spotify"] = "internal"
+windowPresetTable["IntelliJ IDEA"] = "primary"
+windowPresetTable["Google Chrome"] = "secondary"
 
 function position_windows_by_preset()
     local windows = hs.window.visibleWindows()
     for i,window in pairs(windows) do
         local name = window:application():name()
-        local index = windowPresetTable[name]
-        if index then
-            moveWindowToScreen(window, index)
+        local mapping = windowPresetTable[name]
+        if mapping then
+            -- moveWindowToScreen(window, index)
+            local target = getScreenByMapping(mapping)
+            window:moveToScreen(target)
+            store_window_pos()
         end
     end
+end
+
+function getScreenByMapping(mapping)
+    -- the internal screen is currently the main screen
+    local internal = hs.screen.mainScreen()
+
+    local screens = orderedScreens()
+
+    -- the primary is the middlemost screen but not the internal screen
+    local primary = screens[math.ceil(#screens / 2)]
+    if primary == internal then
+        primary = screen[1]
+    end
+
+    -- the secondary is the first screen left, or internal if there is no such window
+    local secondary = internal
+    for k,screen in pairs(screens) do
+        if screen ~= internal and screen ~= primary then
+            secondary = screen
+        end
+    end
+
+    local ret = {["internal"]=internal, ["primary"]=primary, ["secondary"]=secondary}
+    return ret[mapping]
 end
 
 hs.hotkey.bind(modifierResize, 'o', function()
@@ -507,6 +541,12 @@ function spairs(t, order)
             return keys[i], t[keys[i]]
         end
     end
+end
+
+function sorted(t, order)
+    local ret = {}
+    for k,v in spairs(t,order) do ret[#ret+1] = v end
+    return ret
 end
 
 function windowOrdering(t, a, b)
