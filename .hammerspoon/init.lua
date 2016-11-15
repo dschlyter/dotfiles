@@ -145,7 +145,7 @@ function scaleFocused(x, y, w, h)
 
         if not existingFrame:equals(f) then
             win:setFrame(f)
-            store_window_pos()
+            storeWindowPos()
             return true
         end
 
@@ -174,14 +174,14 @@ end)
 function moveWindowOneScreenWest()
     findFocused(function(win)
         win:moveOneScreenWest()
-        store_window_pos()
+        storeWindowPos()
     end)
 end
 
 function moveWindowOneScreenEast()
     findFocused(function(win)
         win:moveOneScreenEast()
-        store_window_pos()
+        storeWindowPos()
     end)
 end
 
@@ -228,7 +228,7 @@ end
 function moveWindowToScreen(window, index)
     local target = orderedScreens()[index]
     window:moveToScreen(target)
-    store_window_pos()
+    storeWindowPos()
     return ret
 end
 
@@ -263,10 +263,10 @@ end
 
 -- Reload config on write
 -------------------------
-function reload_config(files)
+function reloadConfig(files)
     hs.reload()
 end
-hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reload_config):start()
+hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reloadConfig):start()
 hs.alert.show("Hammerspoon config loaded")
 
 -- automatic reload does not always work - so allow manual reload
@@ -336,7 +336,7 @@ end)
 ------------------------------------------------------------
 local windowPositions = {}
 
-function store_window_pos()
+function storeWindowPos()
     local screenCount = #hs.screen.allScreens()
 
     local windows = hs.window.visibleWindows()
@@ -349,7 +349,7 @@ function store_window_pos()
     end
 end
 
-function restore_window_pos()
+function restoreWindowPos()
     local screenCount = #hs.screen.allScreens()
 
     local windows = hs.window.visibleWindows()
@@ -371,7 +371,7 @@ windowPresetTable["Spotify"] = "internal"
 windowPresetTable["IntelliJ IDEA"] = "primary"
 windowPresetTable["Google Chrome"] = "secondary"
 
-function position_windows_by_preset()
+function positionWindowsByPreset()
     local windows = hs.window.visibleWindows()
     for i,window in pairs(windows) do
         local name = window:application():name()
@@ -380,7 +380,7 @@ function position_windows_by_preset()
             -- moveWindowToScreen(window, index)
             local target = getScreenByMapping(mapping)
             window:moveToScreen(target)
-            store_window_pos()
+            storeWindowPos()
         end
     end
 end
@@ -410,11 +410,11 @@ function getScreenByMapping(mapping)
 end
 
 hs.hotkey.bind(modifierResize, 'o', function()
-    restore_window_pos()
+    restoreWindowPos()
 end)
 
 hs.hotkey.bind(modifierResize, 'p', function()
-    position_windows_by_preset()
+    positionWindowsByPreset()
 end)
 
 -- advanced window focus - separate windows for current screen into non-overlapping layers and toggle between them
