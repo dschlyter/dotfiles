@@ -317,7 +317,9 @@ hs.hotkey.bind({'ctrl', 'alt'}, 'b', function()
 end)
 
 hs.hotkey.bind({'ctrl', 'alt'}, 's', function()
-    os.execute('curl -X POST 192.168.10.124:29330/sleep')
+    hs.timer.doAfter(1, function()
+        hs.caffeinate.startScreensaver()
+    end)
 end)
 
 hs.hotkey.bind({'alt'}, 'p', function()
