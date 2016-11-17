@@ -121,6 +121,16 @@ fixenc() {
     iconv -f ISO-8859-1 -t UTF-8 "$1.orig" > "$1"
 }
 
+loc() {
+    DIR=${1:-"."}
+    FILE_TYPE=$2
+    if [ -z "$FILE_TYPE" ]; then
+        echo "Defaulting to filetype '.java'"
+        FILE_TYPE="java"
+    fi
+    find "$DIR" -type f -name "*.$FILE_TYPE" -print0 | xargs -0 wc -l
+}
+
 grab() {
     sudo chown -R ${USER} ${1:-.}
 }
