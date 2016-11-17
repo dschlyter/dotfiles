@@ -65,7 +65,8 @@ st() {
 # ie. echo a b c d e | cl 2 4 5
 cl() {
     # print $ before first arg and join remaining with ',$'
-    COLS=$(echo "\$$*" | sed -e 's/ /,$/g')
+    # replace -X with NF+1-X to allow printing last, second to last column etc
+    COLS=$(echo "\$$*" | sed -e 's/ /,$/g' | sed -E 's/-([0-9])+/(NF+1-\1)/g')
     awk "{print $COLS}"
 }
 
