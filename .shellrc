@@ -12,22 +12,20 @@ export EDITOR="vim"
 export VISUAL="vim"
 export PAGER="less"
 
-add_to_path() {
-    if [[ "$1" == "-p" ]]; then
-        shift
-        echo "add_to_path '$(realpath $1)'" >> ~/.shellrc_local
-        return
-    fi
-
+_add_to_path() {
     if [[ ! "$PATH" == *$1* ]]; then
         export PATH="$PATH:$1"
     fi
 }
 
-add_to_path "$HOME/bin"
-add_to_path "$HOME/local/bin"
-add_to_path "$HOME/code/server-setup/bin"
-add_to_path "/opt/sudo"
+add_to_path() {
+    echo "_add_to_path '$(realpath $1)'" >> ~/.shellrc_local
+}
+
+_add_to_path "$HOME/bin"
+_add_to_path "$HOME/local/bin"
+_add_to_path "$HOME/code/server-setup/bin"
+_add_to_path "/opt/sudo"
 
 # Aliases
 
@@ -50,6 +48,8 @@ alias locate='locate -i'
 alias mv='mv -i'
 alias cp='cp -i'
 alias tig='tig --all'
+
+alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc"
 
 #
 # Utility functions

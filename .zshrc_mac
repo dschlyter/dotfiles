@@ -25,6 +25,7 @@ use_gnu tac
 use_gnu cp
 use_gnu ln
 use_gnu du
+use_gnu stat
 
 function handlemail() {
     cat /var/mail/$USER
