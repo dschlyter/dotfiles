@@ -207,11 +207,14 @@ git_autoupdate_repos() {
 
         for repo in $(echo $GIT_AUTOUPDATE_REPOS | flatten); do
             if [ -d "$repo" ]; then
+                pushd .
                 cd $repo
-                # TODO check age with stat -c %Y .git/FETCH_HEAD
+
                 echo Updating $repo
                 (git fetch; git merge --ff-only | grep -v "Already up-to-date") &
                 disown # don't spam me with updates
+
+                popd
             fi
         done
     fi
