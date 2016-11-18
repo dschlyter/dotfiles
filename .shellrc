@@ -117,6 +117,13 @@ md() {
     cd $1
 }
 
+u() {
+    LEVELS=${1:-1}
+    for i in {1..$LEVELS}; do
+        cd ..
+    done
+}
+
 function c() {
     s "$@"
 
@@ -230,7 +237,7 @@ if type docker-machine &> /dev/null; then
 fi
 
 # alias docker to docker-restricted if available, when running as sudo alias will be ignored
-if type docker-restricted > /dev/null; then
+if type docker-restricted &> /dev/null; then
     alias docker="sudo $(which docker-restricted)"
 else
     dcleanup(){
