@@ -4,7 +4,8 @@
 
 BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD || echo "undefined") # can be undefined without any commits
 JIRA_ISSUE=$(echo $BRANCH_NAME | grep -oE "[a-zA-Z]+[-][0-9]+" | head -n 1)
+COMMIT_MSG="$(cat "$1")"
 
-if [ -n "$JIRA_ISSUE" ]; then
-    echo "$JIRA_ISSUE - $(cat $1)" > $1
+if [ -n "$JIRA_ISSUE" ] && [[ ! "$COMMIT_MSG" == "$JIRA_ISSUE - "* ]]; then
+    echo "$JIRA_ISSUE - $COMMIT_MSG" > "$1"
 fi
