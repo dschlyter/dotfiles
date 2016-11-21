@@ -98,6 +98,8 @@
     # fast forward develop or master without checking them out
     dup = !git fetch && git merge-base --is-ancestor develop origin/develop && git branch -f develop origin/develop
     mup = !git fetch && git merge-base --is-ancestor master origin/master && git branch -f master origin/master
+    dur = !git dup && git rb --autostash develop
+    mur = !git mup && git rb --autostash master
 [web]
     browser = google-chrome
 [include]
