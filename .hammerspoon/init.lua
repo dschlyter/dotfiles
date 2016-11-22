@@ -425,6 +425,24 @@ hs.hotkey.bind(modifierResize, 'p', function()
     positionWindowsByPreset()
 end)
 
+-- quickly close or open common apps (useful before user switching)
+hs.hotkey.bind(modifierResize, 's', function()
+    local applications = {"IntelliJ IDEA", "Google Chrome", "iTerm"}
+    local appsAreOpen = windowsExist(applications[1])
+    if not appsAreOpen then
+        for i,app in pairs(applications) do
+            hs.application.launchOrFocus(app)
+        end
+    else
+        for i,app in pairs(applications) do
+            local app = hs.application.get(app)
+            if app then
+                app:kill()
+            end
+        end
+    end
+end)
+
 -- advanced window focus - separate windows for current screen into non-overlapping layers and toggle between them
 ------------------------------------------------------------------------------------------------------------------
 
