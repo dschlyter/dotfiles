@@ -134,23 +134,27 @@ end)
 
 function scaleFocused(x, y, w, h)
     return findFocused(function(win)
-        local existingFrame = win:frame()
-        local f = win:frame()
-        local max = win:screen():frame()
-
-        f.x = max.x + max.w * x
-        f.y = max.y + max.h * y
-        f.w = max.w * w
-        f.h = max.h * h
-
-        if not existingFrame:equals(f) then
-            win:setFrame(f)
-            storeWindowPos()
-            return true
-        end
-
-        return false
+        return scaleWindow(win, x, y, w, h)
     end)
+end
+
+function scaleWindow(win, x, y, w, h)
+    local existingFrame = win:frame()
+    local f = win:frame()
+    local max = win:screen():frame()
+
+    f.x = max.x + max.w * x
+    f.y = max.y + max.h * y
+    f.w = max.w * w
+    f.h = max.h * h
+
+    if not existingFrame:equals(f) then
+        win:setFrame(f)
+        storeWindowPos()
+        return true
+    end
+
+    return false
 end
 
 function orChain(f1ret, f2)
@@ -382,9 +386,11 @@ function positionWindowsByPreset()
             -- moveWindowToScreen(window, index)
             local target = getScreenByMapping(mapping)
             window:moveToScreen(target)
-            storeWindowPos()
+            -- maximize
+            scaleWindow(window, 0, 0, 1, 1)
         end
     end
+    storeWindowPos()
 end
 
 function getScreenByMapping(mapping)
