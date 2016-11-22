@@ -97,10 +97,12 @@
     features = !git lh master..develop --merges -n 9999
     local = !git lg --branches --not --remotes
     # fast forward develop or master without checking them out
-    dup = !git fetch && git merge-base --is-ancestor develop origin/develop && git branch -f develop origin/develop
-    mup = !git fetch && git merge-base --is-ancestor master origin/master && git branch -f master origin/master
-    dur = !git dup && git rb --autostash develop
-    mur = !git mup && git rb --autostash master
+    up = !sh -c 'git fetch && git lh $1..origin/$1 && git merge-base --is-ancestor $1 origin/$1 && git branch -f $1 origin/$1' -
+    urb = !sh -c 'git up $1 && git rebase --autostash $1' -
+    dup = !git up develop
+    mup = !git up master
+    dur = !git urb develop
+    mur = !git urb master
 [web]
     browser = google-chrome
 [include]
