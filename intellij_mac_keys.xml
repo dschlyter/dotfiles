@@ -19,6 +19,9 @@
   <action id="Git.Branches">
     <keyboard-shortcut first-keystroke="ctrl meta b" />
   </action>
+  <action id="Git.Fetch">
+    <keyboard-shortcut first-keystroke="ctrl meta t" />
+  </action>
   <action id="Maven.Reimport">
     <keyboard-shortcut first-keystroke="ctrl meta i" />
   </action>

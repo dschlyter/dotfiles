@@ -37,7 +37,6 @@ alias lt='ls -ltr'
 
 alias plz='sudo $(fc -ln -1)'
 alias se='sudoedit'
-alias ack='ack-grep'
 alias vims='vim -S .vimsession'
 alias i='unset HISTFILE'
 

@@ -7,27 +7,33 @@ DOTFILES=`pwd`
 popd > /dev/null
 
 link() {
-   FILE="$1"
-   SOURCE="$HOME/${2:-$FILE}"
-   TARGET="$DOTFILES/$FILE"
+    FILE="$1"
+    SOURCE="${2:-$FILE}"
+    if [[ ! $SOURCE == /** ]]; then
+        SOURCE="$HOME/$SOURCE"
+    fi
+    TARGET="$DOTFILES/$FILE"
 
-   if [ -L "$SOURCE" ]; then
-       echo "file $FILE already linked"
-   elif [ -e "$SOURCE" ]; then
-       echo "!!! ERROR file $FILE exists but is not a link"
-   else
-       echo "linking $TARGET"
-       ln -s "$TARGET" "$SOURCE"
-   fi
+    if [ -L "$SOURCE" ]; then
+        echo "file $FILE already linked"
+    elif [ -e "$SOURCE" ]; then
+        echo "!!! ERROR file $FILE exists but is not a link"
+    else
+        echo "linking $TARGET"
+        ln -s "$TARGET" "$SOURCE"
+    fi
 }
 
 bak_nonlink() {
-   FILE="$1"
-   SOURCE="$HOME/$FILE"
-   if [[ -f "$SOURCE" && ! -L "$SOURCE" ]]; then
-       echo "backing up non-linked file $SOURCE"
-       mv "$SOURCE" "${SOURCE}.bak"
-   fi
+    SOURCE="$1"
+    if [[ ! $SOURCE == /** ]]; then
+        SOURCE="$HOME/$SOURCE"
+    fi
+
+    if [[ -f "$SOURCE" && ! -L "$SOURCE" ]]; then
+        echo "backing up non-linked file $SOURCE"
+        mv "$SOURCE" "${SOURCE}.bak"
+    fi
 }
 
 link . .dotfiles
@@ -48,7 +54,6 @@ link .git_template
 mkdir -p "$HOME/.vim"
 link .vim/colors
 link .ideavimrc
-link .percol.d
 link .tmux.conf
 
 case "$(uname -s)" in
@@ -56,6 +61,18 @@ case "$(uname -s)" in
         echo "Detected Mac OSX"
         link .zshrc_mac
         link .hammerspoon
+
+        INTELLIJ_PREFS="$(echo /Users/$USER/Library/Preferences/IntelliJIdea* | xargs -n 1 echo | tail -n 1)"
+        if [ -d "$INTELLIJ_PREFS" ]; then
+            mkdir -p "$INTELLIJ_PREFS/keymaps"
+            INTELLIJ_KEYMAP="intellij_mac_keys.xml"
+            TARGET="$INTELLIJ_PREFS/keymaps/$INTELLIJ_KEYMAP"
+            bak_nonlink "$TARGET"
+            link "$INTELLIJ_KEYMAP" "$TARGET"
+        else
+            echo $INTELLIJ_PREFS
+            echo "IntelliJ preferences not found, skipping."
+        fi
         ;;
 
     CYGWIN*|MINGW32*|MSYS*)
