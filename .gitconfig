@@ -33,6 +33,8 @@
     autosetupmerge = true
     # Use rebase when pulling
     autosetuprebase = always
+[fetch]
+    prune = true
 [diff]
     renames = copies
 [push]
