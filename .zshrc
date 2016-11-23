@@ -71,8 +71,8 @@ update_git_info() {
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd update_git_info
 
-# Show hostname in right prompt iff in SSH session
-if [ "$SSH_CONNECTION" != "" ]; then
+# Show hostname in right prompt iff in SSH session or sudo su
+if [ -n "$SSH_CONNECTION" ] || [ -n "$SUDO_USER" ] || [ "$LOGNAME" != "$USER" ]; then
     RPROMPT="   %{$fg[blue]%}[%n@%m]%{$reset_color%}"
 fi
 
