@@ -1,4 +1,7 @@
 <keymap version="1" name="Mac OS X 10.5+ Custom Keymap" parent="Mac OS X 10.5+">
+  <action id="ActivateDatabaseToolWindow">
+    <keyboard-shortcut first-keystroke="meta 8" />
+  </action>
   <action id="ActivateFavoritesToolWindow" />
   <action id="ActivateTerminalToolWindow">
     <keyboard-shortcut first-keystroke="alt f12" />
