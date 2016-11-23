@@ -427,14 +427,15 @@ end)
 
 -- quickly close or open common apps (useful before user switching)
 hs.hotkey.bind(modifierResize, 'a', function()
-    local applications = {"IntelliJ IDEA", "Google Chrome", "iTerm", "Spotify"}
-    local appsAreOpen = windowsExist(applications[1])
+    local applicationsToOpen = {"IntelliJ IDEA", "Google Chrome", "iTerm", "Spotify"}
+    local applicationsToClose = {"IntelliJ IDEA", "Google Chrome", "iTerm2", "Spotify"}
+    local appsAreOpen = windowsExist(applicationsToClose[1])
     if not appsAreOpen then
-        for i,app in pairs(applications) do
+        for i,app in pairs(applicationsToOpen) do
             hs.application.launchOrFocus(app)
         end
     else
-        for i,app in pairs(applications) do
+        for i,app in pairs(applicationsToClose) do
             local app = hs.application.get(app)
             if app then
                 app:kill()
