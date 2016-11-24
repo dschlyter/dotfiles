@@ -40,6 +40,8 @@ alias se='sudoedit'
 alias vims='vim -S .vimsession'
 alias i='unset HISTFILE'
 
+alias gitroot='cd $(git rev-parse --show-cdup)'
+
 ## Flags on by default
 alias ls='ls -h --color=auto --group-directories-first'
 export TIME_STYLE=long-iso # iso8601 for ls
