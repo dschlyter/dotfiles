@@ -369,7 +369,7 @@ end
 local windowPresetTable = {}
 windowPresetTable["iTerm2"] = "internal"
 windowPresetTable["Spotify"] = "internal"
-windowPresetTable["IntelliJ IDEA"] = "primary"
+windowPresetTable["IntelliJ IDEA"] = "main"
 windowPresetTable["Google Chrome"] = "secondary"
 
 function positionWindowsByPreset()
@@ -389,26 +389,26 @@ function positionWindowsByPreset()
 end
 
 function getScreenByMapping(mapping)
-    -- the internal screen is currently the main screen
-    local internal = hs.screen.mainScreen()
+    -- the internal screen is currently the primary screen
+    local internal = hs.screen.primaryScreen()
 
     local screens = orderedScreens()
 
-    -- the primary is the middlemost screen but not the internal screen
-    local primary = screens[math.ceil(#screens / 2)]
-    if primary == internal then
-        primary = screen[1]
+    -- the main is the middlemost screen, but not the internal screen unless there is only one window
+    local main = screens[math.ceil(#screens / 2)]
+    if main == internal then
+        main = screens[1]
     end
 
-    -- the secondary is the first screen left, or internal if there is no such window
+    -- the secondary is the first screen that is left, or internal if there is no such window
     local secondary = internal
     for k,screen in pairs(screens) do
-        if screen ~= internal and screen ~= primary then
+        if screen ~= internal and screen ~= main then
             secondary = screen
         end
     end
 
-    local ret = {["internal"]=internal, ["primary"]=primary, ["secondary"]=secondary}
+    local ret = {["internal"]=internal, ["main"]=main, ["secondary"]=secondary}
     return ret[mapping]
 end
 
