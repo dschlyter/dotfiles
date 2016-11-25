@@ -226,17 +226,6 @@ d() {
     docker "$@"
 }
 
-if type docker-machine &> /dev/null; then
-    docker() {
-        unset -f docker
-        echo Setting up docker-machine...
-        docker-machine start default
-        eval $(docker-machine env default --shell zsh)
-        docker "$@"
-    }
-    alias dm='docker-machine'
-fi
-
 # alias docker to docker-restricted if available, when running as sudo alias will be ignored
 if type docker-restricted &> /dev/null; then
     alias docker="sudo $(which docker-restricted)"
