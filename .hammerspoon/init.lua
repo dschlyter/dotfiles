@@ -425,24 +425,61 @@ hs.hotkey.bind(modifierResize, 'p', function()
     positionWindowsByPreset()
 end)
 
--- quickly close or open common apps (useful before user switching)
+local savedApps = {}
+
+-- quickly close and restore open apps (useful before user switching)
 hs.hotkey.bind(modifierResize, 'a', function()
-    local applicationsToOpen = {"IntelliJ IDEA", "Google Chrome", "iTerm", "Spotify"}
-    local applicationsToClose = {"IntelliJ IDEA", "Google Chrome", "iTerm2", "Spotify"}
-    local appsAreOpen = windowsExist(applicationsToClose[1])
-    if not appsAreOpen then
-        for i,app in pairs(applicationsToOpen) do
-            hs.application.launchOrFocus(app)
-        end
+    local savedAppsBlacklist = Set{"Hammerspoon"}
+
+    if #savedApps > 0 then
+        log.d("Restoring " .. #savedApps .. " saved apps " .. toString(savedApps))
+        openAll(savedApps)
+        savedApps = {}
     else
-        for i,app in pairs(applicationsToClose) do
-            local app = hs.application.get(app)
-            if app then
-                app:kill()
+        for i,app in pairs(hs.application.runningApplications()) do
+            if #app:visibleWindows() > 0 and not savedAppsBlacklist[app:name()] then
+                table.insert(savedApps, app:name())
             end
+        end
+
+        if #savedApps > 0 then
+            log.d("Saving " .. #savedApps .. " apps " .. toString(savedApps))
+            killAll(savedApps)
+        else
+            local defaultApps = {"IntelliJ IDEA", "Google Chrome", "iTerm", "Spotify"}
+            log.d("Opening default apps" .. toString(defaultApps))
+            openAll(defaultApps)
         end
     end
 end)
+
+
+function mapAppOpenName(appName)
+    local mappedApps = {["iTerm2"]="iTerm"}
+
+    local mappedName = mappedApps[appName]
+    if mappedName then
+        return mappedName
+    else
+        return appName
+    end
+end
+
+function openAll(appsNames)
+    for i,appName in pairs(appsNames) do
+        local mappedName = mapAppOpenName(appName)
+        hs.application.launchOrFocus(mappedName)
+    end
+end
+
+function killAll(appNames)
+    for i,appName in pairs(appNames) do
+        local app = hs.application.get(appName)
+        if app then
+            app:kill()
+        end
+    end
+end
 
 -- advanced window focus - separate windows for current screen into non-overlapping layers and toggle between them
 ------------------------------------------------------------------------------------------------------------------
@@ -546,6 +583,9 @@ function windowsForCurrentScreen()
     return ret
 end
 
+-- base functionality that should really be in the language
+-----------------------------------------------------------
+
 -- http://stackoverflow.com/questions/15706270/sort-a-table-in-lua
 function spairs(t, order)
     -- collect the keys
@@ -586,10 +626,23 @@ function windowOrdering(t, a, b)
     return t[b]:id() > t[a]:id()
 end
 
+function toString(list)
+    return "[" .. table.concat(list, ", ") .. "]"
+end
+
+-- http://stackoverflow.com/questions/656199/search-for-an-item-in-a-lua-list
+function Set (list)
+    local set = {}
+    for _, l in ipairs(list) do
+        set[l] = true
+    end
+    return set
+end
+
 -- restart scroll revserser on sleep wakeup, since it stops working
 -------------------------------------------------------------------
 
-hs.caffeinate.watcher.new(function(event) 
+hs.caffeinate.watcher.new(function(event)
     if (event == hs.caffeinate.watcher.systemDidWake) then
         log.d("Restarting scroll reverser after sleep wakeup")
         os.execute('pkill "Scroll Reverser" && open "/Applications/Scroll Reverser.app"')
