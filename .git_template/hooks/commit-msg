@@ -12,8 +12,12 @@ COMMIT_MSG="$(cat $1)"
 
 BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD || echo "undefined") # can be undefined without any commits
 ISSUE_PATTERN='^[a-zA-Z]+[-][0-9]+'
-# this is a hack since git-bash on windows does not support grep -o for some reason...
-JIRA_ISSUE=$(echo "$BRANCH_NAME" | grep -E "$ISSUE_PATTERN" | sed -r "s/($ISSUE_PATTERN).*/\\1/")
+if [[ ! "$(uname -s)" == *"MINGW32"* ]]; then
+    JIRA_ISSUE=$(echo "$BRANCH_NAME" | grep -oE "$ISSUE_PATTERN" | head -n 1)
+else
+    # this is a hack since git-bash on windows does not support grep -o for some reason...
+    JIRA_ISSUE=$(echo "$BRANCH_NAME" | grep -E "$ISSUE_PATTERN" | sed -r "s/($ISSUE_PATTERN).*/\\1/")
+fi
 JIRA_ISSUE_IN_MESSAGE=$(echo "$COMMIT_MSG" | grep "$JIRA_ISSUE" || true)
 
 if [ -n "$JIRA_ISSUE" ] && [ -z "$JIRA_ISSUE_IN_MESSAGE" ]; then
