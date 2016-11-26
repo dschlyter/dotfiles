@@ -395,9 +395,14 @@ function getScreenByMapping(mapping)
     local screens = orderedScreens()
 
     -- the main is the middlemost screen, but not the internal screen unless there is only one window
-    local main = screens[math.ceil(#screens / 2)]
-    if main == internal then
-        main = screens[1]
+    local main = internal
+    local closestDistance = #screens
+    for k,screen in pairs(screens) do
+        local midDistance = math.abs(#screens / 2 - k)
+        if screen ~= internal and midDistance < closestDistance then
+            closestDistance = midDistance
+            main = screen
+        end
     end
 
     -- the secondary is the first screen that is left, or internal if there is no such window
