@@ -88,7 +88,7 @@
     fm = !git fetch && git merge --ff-only
     fr = !git fetch && git rb --autostash
     purge = !git branch -d $1 && git push origin --delete
-    prune-local = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
+    brd = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
     # quick alias for setting upstream
     su = !sh -c 'git branch -u "origin/$(git rev-parse --abbrev-ref HEAD)"'
 
