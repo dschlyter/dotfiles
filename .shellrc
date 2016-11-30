@@ -157,6 +157,15 @@ loc() {
     find "$DIR" -type f -name "*.$FILE_TYPE" -print0 | xargs -0 wc -l
 }
 
+ss() {
+    if [ -z "$1" ]; then
+        echo "Usage $0 myScript.sh"
+        return 1
+    fi
+
+    cp -i ~/.dotfiles/script_template.sh "$1" && $EDITOR "$1"
+}
+
 grab() {
     sudo chown -R ${USER} ${1:-.}
 }
