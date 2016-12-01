@@ -2,10 +2,15 @@
 set incsearch
 set ic
 
+let mapleader = "ö"
+
 " note to self: use :actionlist to find IDE commands to map
-map gr :source ~/.ideavimrc<CR>
-map gf :action FindUsages<CR>
-map gi :action GotoImplementation<CR>
+noremap gr :source ~/.ideavimrc<CR>
+noremap gf :action ShowUsages<CR>
+noremap gi :action GotoImplementation<CR>
+nnoremap <leader>r :action Vcs.RollbackChangedLines<CR>
+nnoremap gj :action VcsShowNextChangeMarker<CR>
+nnoremap gk :action VcsShowPrevChangeMarker<CR>
 
 " enable the surround plugin added in 0.46
 set surround
@@ -13,8 +18,6 @@ set surround
 "
 " customizations from real vimrc
 "
-
-let mapleader = "ö"
 nnoremap <leader>- yyp^v$r-
 nnoremap <leader>= yyp^v$r=
 nnoremap <leader>* I**<Esc>A**<Esc>
