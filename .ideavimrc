@@ -11,6 +11,8 @@ noremap gi :action GotoImplementation<CR>
 nnoremap <leader>r :action Vcs.RollbackChangedLines<CR>
 nnoremap gj :action VcsShowNextChangeMarker<CR>
 nnoremap gk :action VcsShowPrevChangeMarker<CR>
+nnoremap gn :action MethodDown<CR>
+nnoremap gp :action MethodUp<CR>
 
 " enable the surround plugin added in 0.46
 set surround
