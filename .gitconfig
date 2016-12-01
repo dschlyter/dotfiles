@@ -87,8 +87,14 @@
     # get remote updates even with local uncommited changes (but abort on conflicts)
     fm = !git fetch && git merge --ff-only
     fr = !git fetch && git rb --autostash
-    purge = !git branch -d $1 && git push origin --delete
-    brd = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
+    # fast forward branch without checking them out
+    up = !sh -c 'git fetch && git lh $1..origin/$1 && git merge-base --is-ancestor $1 origin/$1 && git branch -f $1 origin/$1' -
+    urb = !sh -c 'git up $1 && git rebase --autostash $1' -
+    mup = !git up master
+    mur = !git urb master
+    # branch cleanup
+    brd = "!r() { git branch -d $1; git push origin --delete $1; }; r"
+    brc = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
     # quick alias for setting upstream
     su = !sh -c 'git branch -u "origin/$(git rev-parse --abbrev-ref HEAD)"'
 
@@ -98,13 +104,8 @@
     # gitflow, check unreleased features on develop branch
     features = !git lh master..develop --merges -n 9999
     local = !git lg --branches --not --remotes
-    # fast forward develop or master without checking them out
-    up = !sh -c 'git fetch && git lh $1..origin/$1 && git merge-base --is-ancestor $1 origin/$1 && git branch -f $1 origin/$1' -
-    urb = !sh -c 'git up $1 && git rebase --autostash $1' -
     dup = !git up develop
-    mup = !git up master
     dur = !git urb develop
-    mur = !git urb master
 [web]
     browser = google-chrome
 [include]
