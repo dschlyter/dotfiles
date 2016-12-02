@@ -33,3 +33,6 @@ noremap Q @q
 nnoremap K "_d
 nnoremap KK "_dd
 vnoremap K "_d
+
+" Don't copy the contents of an overwritten selection.
+vnoremap p "_dP

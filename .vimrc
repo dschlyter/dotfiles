@@ -86,12 +86,10 @@ noremap <C-l> :bn<CR>
 inoremap <C-h> <C-o>:bp<CR>
 inoremap <C-l> <C-o>:bn<CR>
 
-" Make vim copy/paste suck a bit less
-" Copy/Paste to system clipboard with regular ctrl-c, ctrl-v
-" Paste also tries to keep correct indentation (but does not always work)
-" NOTE: For + register to work, gvim might need to be installed (not used)
-vnoremap <C-c> "+y
-inoremap <C-v> <ESC>"+]p`]a
+set clipboard=unnamed
+
+" Don't copy the contents of an overwritten selection.
+vnoremap p "_dP
 
 " Make shift-tab work in reverse of tab in insert mode
 inoremap <S-Tab> <C-o><<
@@ -337,6 +335,9 @@ set shiftround
 
 " regular tabs for makefiles
 autocmd FileType make setlocal noexpandtab
+
+" don't store swapfiles in the current directory
+set directory-=.
 
 " few options that just make things better
 set encoding=utf-8
