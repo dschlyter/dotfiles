@@ -8,6 +8,7 @@ local modifierResize = {"alt", "ctrl"}
 local modifierMoveScreen = {"alt", "shift"}
 local modifierMoveScreenIndex = {"alt", "ctrl"}
 local modifierMoveSpace = {"alt", "ctrl"}
+local modifierComplicated = {"alt", "ctrl", "cmd"}
 local minimumMoveDistance = 10
 
 hs.window.animationDuration = 0
@@ -274,7 +275,7 @@ hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reloadConfig):start()
 hs.alert.show("Hammerspoon config loaded")
 
 -- automatic reload does not always work - so allow manual reload
-hs.hotkey.bind({'ctrl', 'alt'}, 'r', function()
+hs.hotkey.bind(modifierComplicated, 'r', function()
     hs.reload()
 end)
 
