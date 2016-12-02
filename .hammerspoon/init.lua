@@ -41,11 +41,15 @@ hs.hotkey.bind(modifierFocus, 'j', function()
 end)
 
 hs.hotkey.bind(modifierFocus, 'l', function()
-    focusDirection("East", true)
+    orChain(focusDirection("East", false), function()
+        focusLayer(1)
+    end)
 end)
 
 hs.hotkey.bind(modifierFocus, 'h', function()
-    focusDirection("West", true)
+    orChain(focusDirection("West", false), function()
+        focusLayer(-1)
+    end)
 end)
 
 -- reimplements focusWindowX with less buggy and more powerful functionality
