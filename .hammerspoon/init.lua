@@ -440,6 +440,7 @@ hs.hotkey.bind(modifierResize, 'a', function()
         log.d("Restoring " .. #savedApps .. " saved apps " .. toString(savedApps))
         openAll(savedApps)
         savedApps = {}
+        restartScrollReverser()
     else
         for i,app in pairs(hs.application.runningApplications()) do
             if #app:visibleWindows() > 0 and not savedAppsBlacklist[app:name()] then
@@ -649,7 +650,11 @@ end
 
 hs.caffeinate.watcher.new(function(event)
     if (event == hs.caffeinate.watcher.systemDidWake) then
-        log.d("Restarting scroll reverser after sleep wakeup")
-        os.execute('pkill "Scroll Reverser" && open "/Applications/Scroll Reverser.app"')
+        restartScrollReverser()
     end
 end):start()
+
+function restartScrollReverser()
+    log.d("Restarting scroll reverser after sleep wakeup")
+    os.execute('pkill "Scroll Reverser" && open "/Applications/Scroll Reverser.app"')
+end
