@@ -45,3 +45,4 @@ fi
 
 # display power management log for current day (mostly interesting for display lock / unlock times)
 alias pmlog='open $(echo /var/log/powermanagement/2* | xargs -n 1 echo | tail -n 1)'
+alias ij='open -a "IntelliJ IDEA" .'
