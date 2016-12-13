@@ -6,6 +6,7 @@ alias zshrc='vim ~/.zshrc; rc'
 alias rc='source ~/.zshrc'
 
 ## Global aliases
+alias -g P='|'
 alias -g G='| grep -i'
 alias -g L='| less'
 alias -g MAP='| xargs --no-run-if-empty -n 1'

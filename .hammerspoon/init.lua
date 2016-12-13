@@ -434,7 +434,7 @@ local savedApps = {}
 
 -- quickly close and restore open apps (useful before user switching)
 hs.hotkey.bind(modifierResize, 'a', function()
-    local savedAppsBlacklist = Set{"Hammerspoon"}
+    local savedAppsBlacklist = Set{"Hammerspoon", "Finder"}
 
     if #savedApps > 0 then
         log.d("Restoring " .. #savedApps .. " saved apps " .. toString(savedApps))

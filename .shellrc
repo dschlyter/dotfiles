@@ -253,6 +253,10 @@ else
     dstat() {
         docker stats $(docker ps --format={{.Names}})
     }
+
+    dports() {
+        docker inspect "$1" | jq '.[].HostConfig.PortBindings'
+    }
 fi
 
 source_if_exists() {
