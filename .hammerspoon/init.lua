@@ -4,6 +4,9 @@
 ---------
 
 local modifierFocus = {"alt"}
+local modifierPrimary = {"alt", "ctrl"}
+local modifierSecondary = {"alt", "shift"}
+
 local modifierResize = {"alt", "ctrl"}
 local modifierMoveScreen = {"alt", "shift"}
 local modifierMoveScreenIndex = {"alt", "ctrl"}
@@ -336,6 +339,27 @@ end)
 
 hs.hotkey.bind({'ctrl', 'alt'}, 'r', function()
     os.execute('osascript switchMouse.AppleScript')
+end)
+
+-- spotify hotkeys
+hs.hotkey.bind(modifierPrimary, ',', function()
+    hs.spotify.previous()
+end)
+
+hs.hotkey.bind(modifierPrimary, '.', function()
+    hs.spotify.playpause()
+end)
+
+hs.hotkey.bind(modifierPrimary, '-', function()
+    hs.spotify.next()
+end)
+
+hs.hotkey.bind(modifierSecondary, ',', function()
+    hs.spotify.rw()
+end)
+
+hs.hotkey.bind(modifierSecondary, '-', function()
+    hs.spotify.ff()
 end)
 
 -- save and restore window positions when switching monitors
