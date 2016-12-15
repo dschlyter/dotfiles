@@ -15,5 +15,7 @@ C-b s L ( ) - navigate to other sessions
 C-b $ - name the session
 
 C-b [ ] - enter copy-mode, paste
+C-b C-c - enter copy-mode
+C-b P - paste
 
 C-b x & - kill pane/window

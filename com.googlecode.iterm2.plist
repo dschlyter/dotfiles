@@ -689,30 +689,30 @@
 		<key>0x68-0x100000</key>
 		<dict>
 			<key>Action</key>
-			<integer>2</integer>
+			<integer>10</integer>
 			<key>Text</key>
-			<string></string>
+			<string>p</string>
 		</dict>
 		<key>0x6a-0x100000</key>
 		<dict>
 			<key>Action</key>
-			<integer>30</integer>
+			<integer>10</integer>
 			<key>Text</key>
-			<string></string>
+			<string>j</string>
 		</dict>
 		<key>0x6b-0x100000</key>
 		<dict>
 			<key>Action</key>
-			<integer>31</integer>
+			<integer>10</integer>
 			<key>Text</key>
-			<string></string>
+			<string>k</string>
 		</dict>
 		<key>0x6c-0x100000</key>
 		<dict>
 			<key>Action</key>
-			<integer>0</integer>
+			<integer>10</integer>
 			<key>Text</key>
-			<string></string>
+			<string>n</string>
 		</dict>
 		<key>0x72-0x100000</key>
 		<dict>
