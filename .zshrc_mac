@@ -1,3 +1,8 @@
+# display power management log for current day (mostly interesting for display lock / unlock times)
+alias pmlog='open $(echo /var/log/powermanagement/2* | xargs -n 1 echo | tail -n 1)'
+alias ij='open -a "IntelliJ IDEA" .'
+alias rau='reattach-to-user-namespace'
+
 # default alias makes OSX outdated binaries sad :(
 alias ls='ls -h -G'
 alias o='open'
@@ -43,6 +48,14 @@ if [ $DIFF_DAYS -gt 7 ]; then
     echo "Homebrew has not been upgraded in $DIFF_DAYS days. Run upgrade with 'bup'"
 fi
 
-# display power management log for current day (mostly interesting for display lock / unlock times)
-alias pmlog='open $(echo /var/log/powermanagement/2* | xargs -n 1 echo | tail -n 1)'
-alias ij='open -a "IntelliJ IDEA" .'
+iterm-tmux() {
+    DETACHED_LIST="$(tmux ls -F "#{session_name} #{?session_attached,attached,detached}" 2> /dev/null | grep "detached$" || true)"
+
+    if [ -n "$DETACHED_LIST" ]; then
+        echo "Attaching to first detached session"
+        reattach-to-user-namespace tmux attach -t "$(echo $DETACHED_LIST | head -n 1 | awk '{print $1}')"
+    else
+        echo "No detached session exists, creating a new session"
+        reattach-to-user-namespace tmux new-session
+    fi
+}
