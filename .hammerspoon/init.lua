@@ -6,12 +6,12 @@
 local modifierFocus = {"alt"}
 local modifierPrimary = {"alt", "ctrl"}
 local modifierSecondary = {"alt", "shift"}
+local modifierComplicated = {"alt", "ctrl", "cmd"}
 
 local modifierResize = {"alt", "ctrl"}
 local modifierMoveScreen = {"alt", "shift"}
 local modifierMoveScreenIndex = {"alt", "ctrl"}
 local modifierMoveSpace = {"alt", "ctrl"}
-local modifierComplicated = {"alt", "ctrl", "cmd"}
 local minimumMoveDistance = 10
 
 hs.window.animationDuration = 0
@@ -341,7 +341,7 @@ hs.hotkey.bind({'ctrl', 'alt'}, 'r', function()
     os.execute('osascript switchMouse.AppleScript')
 end)
 
--- spotify hotkeys
+-- spotify and audio hotkeys
 hs.hotkey.bind(modifierPrimary, ',', function()
     hs.spotify.previous()
 end)
@@ -360,6 +360,23 @@ end)
 
 hs.hotkey.bind(modifierSecondary, '-', function()
     hs.spotify.ff()
+end)
+
+hs.hotkey.bind(modifierComplicated, ',', function()
+    local device = hs.audiodevice.current().device
+    local vol = math.max(0, device:outputVolume() - 5)
+    device:setVolume(vol)
+end)
+
+hs.hotkey.bind(modifierComplicated, '.', function()
+    local device = hs.audiodevice.current().device
+    device:setMuted(not device:muted())
+end)
+
+hs.hotkey.bind(modifierComplicated, '-', function()
+    local device = hs.audiodevice.current().device
+    local vol = math.min(100, device:outputVolume() + 5)
+    device:setVolume(vol)
 end)
 
 -- save and restore window positions when switching monitors
