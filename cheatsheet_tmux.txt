@@ -3,6 +3,7 @@ C-b (repeated) - send C-b to inner program (ie. vim or nested tmux from ssh)
 
 C-b space - next layout
 C-b M-1,2,3,4,5 - predefined layouts
+C-b -,| - change pane to horizontal/vertical
 C-b M-Left,Right,Up,Down - resize
 C-b {,},C-o,A-o - move or rotate pane
 C-b z - toggle zoom
