@@ -1,7 +1,7 @@
 #!/bin/zsh
 
-# jump with fasd using zfz filtering
-zj() {
+# jump with fasd using fzf filtering
+fj() {
     local dir
     dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m)" && cd "${dir}" || return 1
 }
@@ -9,7 +9,7 @@ zj() {
 # this is awesome :D - inject recently used files from fasd onto CLI filtering with fzf search
 # this code is mostly copied and tweaked from .fzf/shell/completion.zsh for Ctrl-T
 __fasdsel() {
-  local cmd="${FZF_CTRL_F_COMMAND:-"fasd -fl"}"
+  local cmd="${FZF_CTRL_F_COMMAND:-"fasd -l"}"
   setopt localoptions pipefail 2> /dev/null
   eval "$cmd | $(__fzfcmd) -m $FZF_CTRL_F_OPTS" | while read item; do
     echo -n "${(q)item} "
