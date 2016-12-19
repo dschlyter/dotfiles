@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Count LOC of a github repo
+# http://stackoverflow.com/questions/26881441/can-you-get-the-number-of-lines-of-code-from-a-github-repository
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+REPO_PATH="$1"
+if [[ "$REPO_PATH" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$ ]]; then
+    REPO_PATH="https://github.com/$1"
+    echo "Assuming github repo: $REPO_PATH"
+fi
+
+TEMP_REPO="/var/tmp/cloc-git-tmp$$"
+git clone --depth 1 "$REPO_PATH" "$TEMP_REPO" && cloc "$TEMP_REPO"
+
+rm -rf "$TEMP_REPO"
