@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+RUNNING="$(docker ps | awk '{print $1}' | tail -n +2)"
+for CONTAINER in $RUNNING; do
+    docker kill "$CONTAINER"
+done
+docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
+docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2>/dev/null

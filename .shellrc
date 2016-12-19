@@ -248,11 +248,6 @@ else
         docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2>/dev/null
     }
 
-    dnuke() {
-        docker ps | cl 1 | drop 1 | xargs --no-run-if-empty -n 1 docker kill
-        dcleanup
-    }
-
     # "docker stats" with names instead of hash, until https://github.com/docker/docker/issues/20973 is solved
     dstat() {
         docker stats $(docker ps --format={{.Names}})

@@ -17,7 +17,7 @@ precmd() {
     echo -ne "\e]1;${PWD##*/}\a"
 }
 
-# use updated coreutils by default
+# use updated coreutils and findutils by default
 function use_gnu() {
     type "g$1" > /dev/null && alias $1="g$1$2"
 }
@@ -31,6 +31,7 @@ use_gnu cp
 use_gnu ln
 use_gnu du
 use_gnu stat
+use_gnu xargs
 
 function handlemail() {
     cat /var/mail/$USER

@@ -17,6 +17,7 @@ local minimumMoveDistance = 10
 hs.window.animationDuration = 0
 
 local log = hs.logger.new('logger','debug')
+local user = os.getenv('USER')
 
 -- i to show window hints
 -------------------------
@@ -492,6 +493,7 @@ hs.hotkey.bind(modifierResize, 'a', function()
         if #savedApps > 0 then
             log.d("Saving " .. #savedApps .. " apps " .. toString(savedApps))
             killAll(savedApps)
+            killDocker()
         else
             local defaultApps = {"IntelliJ IDEA", "Google Chrome", "iTerm", "Spotify"}
             log.d("Opening default apps" .. toString(defaultApps))
@@ -526,6 +528,11 @@ function killAll(appNames)
             app:kill()
         end
     end
+end
+
+function killDocker()
+    log.d("Killing docker")
+    os.execute('bash -c "export PATH="$PATH:/usr/local/bin"; /Users/'..user..'/bin/dnuke"')
 end
 
 -- advanced window focus - separate windows for current screen into non-overlapping layers and toggle between them
