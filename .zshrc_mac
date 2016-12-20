@@ -48,15 +48,3 @@ local DIFF_DAYS=$((($NOW - $LAST_UPDATE) / (3600 * 24)))
 if [ $DIFF_DAYS -gt 7 ]; then
     echo "Homebrew has not been upgraded in $DIFF_DAYS days. Run upgrade with 'bup'"
 fi
-
-iterm-tmux() {
-    DETACHED_LIST="$(tmux ls -F "#{session_name} #{?session_attached,attached,detached}" 2> /dev/null | grep "detached$" || true)"
-
-    if [ -n "$DETACHED_LIST" ]; then
-        echo "Attaching to first detached session"
-        reattach-to-user-namespace tmux attach -t "$(echo $DETACHED_LIST | head -n 1 | awk '{print $1}')"
-    else
-        echo "No detached session exists, creating a new session"
-        reattach-to-user-namespace tmux new-session
-    fi
-}

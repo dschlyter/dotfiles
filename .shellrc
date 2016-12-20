@@ -19,6 +19,7 @@ _add_to_path() {
 }
 
 _add_to_path "$HOME/bin"
+_add_to_path "$HOME/code/bin"
 _add_to_path "$HOME/local/bin"
 _add_to_path "$HOME/code/server-setup/bin"
 _add_to_path "/opt/sudo"
