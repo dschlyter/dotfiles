@@ -476,32 +476,39 @@ local savedApps = {}
 
 -- quickly close and restore open apps (useful before user switching)
 hs.hotkey.bind(modifierResize, 'a', function()
+    restoreApps()
+end)
+
+hs.hotkey.bind(modifierResize, 'z', function()
+    saveApps()
+end)
+
+function saveApps()
     local savedAppsBlacklist = Set{"Hammerspoon", "Finder"}
 
+    for i,app in pairs(hs.application.runningApplications()) do
+        if #app:visibleWindows() > 0 and not savedAppsBlacklist[app:name()] then
+            table.insert(savedApps, app:name())
+        end
+    end
+
+    log.d("Saving " .. #savedApps .. " apps " .. toString(savedApps))
+    killAll(savedApps)
+    killDocker()
+end
+
+function restoreApps()
     if #savedApps > 0 then
         log.d("Restoring " .. #savedApps .. " saved apps " .. toString(savedApps))
         openAll(savedApps)
         savedApps = {}
         restartScrollReverser()
     else
-        for i,app in pairs(hs.application.runningApplications()) do
-            if #app:visibleWindows() > 0 and not savedAppsBlacklist[app:name()] then
-                table.insert(savedApps, app:name())
-            end
-        end
-
-        if #savedApps > 0 then
-            log.d("Saving " .. #savedApps .. " apps " .. toString(savedApps))
-            killAll(savedApps)
-            killDocker()
-        else
-            local defaultApps = {"IntelliJ IDEA", "Google Chrome", "iTerm", "Spotify"}
-            log.d("Opening default apps" .. toString(defaultApps))
-            openAll(defaultApps)
-        end
+        local defaultApps = {"IntelliJ IDEA", "Google Chrome", "iTerm", "Spotify"}
+        log.d("Opening default apps" .. toString(defaultApps))
+        openAll(defaultApps)
     end
-end)
-
+end
 
 function mapAppOpenName(appName)
     local mappedApps = {["iTerm2"]="iTerm"}
