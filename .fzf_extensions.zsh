@@ -30,7 +30,34 @@ fzf-file-fasd-widget() {
 zle     -N   fzf-file-fasd-widget
 bindkey '^F' fzf-file-fasd-widget
 
+# grab stuff from previous command, like filenames from find/ag or ip-addresses from ipconfig
+# WARNING: this will re-run the last command, so be careful with destructive or long-running commands
+__last_command_sel() {
+    # rerun last command, split on whitespace and non-filename chars
+    # filter short words and repeated content
+    local last_command="$(fc -l -nIL -1 -1)"
+    # local cmd="$last_command | sed 's/[ :*=]/\n/g' | grep -E '.{10}' | awk '!seen[$0]++'"
+    local cmd="$last_command | sed 's/[ :*=]/\n/g' | grep -E '.{10}' | awk '!seen[\$0]++'"
 
+    setopt localoptions pipefail 2> /dev/null
+    eval "$cmd | $(__fzfcmd) -m $FZF_CTRL_G_OPTS" | while read item; do
+        echo -n "${(q)item} "
+    done
+    local ret=$?
+    echo
+    return $ret
+}
+
+fzf-last-command-widget() {
+    LBUFFER="${LBUFFER}$(__last_command_sel)"
+    local ret=$?
+    zle redisplay
+    typeset -f zle-line-init >/dev/null && zle zle-line-init
+    return $ret
+}
+
+zle     -N   fzf-last-command-widget
+bindkey '^G' fzf-last-command-widget
 
 # ftpane - switch pane (@george-b) - from https://github.com/junegunn/fzf/wiki/examples
 ftpane() {
