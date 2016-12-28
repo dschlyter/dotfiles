@@ -86,8 +86,6 @@ noremap <C-l> :bn<CR>
 inoremap <C-h> <C-o>:bp<CR>
 inoremap <C-l> <C-o>:bn<CR>
 
-set clipboard=unnamed
-
 " Don't copy the contents of an overwritten selection.
 vnoremap p "_dP
 

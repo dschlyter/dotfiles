@@ -79,7 +79,7 @@ st() {
 }
 
 plan() {
-    vim ~/docs/plans/"1"
+    vim ~/docs/plans/"$1"
 }
 
 # Functional-style helpers
