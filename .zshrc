@@ -72,10 +72,15 @@ update_git_info() {
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd update_git_info
 
+# Show exit code in right prompt unless zero
+local EXIT_CODE_PROMPT="%{$fg_bold[yellow]%}%(?..[%?])%{$reset_color%}"
+
 # Show hostname in right prompt iff in SSH session or sudo su
 if [ -n "$SSH_CONNECTION" ] || [ -n "$SUDO_USER" ] || [ "$LOGNAME" != "$USER" ]; then
-    RPROMPT="   %{$fg[blue]%}[%n@%m]%{$reset_color%}"
+    local SSH_PROMPT=" %{$fg[blue]%}[%n@%m]%{$reset_color%}"
 fi
+
+RPROMPT="   $EXIT_CODE_PROMPT$SSH_PROMPT"
 
 # Readline keybindings with ability to enter vim-mode
 
