@@ -82,6 +82,11 @@ plan() {
     vim ~/docs/plans/"$1"
 }
 
+vimd() {
+    rm "$HOME/tmp/$1.swp"
+    vim "$1"
+}
+
 # Functional-style helpers
 
 # print specific column(s)
