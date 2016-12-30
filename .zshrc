@@ -26,13 +26,6 @@ function eachdir {
 
 # Aliases and functions shared with bash config
 
-# define this function here to allow usage in .shellrc and it's imports
-_add_to_git_autoupdate() {
-    if [[ ! "$GIT_AUTOUPDATE_REPOS" == *$1* ]]; then
-        export GIT_AUTOUPDATE_REPOS="$GIT_AUTOUPDATE_REPOS $1"
-    fi
-}
-
 SHELLRC=~/.shellrc
 [ -f $SHELLRC ] && source $SHELLRC
 
@@ -192,40 +185,3 @@ ZSH_HIGHLIGHT_STYLES[path_prefix]='fg=white,bold'
 source_if_exists ~/.zshrc_local
 source_if_exists ~/.zshrc_cygwin
 source_if_exists ~/.zshrc_mac
-
-# Git autoupdate - avoid tedious manual sync
-# This is in .zshrc since if I don't have zsh access I should probably not autoupdate either
-# It is also last to allow autoupdate definitions to be added in local files
-
-_add_to_git_autoupdate "$HOME/code/dotfiles"
-_add_to_git_autoupdate "$HOME/code/scripts"
-_add_to_git_autoupdate "$HOME/code/server-setup"
-
-git_autoupdate_repos() {
-    local GIT_UPDATE_FILE=~/.git_last_autoupdate
-
-    local NOW="$(date +%s)"
-    local LAST_UPDATE="0$(cat $GIT_UPDATE_FILE)"
-    local DIFF_HOURS=$((($NOW - $LAST_UPDATE) / (3600)))
-
-    if [ "$DIFF_HOURS" -gt 19 ]; then
-        echo "Autoupdating git repos"
-
-        for repo in $(echo $GIT_AUTOUPDATE_REPOS | flatten); do
-            if [ -d "$repo" ]; then
-                pushd .
-                cd $repo
-
-                echo Updating $repo
-                (git fetch; git merge --ff-only | grep -v "Already up-to-date") &
-                disown # don't spam me with updates
-
-                popd
-            fi
-        done
-    fi
-
-    date +%s > $GIT_UPDATE_FILE
-}
-
-git_autoupdate_repos

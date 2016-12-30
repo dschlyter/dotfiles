@@ -117,7 +117,7 @@ if [[ "$@" == *"--fzf"* ]]; then
     fi
     ~/.fzf/install --key-bindings --completion --no-update-rc
 else
-    echo "Not installing fzf, run with --vundle to enable"
+    echo "Not installing/updating fzf, run with --fzf to enable"
 fi
 
 if [[ "$@" == *"--vundle"* ]]; then
@@ -129,4 +129,15 @@ if [[ "$@" == *"--vundle"* ]]; then
     echo "Plugins installed!"
 else
     echo "Not installing vim vundle plugins, run with --vundle to enable"
+fi
+
+cron_add() {
+    (crontab -l ; echo "$@") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
+}
+
+if [[ "$@" == *"--cron"* ]]; then
+    echo "Adding autoupdate to cron"
+    cron_add "0 7 * * * $HOME/bin/git-autoupdate &> /tmp/cron-autoupdate.log"
+else
+    echo "Not installing autoupdate cron, run with --cron to enable"
 fi
