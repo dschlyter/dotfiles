@@ -57,7 +57,7 @@ alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc"
 
 export TIME_STYLE=long-iso # iso8601 for ls
 ls() {
-    ${GNU_PREFIX}ls -h --color=auto --group-directories-first "$@"
+    ${GNU_PREFIX:-/bin/}ls -h --color=auto --group-directories-first "$@"
 }
 
 # Override defaults
