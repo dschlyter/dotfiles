@@ -55,7 +55,6 @@
     cb = checkout -b
     cop = checkout -p
     cp = cherry-pick
-    fe = fetch --prune
 
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
@@ -83,15 +82,19 @@
     # rebase the last n commits
     rbn = "!r() { git rebase -i HEAD~$1; }; r"
 
-    # branch and merge
+    # pulling changes more productively
+    # fetch, prune removed remote branches and shortlog fetched changes
+    fe = !sh -c 'BR=${1:-$(git rev-parse --abbrev-ref HEAD)} && git fetch --prune && git lh $BR..origin/$BR' -
     # get remote updates even with local uncommited changes (but abort on conflicts)
-    fm = !git fetch && git merge --ff-only
-    fr = !git fetch && git rb --autostash
+    fm = !sh -c 'git fe && git merge --ff-only'
+    fr = !sh -c 'git fe && git rb --autostash'
     # fast forward branch without checking them out
-    up = !sh -c 'git fetch && git lh $1..origin/$1 && git merge-base --is-ancestor $1 origin/$1 && git branch -f $1 origin/$1' -
+    up = !sh -c 'git fe $1 && git merge-base --is-ancestor $1 origin/$1 && echo $BR && git branch -f $1 origin/$1' -
     urb = !sh -c 'git up $1 && git rebase --autostash $1' -
     mup = !git up master
     mur = !git urb master
+
+    # branch management
     # branch cleanup
     brd = "!r() { git branch -d $1; git push origin --delete $1; }; r"
     brc = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
@@ -106,6 +109,9 @@
     local = !git lg --branches --not --remotes
     dup = !git up develop
     dur = !git urb develop
+
+    # not sure i will ever use this, but had to have it anyway :D
+    yolo = !git add -A && git commit -m \"$(curl -s whatthecommit.com/index.txt)\"
 [web]
     browser = google-chrome
 [include]
