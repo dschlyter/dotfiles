@@ -132,12 +132,12 @@ else
 fi
 
 cron_add() {
-    (crontab -l ; echo "$@") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
+    (crontab -l || true ; echo "$@") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
 }
 
 if [[ "$@" == *"--cron"* ]]; then
     echo "Adding autoupdate to cron"
-    cron_add "0 7 * * * $HOME/bin/git-autoupdate &> /tmp/cron-autoupdate.log"
+    cron_add "0 10 * * * $HOME/bin/git-autoupdate &>> /tmp/git-autoupdate.log"
 else
     echo "Not installing autoupdate cron, run with --cron to enable"
 fi
