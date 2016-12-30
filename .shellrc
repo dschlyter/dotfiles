@@ -44,11 +44,9 @@ alias i='unset HISTFILE'
 alias gitroot='cd $(git rev-parse --show-cdup)'
 
 ## Flags on by default
-alias ls='ls -h --color=auto --group-directories-first'
-export TIME_STYLE=long-iso # iso8601 for ls
 alias locate='locate -i'
 alias mv='mv -i'
-alias cp='cp -i'
+alias cp='${GNU_PREFIX}cp -i'
 alias tig='tig --all'
 
 alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc"
@@ -56,6 +54,11 @@ alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc"
 #
 # Utility functions
 #
+
+export TIME_STYLE=long-iso # iso8601 for ls
+ls() {
+    ${GNU_PREFIX}ls -h --color=auto --group-directories-first "$@"
+}
 
 # Override defaults
 
@@ -157,16 +160,6 @@ fixenc() {
     iconv -f ISO-8859-1 -t UTF-8 "$1.orig" > "$1"
 }
 
-loc() {
-    DIR=${1:-"."}
-    FILE_TYPE=$2
-    if [ -z "$FILE_TYPE" ]; then
-        echo "Defaulting to filetype '.java'"
-        FILE_TYPE="java"
-    fi
-    find "$DIR" -type f -name "*.$FILE_TYPE" -print0 | xargs -0 wc -l
-}
-
 ss() {
     if [ -z "$1" ]; then
         echo "Usage $0 myScript.sh"
@@ -177,7 +170,7 @@ ss() {
 }
 
 grab() {
-    sudo chown -R ${USER} ${1:-.}
+    sudo chown -R ${USER} ${@:-.}
 }
 
 # allows one or multiple files to be "tagged"

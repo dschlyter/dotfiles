@@ -1,15 +1,8 @@
 # display power management log for current day (mostly interesting for display lock / unlock times)
 alias pmlog='open $(echo /var/log/powermanagement/2* | xargs -n 1 echo | tail -n 1)'
+alias o='open'
 alias ij='open -a "IntelliJ IDEA" .'
 alias rau='reattach-to-user-namespace'
-
-# default alias makes OSX outdated binaries sad :(
-alias ls='ls -h -G'
-alias o='open'
-
-# flag is not supported or needed on OS X
-alias -g MAP='| xargs -n 1'
-alias -g MAPI='| xargs -n 1 -i'
 
 # set iterm title to current dir
 # credit to https://gist.github.com/phette23/5270658
@@ -17,21 +10,27 @@ precmd() {
     echo -ne "\e]1;${PWD##*/}\a"
 }
 
-# use updated coreutils and findutils by default
+# use updated coreutils and findutils from homebrew by default
 function use_gnu() {
     type "g$1" > /dev/null && alias $1="g$1$2"
 }
 
-use_gnu ls " -h --color=auto --group-directories-first"
 use_gnu wc
 use_gnu sed
 use_gnu sort
 use_gnu tac
-use_gnu cp
 use_gnu ln
 use_gnu du
 use_gnu stat
 use_gnu xargs
+
+# these are fixed by functions in .shellrc
+# use_gnu ls
+# use_gnu cp
+
+# quick hack to make writing shell functions easier (even if reusability/porability suffers)
+# run the correct executable on any OS with ${GNU_PREFIX}ls
+export GNU_PREFIX="g"
 
 function handlemail() {
     cat /var/mail/$USER
