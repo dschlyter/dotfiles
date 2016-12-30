@@ -113,6 +113,11 @@ nth () {
     sed -n "${1}p"
 }
 
+# distinct lines without requiring sort like: sort | uniq
+distinct() {
+    awk '!seen[$0]++'
+}
+
 # each word on one line
 flatten() {
     xargs -n 1 echo
