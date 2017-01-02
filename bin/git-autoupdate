@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+echo "Autoupdating git repos $(date)"
+
+GIT_AUTOUPDATE_REPOS="$HOME/code/dotfiles
+$HOME/code/scripts
+$HOME/code/server-setup
+$(cat $HOME/.git_autoupdate || true)"
+
+echo $GIT_AUTOUPDATE_REPOS
+
+# key file for read-only access to private repos
+KEY_FILE="$HOME/.ssh/autoupdate_rsa"
+if [ -f "$KEY_FILE" ]; then
+    export GIT_SSH_COMMAND="ssh -i $KEY_FILE"
+fi
+
+for repo in $GIT_AUTOUPDATE_REPOS; do
+    if [ -d "$repo" ]; then
+        pushd .
+        cd $repo
+
+        echo Updating $repo
+        # all github repos used for auto-update are public, so this rewrite is good enough for now
+        ORIGIN="$(git remote get-url origin | sed -E 's,git@github.com:(.*)[.]git,https://github.com/\1,')"
+        git fetch "$ORIGIN"
+        # semi hack warning, update origin/master from custom fetch
+        cp .git/FETCH_HEAD .git/refs/remotes/origin/master
+        git merge --ff-only
+
+        popd
+    else
+        echo Skipping $repo - no such repo
+    fi
+done
