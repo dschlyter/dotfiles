@@ -175,6 +175,7 @@ setopt histignorealldups        # removes duplicate commands, even if non-sequen
 export REPORTTIME=10 # print stats for commands running longer than 10 secs
 
 source_if_exists ~/.dotfiles/submodules/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+typeset -A ZSH_HIGHLIGHT_STYLES
 ZSH_HIGHLIGHT_STYLES[single-hyphen-option]='fg=cyan'
 ZSH_HIGHLIGHT_STYLES[double-hyphen-option]='fg=cyan'
 ZSH_HIGHLIGHT_STYLES[dollar-double-quoted-argument]='fg=cyan'
