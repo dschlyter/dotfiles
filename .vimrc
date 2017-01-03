@@ -35,8 +35,6 @@ nnoremap <leader>d :GitGutterPreviewHunk<CR>
 
 " other plugin leader hotkeys
 nnoremap <leader>u :GundoToggle<cr>
-nnoremap <leader>p <Plug>yankstack_substitute_older_paste
-nnoremap <leader>P <Plug>yankstack_substitute_newer_paste
 
 " possibly breaking customizations
 " ================================
@@ -201,9 +199,6 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
 
     " visualize undo tree, and revert to previous states
     Bundle 'sjl/gundo.vim'
-
-    " paste previous yanks easily
-    Bundle 'maxbrunsfeld/vim-yankstack'
 
     " syntax error highlights and descriptions
     Bundle 'scrooloose/syntastic'
