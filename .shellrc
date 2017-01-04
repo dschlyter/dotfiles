@@ -42,6 +42,7 @@ alias vims='vim -S .vimsession'
 alias i='unset HISTFILE'
 
 alias gitroot='cd $(git rev-parse --show-cdup)'
+alias inet="ifconfig | grep -E '(^[a-z])|inet ' | grep -B 1 'inet '"
 
 ## Flags on by default
 alias locate='locate -i'
