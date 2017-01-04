@@ -82,7 +82,7 @@ st() {
     ssh -t "$@" tmux
 }
 
-plan() {
+p() {
     vim ~/docs/plans/"$1"
 }
 
