@@ -70,7 +70,7 @@ local EXIT_CODE_PROMPT="%{$fg_bold[yellow]%}%(?..[%?])%{$reset_color%}"
 
 # Show hostname in right prompt iff in SSH session or sudo su
 if [ -n "$SSH_CONNECTION" ] || [ -n "$SUDO_USER" ] || [ "$LOGNAME" != "$USER" ]; then
-    local SSH_PROMPT=" %{$fg[blue]%}[%n@%m]%{$reset_color%}"
+    local SSH_PROMPT=" %{$fg[cyan]%}[%n@%m]%{$reset_color%}"
 fi
 
 RPROMPT="   $EXIT_CODE_PROMPT$SSH_PROMPT"
