@@ -83,7 +83,16 @@ st() {
 }
 
 p() {
-    vim ~/docs/plans/"$1"
+    DOC=$1
+    if [ -n "$(echo ~/docs/plans/$DOC*)" ]; then
+        vim ~/docs/plans/"$DOC"*
+    else
+        if ! [[ $DOC == *.txt ]]; then
+            DOC="$DOC.txt"
+        fi
+
+        vim ~/docs/plans/"$DOC"
+    fi
 }
 
 vimd() {
