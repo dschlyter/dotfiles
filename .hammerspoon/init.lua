@@ -417,6 +417,7 @@ local windowPresetTable = {}
 windowPresetTable["iTerm2"] = "internal"
 windowPresetTable["Spotify"] = "internal"
 windowPresetTable["IntelliJ IDEA"] = "main"
+windowPresetTable["eclipse"] = "main"
 windowPresetTable["Google Chrome"] = "secondary"
 
 function positionWindowsByPreset()

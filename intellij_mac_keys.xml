@@ -22,6 +22,9 @@
   <action id="Git.Branches">
     <keyboard-shortcut first-keystroke="ctrl meta b" />
   </action>
+  <action id="Git.CompareWithBranch">
+    <keyboard-shortcut first-keystroke="ctrl meta c" />
+  </action>
   <action id="Git.Fetch">
     <keyboard-shortcut first-keystroke="ctrl meta t" />
   </action>

@@ -137,7 +137,7 @@ cron_add() {
 
 if [[ "$@" == *"--cron"* ]]; then
     echo "Adding autoupdate to cron"
-    cron_add "0 10 * * * $HOME/bin/git-autoupdate &>> /tmp/git-autoupdate.log"
+    cron_add "0 10 * * * $HOME/bin/git-autoupdate >> /tmp/git-autoupdate.log 2>&1"
 else
     echo "Not installing autoupdate cron, run with --cron to enable"
 fi
