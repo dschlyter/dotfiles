@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Strip trailing line numbers from a copy, useful for copy from terminal over ssh or similar
+# mac specific for now
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+reattach-to-user-namespace pbpaste | sed -E 's/^ *[0-9]+ ?//' | reattach-to-user-namespace pbcopy

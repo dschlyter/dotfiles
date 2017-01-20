@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# Convenience script for listing open pull requests on bitbucket/stash, 
+# if selected for review, open the selected PR in intellij with the correct branch checked out.
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+
+# These variables must be defined
+CODE_DIR="$CODE_DIR"
+BITBUCKET_ENDPOINT="$BITBUCKET_ENDPOINT"
+BITBUCKET_USER="$BITBUCKET_USER"
+# set password with security add-generic-password -a $USER -s bitbucket -w <PASS>
+BITBUCKET_PASSWORD="$(security find-generic-password -a $USER -s bitbucket -w)"
+
+API_RESP="$(curl -u "$BITBUCKET_USER:$BITBUCKET_PASSWORD" "$BITBUCKET_ENDPOINT/rest/inbox/latest/pull-requests?role=reviewer&start=0&limit=10&avatarSize=64&withAttributes=true&state=OPEN&order=oldest")"
+# API_RESP="$(curl -u "$BITBUCKET_USER:$BITBUCKET_PASSWORD" "$BITBUCKET_ENDPOINT/rest/inbox/latest/pull-requests?role=author&start=0&limit=10&avatarSize=64&withAttributes=true&state=OPEN&order=oldest")"
+
+PR_COUNT="$(echo "$API_RESP" | jq .size)"
+
+if [ $PR_COUNT -lt 1 ]; then
+    echo PR count $PR_COUNT, nothing to do.
+    exit 0
+fi
+
+verify_blacklist() {
+    AUTHOR_INFO="$(echo "$API_RESP" | jq ".values[$INDEX].author")"
+    for author in ${BITBUCKET_BLACKLIST:-""}; do
+        if [ -n "$author" ] && [[ "$AUTHOR_INFO" == *"$author"* ]]; then
+            echo "Skipping PR by $author"
+            return 1
+        fi
+    done
+    return 0
+}
+
+for i in "$(seq $PR_COUNT)"; do
+    cd "$CODE_DIR"
+    INDEX=$(($i - 1))
+
+    verify_blacklist || continue
+
+    echo "PR $i:"
+    echo "$API_RESP" | jq -r ".values[$INDEX].toRef.repository.name,.values[$INDEX].author.user.displayName,.values[$INDEX].title"
+    printf "Review? (y/N)"
+    read -n 1 c
+    echo
+    test "$c" == "y" || continue
+
+    BB_URL="$(echo "$API_RESP" | jq -r ".values[$INDEX].links.self[0].href")"
+    open "$BB_URL"
+
+    SSH_URL="$(echo "$API_RESP" | jq -r ".values[$INDEX].toRef.repository.links.clone[].href" | grep ssh)"
+    CODE_DIR="$(find . -name ".git" -execdir sh -c 'echo $(pwd) $(git remote -v)' ";" | grep "$SSH_URL" | awk '{print $1}')"
+    if [ -n "$CODE_DIR" ]; then
+        echo "Opening $CODE_DIR"
+        cd $CODE_DIR
+        BRANCH="$(echo "$API_RESP" | jq -r ".values[$INDEX].fromRef.displayId")"
+        git fetch
+        git checkout "$BRANCH"
+        git pull
+        open -a "IntelliJ IDEA" .
+    else
+        echo Unable to find code dir, you may need to clone it yourself:
+        echo git clone $SSH_URL
+    fi
+done
+
+
