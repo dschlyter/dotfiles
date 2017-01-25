@@ -72,8 +72,8 @@
     # patched commit with a file review and untracked sanity check first
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "Warning: Untracked files!" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
-    # remove all whitespace changes - with a checkpoint for paranoia
-    rw = !git diff -w --no-color | git apply --cached --ignore-whitespace && git checkout . && git reset
+    # remove all whitespace changes
+    rw=!sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git checkout "${@:-.}" && git reset'
 
     # amend and rebase
     # amend without changing git commit message
@@ -82,6 +82,7 @@
     fixup = !sh -c '(git diff-files --quiet || (echo "Unstaged changes, please commit or stash with --keep-index" && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -
     # reset back n commits
     rsn = "!r() { COUNT=$1; shift; git reset HEAD~$COUNT $@; }; r"
+    rsm = branch -f master origin/master
     # rebase the last n commits
     rbn = "!r() { git rebase -i HEAD~$1; }; r"
 

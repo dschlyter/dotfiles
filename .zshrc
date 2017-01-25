@@ -19,7 +19,11 @@ function eachdir {
     for dir in *(/); do
         pushd .
         cd $dir
-        eval "$@"
+        result="$(eval "$@")"
+        if [ -n "$result" ]; then
+            echo "--- $dir ---"
+            echo "$result"
+        fi
         popd
     done
 }
