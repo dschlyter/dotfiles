@@ -114,8 +114,7 @@
     dup = !git up develop
     dur = !git urb develop
 
-    # not sure i will ever use this, but had to have it anyway :D
-    yolo = !git add -A && git commit -m \"$(curl -s whatthecommit.com/index.txt)\"
+    yolo = !git add -A && git commit -m \"$(curl -s whatthecommit.com/index.txt)\" && git push
 [web]
     browser = google-chrome
 [include]
