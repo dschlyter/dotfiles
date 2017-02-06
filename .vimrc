@@ -12,6 +12,9 @@ let mapleader = "ö"
 nnoremap <leader>n :noh<cr>
 nnoremap <leader>w :StripWhitespace<cr>
 
+" selection leader commands
+vnoremap <leader>G dGp<C-o>
+
 " handle buffers and tabs
 nnoremap <leader>o :only<cr>
 nnoremap <leader>b :bd<cr>
@@ -27,6 +30,7 @@ nnoremap <leader>* I**<Esc>A**<Esc>
 
 " insert current date
 nnoremap <leader>i "=strftime("%F")<CR>p
+nnoremap <leader>t "=strftime("%F %T")<CR>p
 
 " git shortcuts from plugings
 nnoremap <leader>g :Gstatus<cr>
