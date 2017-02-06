@@ -413,12 +413,21 @@ function restoreWindowPos()
     end
 end
 
+-- pro tip: use listWindows from console to find correct names
 local windowPresetTable = {}
 windowPresetTable["iTerm2"] = "internal"
 windowPresetTable["Spotify"] = "internal"
 windowPresetTable["IntelliJ IDEA"] = "main"
-windowPresetTable["eclipse"] = "main"
+windowPresetTable["Eclipse"] = "main"
 windowPresetTable["Google Chrome"] = "secondary"
+
+function listWindows()
+    local windows = hs.window.visibleWindows()
+    for i,window in pairs(windows) do
+        local name = window:application():name()
+        log.i(name)
+    end
+end
 
 function positionWindowsByPreset()
     local windows = hs.window.visibleWindows()

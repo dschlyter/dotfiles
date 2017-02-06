@@ -67,6 +67,8 @@
     mine = !git lg --author="David Schlyter"
     # everything i have done the last month. there is an echo and inverse grep empty lines to make sure newlines are properly inserted
     allmine = "!r() { find . -name .git -exec sh -c \"cd {}; git log --author='David Schlyter' --since='2 month' --date=iso --pretty=format:'%cd {} %s'; echo \" ';' | grep -v '^$' | sort; }; r"
+    # show the first commit from log that matches sha-prefix, eg. git sc 72F
+    sc = "!r() { git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show; }; r"
 
     # commit
     # patched commit with a file review and untracked sanity check first
@@ -88,7 +90,7 @@
 
     # pulling changes more productively
     # fetch, prune removed remote branches and shortlog fetched changes
-    fe = !sh -c 'BR=${1:-$(git rev-parse --abbrev-ref HEAD)} && git fetch --prune && git lh $BR..origin/$BR' -
+    fe = !sh -c 'BR=${1:-"master"} && git fetch --prune && git lh $BR..origin/$BR' -
     # get remote updates even with local uncommited changes (but abort on conflicts)
     fm = !sh -c 'git fe && git merge --ff-only'
     fr = !sh -c 'git fe && git rb --autostash'
