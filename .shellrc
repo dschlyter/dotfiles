@@ -95,6 +95,16 @@ p() {
     fi
 }
 
+ckl() {
+    cd ~/docs
+
+    DOC="$(echo ~/docs/notes/checklists/$1* | cl 1)"
+    DOC_COPY=${2:-"$(echo $DOC | sed -e "s,.*/,,")"}
+
+    cp "$DOC" "$DOC_COPY"
+    vim "$DOC_COPY"
+}
+
 vimd() {
     rm "$HOME/tmp/$1.swp"
     vim "$1"
