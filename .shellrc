@@ -50,7 +50,7 @@ alias mv='mv -i'
 alias cp='${GNU_PREFIX}cp -i'
 alias tig='tig --all'
 
-alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc"
+alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc; rc"
 
 #
 # Utility functions

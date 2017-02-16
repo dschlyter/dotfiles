@@ -291,24 +291,43 @@ end)
 -- hotkeys
 ----------
 
--- spawn a new iterm window
-hs.hotkey.bind({'ctrl', 'alt'}, 'space', function()
+hs.hotkey.bind({'alt'}, 'space', function()
+    local windows = orderedWindows("iTerm2")
+    if #windows > 0 then
+        if hs.window.focusedWindow():id() == windows[1]:id() then
+            if #windows > 1 then
+                windows[2]:focus()
+            end
+        else
+            windows[1]:focus()
+        end
+    else
     hs.application.launchOrFocus("iTerm")
-
-    -- opening iTerm without open windows will open a new window, no need for cmd-n
-    -- unless we are on a new space, and have the setting of auto-switch space disabled
-    if not windowsExist("iTerm2") then
-        hs.eventtap.keyStroke({'cmd'}, 'n')
     end
 end)
 
-function windowsExist(appName)
-    local windows = hs.window.allWindows()
+hs.hotkey.bind({'ctrl', 'alt'}, 'space', function()
+    local windows = orderedWindows("Google Chrome")
+    if hs.window.focusedWindow():application():title() == "Google Chrome" then
+        if #windows > 1 then
+            windows[2]:focus()
+        end
+    elseif #windows > 0 then
+        windows[1]:focus()
+    else
+        hs.application.launchOrFocus("Google Chrome")
+    end
+end)
+
+function orderedWindows(appName)
+    local ret = {}
+    local windows = hs.window.orderedWindows()
     for i,window in pairs(windows) do
-        if window:application():title() == appName then
-            return true
+        if window:application():title() == appName and window:isStandard() then
+            ret[#ret + 1] = window
         end
     end
+    return ret
 end
 
 -- enable readline style word navigation
