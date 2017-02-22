@@ -3,6 +3,7 @@ alias pmlog='open $(echo /var/log/powermanagement/2* | xargs -n 1 echo | tail -n
 alias o='open'
 alias ij='open -a "IntelliJ IDEA" .'
 alias rau='reattach-to-user-namespace'
+alias sshot='screencapture -T 2 -t png -P screenshot.png'
 
 # set iterm title to current dir
 # credit to https://gist.github.com/phette23/5270658
