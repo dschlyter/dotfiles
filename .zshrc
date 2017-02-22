@@ -28,6 +28,11 @@ function eachdir {
     done
 }
 
+# cd to directory in the same level ie. /dir/hej to /dir/hej2 with autocomplete
+function cs {
+    cd ../$(ls ../(/) | grep "$*" | fzf -1)
+}
+
 # Aliases and functions shared with bash config
 
 SHELLRC=~/.shellrc

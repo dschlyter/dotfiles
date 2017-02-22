@@ -1,9 +1,13 @@
-.idea
-*.iml
 .*.swp
 .svn
 .hg
 .DS_Store
+.gitconfig_local
+
+.idea
+*.iml
+.gradle
+
 *.o
 a.out
 CMakeFiles
