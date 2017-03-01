@@ -19,16 +19,6 @@ hs.window.animationDuration = 0
 local log = hs.logger.new('logger','debug')
 local user = os.getenv('USER')
 
--- i to show window hints
--------------------------
-
-hs.hints.style = "vimperator" -- prefix hint with first letter in application name, to make it deterministic
-hs.hotkey.bind(modifierFocus, 'i', function()
-    -- threshold for showing full titles should increase based on number of screens
-    hs.hints.showTitleThresh = #hs.screen.allScreens() * 4
-    hs.hints.windowHints()
-end)
-
 -- hjkl to switch window focus
 ------------------------------
 
@@ -291,33 +281,32 @@ end)
 -- hotkeys
 ----------
 
+-- application focus hotkeys
 hs.hotkey.bind({'alt'}, 'space', function()
-    local windows = orderedWindows("iTerm2")
-    if #windows > 0 then
-        if hs.window.focusedWindow():id() == windows[1]:id() then
-            if #windows > 1 then
-                windows[2]:focus()
-            end
-        else
-            windows[1]:focus()
-        end
-    else
-    hs.application.launchOrFocus("iTerm")
-    end
+    focusNextWindow("iTerm2", "iTerm")
 end)
 
 hs.hotkey.bind({'ctrl', 'alt'}, 'space', function()
-    local windows = orderedWindows("Google Chrome")
-    if hs.window.focusedWindow():application():title() == "Google Chrome" then
+    focusNextWindow("Google Chrome", "Google Chrome")
+end)
+
+hs.hotkey.bind(modifierFocus, 'i', function()
+    focusNextWindow("IntelliJ IDEA", "IntelliJ IDEA")
+end)
+
+function focusNextWindow(appName, launchName)
+    local windows = orderedWindows(appName)
+    log.d(hs.window.focusedWindow():application():title())
+    if hs.window.focusedWindow():application():title() == appName then
         if #windows > 1 then
             windows[2]:focus()
         end
     elseif #windows > 0 then
         windows[1]:focus()
     else
-        hs.application.launchOrFocus("Google Chrome")
+        hs.application.launchOrFocus(launchName)
     end
-end)
+end
 
 function orderedWindows(appName)
     local ret = {}
