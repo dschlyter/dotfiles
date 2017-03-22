@@ -11,6 +11,8 @@
 export EDITOR="vim"
 export VISUAL="vim"
 export PAGER="less"
+# start on mondays when using gcal
+export GCAL="-s1"
 
 _add_to_path() {
     if [[ ! "$PATH" == *$1* ]]; then
@@ -153,7 +155,11 @@ chunk() {
 
 md() {
     mkdir -p $1
-    cd $1
+    cd "$1"
+}
+
+cdt() {
+    cd "$(dirname "$1")"
 }
 
 u() {
@@ -199,7 +205,7 @@ ss() {
 }
 
 grab() {
-    sudo chown -R ${USER} ${@:-.}
+    sudo chown -R "${USER}" "${@:-.}"
 }
 
 # allows one or multiple files to be "tagged"

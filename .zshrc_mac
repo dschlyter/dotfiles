@@ -24,6 +24,7 @@ use_gnu ln
 use_gnu du
 use_gnu stat
 use_gnu xargs
+use_gnu cal
 
 # these are fixed by functions in .shellrc
 # use_gnu ls
