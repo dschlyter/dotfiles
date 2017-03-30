@@ -99,12 +99,12 @@ else
     echo "zsh not found, please install and chsh manually"
 fi
 
-if [ ! "$(ls -A submodules/*)" ]; then
-    echo "Submodules dir is empty. Initializing submodules."
+if [[ "$@" == *"--sub"* ]]; then
+    echo "Initializing submodules."
     git submodule init
     git submodule update
 else
-    echo "Submodules already initialized"
+    echo "Not installing/updating submodules (syntax highlighting), run with --sub to enable"
 fi
 
 if [[ "$@" == *"--fzf"* ]]; then

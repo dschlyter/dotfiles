@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Strip trailing line numbers from a copy, useful for copy from terminal over ssh or similar
+# Strip prefix line numbers from a copy, useful for copy from terminal over ssh or similar
 # mac specific for now
 
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/

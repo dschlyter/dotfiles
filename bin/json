@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Quick and dirty helper for creating json objects
+# Eg. json name alice age 29 cool true list "[1,2]" nested '{"list": [1,2,3]}'
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+echo "{"
+while [ -n "${1:-""}" ]; do
+    echo -n "    \"$1\": "
+
+    if [[ "$2" =~ ^([0-9]+(.[0-9]+)?|false|true)$|^([\"\'{]|\[|) ]]; then
+        echo -n "$2"
+    else
+        # assume argument is a string
+        echo -n "\"$2\""
+    fi
+    test -n "${3:-""}" && echo -n ","
+    echo
+    shift 2
+done
+echo "}"

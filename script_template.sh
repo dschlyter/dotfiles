@@ -4,10 +4,18 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-while getopts ":h" opt; do
+usage() {
+    echo "Usage: TODO"
+}
+
+while getopts ":hp:" opt; do
     case $opt in
         h)
-            echo "Usage: $0 TODO"
+            usage
+            exit 0
+            ;;
+        p)
+            echo "Argument to -p: $OPTARG"
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
