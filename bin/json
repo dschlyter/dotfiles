@@ -1,24 +1,134 @@
 #!/bin/bash
 
-# Quick and dirty helper for creating json objects
-# Eg. json name alice age 29 cool true list "[1,2]" nested '{"list": [1,2,3]}'
 
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t'
 
-echo "{"
-while [ -n "${1:-""}" ]; do
-    echo -n "    \"$1\": "
+usage() {
+   echo "Quick and dirty helper for building json objects"
+   echo Examples:
+   echo "json name alice age 29 cool true"
+   echo "json list [1,2] nested [ \"{\" key value \"}\" 2 3 \"{\" key value \"}\" ] raw '{\"list\": [1,2,3]}'"
+   echo
+   echo 'Note: The "parser" is pretty dumb, you need to specify all { } [ ] as separate arguments separated by space when nesting'
+}
 
-    if [[ "$2" =~ ^([0-9]+(.[0-9]+)?|false|true)$|^([\"\'{]|\[|) ]]; then
-        echo -n "$2"
-    else
-        # assume argument is a string
-        echo -n "\"$2\""
-    fi
-    test -n "${3:-""}" && echo -n ","
+
+if [ -z "${1:-}" ]; then
+    usage
+    exit 0
+fi
+
+INDENT=1
+CONTEXT="OBJECT_KEY"
+CONTEXT_STACK=()
+FIRST_VALUE=1
+
+main() {
+    echo -n "{"
+
+    while [ -n "${1:-""}" ]; do
+        if [ "$CONTEXT" == "OBJECT_KEY" ]; then
+            if [[ "$1" == "}" ]]; then
+                terminate "}"
+            else
+                next_value
+                echo -n "\"$1\": "
+                CONTEXT="OBJECT_VALUE"
+            fi
+
+        elif [ "$CONTEXT" == "OBJECT_VALUE" ]; then
+            CONTEXT="OBJECT_KEY"
+            print_value "$1"
+        elif [ "$CONTEXT" == "LIST_VALUE" ]; then
+            if [[ "$1" == "]" ]]; then
+                terminate "]"
+            else
+                next_value
+                print_value "$1"
+            fi
+        fi
+
+        shift 1
+    done
+
     echo
-    shift 2
-done
-echo "}"
+    echo "}"
+}
+
+terminate() {
+    echo
+    unnest
+    indent
+    echo -n "$1"
+}
+
+next_value() {
+    comma
+    indent
+}
+
+comma() {
+    if [ $FIRST_VALUE -eq 0 ]; then
+        echo ","
+    else
+        FIRST_VALUE=0
+        echo
+    fi
+}
+
+indent() {
+    for _ in $(seq 1 $INDENT); do
+        echo -n "  "
+    done
+}
+
+print_value() {
+    if [[ "$1" == "{" ]]; then
+        echo -n "{"
+        nest "OBJECT_KEY"
+    elif [[ "$1" == "[" ]]; then
+        echo -n "["
+        nest "LIST_VALUE"
+    elif [[ "$1" =~ ^([\"\'{]|\[) ]]; then
+        # beginning with special chars, print as is
+        echo -n "$1"
+    elif [[ "$1" =~ ^([0-9]+(.[0-9]+)?|false|true)$ ]]; then
+        # assume number or boolean primitive
+        echo -n "$1"
+    else
+        # assume string
+        echo -n "\"$1\""
+    fi
+}
+
+nest() {
+    FIRST_VALUE=1
+    INDENT=$((INDENT + 1))
+
+    push "$1"
+}
+
+unnest() {
+    INDENT=$((INDENT - 1))
+    pop
+}
+
+push() {
+    CONTEXT_STACK+=($CONTEXT)
+    CONTEXT=$1
+}
+
+pop() {
+    local LAST=$((${#CONTEXT_STACK[@]} - 1))
+    if [ $LAST -ge 0 ]; then
+        CONTEXT=${CONTEXT_STACK[$LAST]}
+        unset CONTEXT_STACK["$LAST"]
+    else
+        echo "Unbalanced parenthesis error"
+        exit 1
+    fi
+}
+
+main "$@"
