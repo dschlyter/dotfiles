@@ -16,7 +16,8 @@ alias -g C1='| cl 1'
 # Functions
 
 function eachdir {
-    for dir in *(/); do
+    for dir in *; do
+        test -d "$dir" || continue
         pushd .
         cd $dir
         result="$(eval "$@")"
