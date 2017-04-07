@@ -84,6 +84,10 @@ st() {
     ssh -t "$@" tmux
 }
 
+addkey() {
+    ssh "$1" tee -a .ssh/authorized_keys < ~/.ssh/id_rsa.pub
+}
+
 p() {
     DOC=$1
     if [ -n "$(echo ~/docs/plans/$DOC*)" ]; then
@@ -124,7 +128,7 @@ cl() {
 }
 
 take() {
-    head -n $1
+    head -n "$1"
 }
 
 drop() {
@@ -147,19 +151,19 @@ flatten() {
 
 # many lines to single line
 chunk() {
-    LINE_GROUP_SIZE="$(test $1 && echo -L $1)"
-    xargs $LINE_GROUP_SIZE echo
+    LINE_GROUP_SIZE="$(test "$1" && echo -L "$1")"
+    xargs -d '\n' "$LINE_GROUP_SIZE" echo
 }
 
 # Exploring the file system
 
 md() {
-    mkdir -p $1
-    cd "$1"
+    mkdir -p "$1"
+    cd "$1" || return
 }
 
 cdt() {
-    cd "$(dirname "$1")"
+    cd "$(dirname "$1")" || return
 }
 
 u() {
@@ -168,7 +172,7 @@ u() {
     else
         PARENT_MATCH="$(pwd | grep -Eo ".*$1[^/]*/" )"
         if [ -n "$PARENT_MATCH" ]; then
-            cd "$PARENT_MATCH"
+            cd "$PARENT_MATCH" || return
         fi
     fi
 }
@@ -177,7 +181,7 @@ function c() {
     s "$@"
 
     if [ -d "$1" ]; then
-        cd "$1"
+        cd "$1" || return
     fi
 }
 
@@ -211,7 +215,7 @@ grab() {
 # allows one or multiple files to be "tagged"
 # then used in other commands like: j otherdir; mv $=TAG .
 tag() {
-    if [[ "$@" == "" ]]; then
+    if [[ "$*" == "" ]]; then
         echo "$TAG"
         return
     fi
@@ -231,7 +235,7 @@ alias mvt='echo "$TAG" | xargs -L 1 -i mv {} .'
 
 retry() {
     while true; do
-        eval $* && return 0
+        eval "$@" && return 0
         echo "Exit $? - Retrying in 1 second"
         sleep 1
     done
@@ -240,7 +244,7 @@ retry() {
 loop() {
     COUNT=$1
     shift
-    for i in $(seq $COUNT); do
+    for _ in $(seq "$COUNT"); do
         eval "$@"
     done
 }
@@ -252,7 +256,7 @@ serve() {
 
 genpass() {
     PWLEN="${1:-60}"
-    openssl rand -base64 $PWLEN | head -c $PWLEN
+    openssl rand -base64 "$PWLEN" | head -c "$PWLEN"
     echo
 }
 
@@ -261,7 +265,7 @@ timing() {
     local PREV_TIMING="$LAST_TIMING"
     LAST_TIMING="$(date +%s%N)"
     if [ -n "$*" ] && [ "$PREV_TIMING" ]; then
-        echo "Timing $*: $((($LAST_TIMING - $PREV_TIMING) / 1000000))"
+        echo "Timing $*: $(((LAST_TIMING - PREV_TIMING) / 1000000))"
     fi
 }
 

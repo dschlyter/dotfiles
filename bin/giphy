@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+usage() {
+    echo "Usage: giphy funny cat"
+    echo "Requirements: macOS, iTerm2, jq, imgcat"
+}
+
+while getopts ":h" opt; do
+    case $opt in
+        h)
+            usage
+            exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+# shift $((OPTIND-1))
+
+if [ -z "${1:-}" ]; then
+    usage
+fi
+
+require() {
+    type "$1" &> /dev/null || (echo "Dependency $1 missing, please install"; exit 1)
+}
+
+require imgcat
+require jq
+
+QUERY="$@"
+QUERY="${QUERY/ /+}"
+
+URL="http://api.giphy.com/v1/gifs/search?api_key=dc6zaTOxFJmzC&rating=pg-13&q=$QUERY"
+IMAGE_URL="$(curl -sS "$URL" | jq --raw-output '.data[0].images.original.url')"
+
+FILE="/tmp/gif-$USER.gif"
+wget --quiet "$IMAGE_URL" -O "$FILE" &> /dev/null
+imgcat "$FILE"
+

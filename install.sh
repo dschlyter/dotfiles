@@ -107,7 +107,7 @@ else
     echo "Not installing/updating submodules (syntax highlighting), run with --sub to enable"
 fi
 
-if [[ "$@" == *"--fzf"* ]]; then
+if [[ "$*" == *"--fzf"* ]]; then
     if [ ! -d ~/.fzf ]; then
         git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
     else
@@ -120,7 +120,7 @@ else
     echo "Not installing/updating fzf, run with --fzf to enable"
 fi
 
-if [[ "$@" == *"--vundle"* ]]; then
+if [[ "$*" == *"--vundle"* ]]; then
     echo "Installing vim vundle plugins"
     if ! [ -d ~/.vim/bundle/vundle ]; then
         git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
@@ -135,7 +135,7 @@ cron_add() {
     (crontab -l || true ; echo "$@") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
 }
 
-if [[ "$@" == *"--cron"* ]]; then
+if [[ "$*" == *"--cron"* ]]; then
     echo "Adding autoupdate to cron"
     cron_add "0 10 * * * $HOME/bin/git-autoupdate >> /tmp/git-autoupdate-$USER.log 2>&1"
 else
