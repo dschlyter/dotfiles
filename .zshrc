@@ -45,7 +45,8 @@ autoload -U colors && colors
 set_prompt() {
     local CURR_DIR="%{$fg[green]%}%40<..<%~%<<%{$reset_color%}"
     local PROMPT_CHAR="%{$fg_bold[red]%}%(!.#.>)%{$reset_color%}"
-    PROMPT="$CURR_DIR$GIT_INFO$PROMPT_CHAR "
+    local EXIT_CODE_PROMPT="%{$fg_bold[yellow]%}%(?.. [%?] )%{$reset_color%}"
+    PROMPT="$CURR_DIR$GIT_INFO$EXIT_CODE_PROMPT$PROMPT_CHAR "
 }
 
 update_git_info() {
@@ -75,15 +76,12 @@ update_git_info() {
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd update_git_info
 
-# Show exit code in right prompt unless zero
-local EXIT_CODE_PROMPT="%{$fg_bold[yellow]%}%(?..[%?])%{$reset_color%}"
-
 # Show hostname in right prompt iff in SSH session or sudo su
 if [ -n "$SSH_CONNECTION" ] || [ -n "$SUDO_USER" ] || [ "$LOGNAME" != "$USER" ]; then
     local SSH_PROMPT=" %{$fg[cyan]%}[%n@%m]%{$reset_color%}"
 fi
 
-RPROMPT="   $EXIT_CODE_PROMPT$SSH_PROMPT"
+RPROMPT="   $SSH_PROMPT"
 
 # Readline keybindings with ability to enter vim-mode
 
