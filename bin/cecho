@@ -1,0 +1,76 @@
+#!/bin/bash
+
+usage() {
+    echo "Usage: cecho [-hbu] color message to echo"
+    echo
+    echo "Color echo, supported colors are names and 0-255"
+    echo "Also supports bold -b and underline -u"
+}
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+# IFS=$'\n\t'
+
+BOLD=""
+UNDERLINE=""
+
+while getopts ":hbu" opt; do
+    case $opt in
+        h)
+            usage
+            exit 0
+            ;;
+        b)
+            BOLD=1
+            ;;
+        u)
+            UNDERLINE=1
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+# big case statement to work even on crappy osx bash 3
+color=$1
+case $color in
+    black)
+        color='0'
+        ;;
+    red)
+        color='1'
+        ;;
+    green)
+        color='2'
+        ;;
+    yellow)
+        color='3'
+        ;;
+    blue)
+        color='4'
+        ;;
+    purple)
+        color='5'
+        ;;
+    cyan)
+        color='6'
+        ;;
+    white)
+        color='7'
+        ;;
+esac
+
+shift 1
+
+if command -v tput >/dev/null 2>&1; then
+    test -n "$UNDERLINE" && tput smul
+    test -n "$BOLD" && tput bold
+    tput setaf $color
+    echo "$@"
+    tput sgr0
+else
+    echo "$*"
+fi

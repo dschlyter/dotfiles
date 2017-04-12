@@ -84,6 +84,18 @@ st() {
     ssh -t "$@" tmux
 }
 
+vpn() {
+    REMOTE_HOST="${1:-$(cat ~/.ssh/config | grep Host | take 1 | cl 2)}"
+    REMOTE_USER="$(cat ~/.ssh/config | dropUntil "Host $REMOTE_HOST" | takeUntil "Host " 2 | grep User | take 1 | cl 2)"
+    if [ -z "$REMOTE_HOST" ] || [ -z "$REMOTE_USER" ]; then
+        echo "Did not find host and corresponding user in .ssh/config"
+        return
+    fi
+    REMOTE="$REMOTE_USER@$REMOTE_HOST"
+    echo "Creating vpn to $REMOTE"
+    sshuttle -r "$REMOTE" --dns 0.0.0.0/0
+}
+
 addkey() {
     ssh "$1" tee -a .ssh/authorized_keys < ~/.ssh/id_rsa.pub
 }
@@ -127,6 +139,10 @@ cl() {
     awk "{print $COLS}"
 }
 
+nth () {
+    sed -n "${1}p"
+}
+
 take() {
     head -n "$1"
 }
@@ -135,8 +151,14 @@ drop() {
     tail -n +$(($1 + 1))
 }
 
-nth () {
-    sed -n "${1}p"
+takeUntil() {
+    COUNT=${2:-1}
+    awk "BEGIN {p=0}; /$1/ {p+=1}; p < $COUNT"
+}
+
+dropUntil() {
+    COUNT=${2:-1}
+    awk "BEGIN {p=0}; /$1/ {p+=1}; p >= $COUNT"
 }
 
 # distinct lines without requiring sort like: sort | uniq
@@ -162,8 +184,15 @@ md() {
     cd "$1" || return
 }
 
+# cd to the dir of a file or command
 cdt() {
-    cd "$(dirname "$1")" || return
+    FILE="$1"
+    if ! [ -e "$FILE" ]; then
+        echo "no file"
+        FILE="$(where "$FILE")"
+    fi
+
+    cd "$(dirname "$FILE")" || return 1
 }
 
 u() {
@@ -315,7 +344,7 @@ fasd_setup() {
     local FASD_SH=~/.fasd.sh
 
     if [ -f $FASD_SH ]; then
-        source $FASD_SH
+        source "$FASD_SH"
         eval "$(fasd --init auto)"
 
         alias j="z"

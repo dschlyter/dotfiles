@@ -111,6 +111,7 @@
 
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
     tv = "!f() { git tag -m \"Version $1\" $1; }; f"
+    tagd = "!r() { git tag -d $1; git push origin --delete $1; }; r"
 
     # gitflow, check unreleased features on develop branch
     features = !git lh master..develop --merges -n 9999

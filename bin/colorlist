@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+for i in {0..255} ; do
+    test $(((i+1)%10)) == 0 && echo
+    tput setaf $i; echo -n "$i "
+done
+
+echo

@@ -22,7 +22,7 @@ function eachdir {
         cd $dir
         result="$(eval "$@")"
         if [ -n "$result" ]; then
-            echo "--- $dir ---"
+            cecho -b 12 "--- $dir ---"
             echo "$result"
         fi
         popd
