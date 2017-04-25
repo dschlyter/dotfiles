@@ -16,17 +16,26 @@ alias -g C1='| cl 1'
 # Functions
 
 function eachdir {
+    max_ret=0
+
     for dir in *; do
         test -d "$dir" || continue
         pushd .
         cd $dir
-        result="$(eval "$@")"
-        if [ -n "$result" ]; then
+        result="$(eval "$@" 2>&1)"
+        ret=$?
+        max_ret=$((ret > max_ret ? ret : max_ret))
+        if [ "$ret" -ne 0 ]; then
+            cecho -b 9 "--- $dir ---"
+            echo "$result"
+        elif [ -n "$result" ]; then
             cecho -b 12 "--- $dir ---"
             echo "$result"
         fi
         popd
     done
+
+    return $max_ret
 }
 
 # cd to directory in the same level ie. /dir/hej to /dir/hej2 with autocomplete
