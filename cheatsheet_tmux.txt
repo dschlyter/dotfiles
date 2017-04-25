@@ -1,5 +1,8 @@
-C-b ? - list all keys
+C-b ? - list ALL keys
 C-b (repeated) - send C-b to inner program (ie. vim or nested tmux from ssh)
+
+C-b 0-9 n p l - navigate windows
+C-b c , . - create window, name/number window
 
 C-b space - next layout
 C-b M-1,2,3,4,5 - predefined layouts
@@ -8,11 +11,9 @@ C-b M-Left,Right,Up,Down - resize
 C-b {,},C-o,A-o - move or rotate pane
 C-b z - toggle zoom
 
-C-b c , - create window and name window
-C-b 0-9 n p l - navigate windows
-
 C-b :new - create session
 C-b s L ( ) - navigate to other sessions
+C-b S move current window to another session
 C-b $ - name the session
 
 C-b [ ] - enter copy-mode, paste

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# script for always starting a tmux in iterm, using existing sessions if needed
+# pro tip: if you have multiple sessions, make sure the session you want to attach to first has lexographically smallest name, ie. _main
+
 DETACHED_LIST="$(tmux ls -F "#{session_name} #{?session_attached,attached,detached}" 2> /dev/null | grep "detached$" || true)"
 
 if [ -n "$DETACHED_LIST" ]; then
