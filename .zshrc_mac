@@ -42,7 +42,7 @@ function handlemail() {
 }
 
 # mutli-user brew can be a bit buggy, a hack to work around it
-alias claimbrew="sudo chmod -R g+w /usr/local; sudo chgrp -R brew /usr/local"
+alias claimbrew="sudo chmod -R g+rw /usr/local; sudo chgrp -R brew /usr/local"
 
 # multi-user spotify can be buggy
 alias claimspotify="(cd /Applications; sudo find Spotify.app -exec chmod 755 {} \;)"

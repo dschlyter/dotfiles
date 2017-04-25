@@ -12,3 +12,6 @@
 a.out
 CMakeFiles
 cmake*
+
+node_modules
+yarn.lock

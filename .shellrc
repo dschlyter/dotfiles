@@ -237,6 +237,15 @@ ss() {
     cp -i ~/.dotfiles/script_template.sh "$1" && $EDITOR "$1"
 }
 
+pys() {
+    if [ -z "$1" ]; then
+        echo "Usage $0 myScript"
+        return 1
+    fi
+
+    cp -i ~/.dotfiles/script_template.py "$1" && $EDITOR "$1"
+}
+
 grab() {
     sudo chown -R "${USER}" "${@:-.}"
 }
