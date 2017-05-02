@@ -1,8 +1,8 @@
 # display power management log for current day (mostly interesting for display lock / unlock times)
 alias pmlog='open $(echo /var/log/powermanagement/2* | xargs -n 1 echo | tail -n 1)'
 alias o='open'
-alias ij='open -a "IntelliJ IDEA" .'
 alias rau='reattach-to-user-namespace'
+alias ij='rau open -a "IntelliJ IDEA" .'
 alias sshot='screencapture -T 2 -t png -P screenshot.png'
 
 alias -g PC='| pbcopy'
