@@ -52,9 +52,9 @@ SHELLRC=~/.shellrc
 
 autoload -U colors && colors
 set_prompt() {
-    local CURR_DIR="%{$fg[green]%}%40<..<%~%<<%{$reset_color%}"
-    local PROMPT_CHAR="%{$fg_bold[red]%}%(!.#.>)%{$reset_color%}"
-    local EXIT_CODE_PROMPT="%{$fg_bold[yellow]%}%(?.. [%?] )%{$reset_color%}"
+    local CURR_DIR="%F{47}%40<..<%~%<<%f"
+    local PROMPT_CHAR="%F{197}%B%(!.#.>)%s%b"
+    local EXIT_CODE_PROMPT="%F{221}%B%(?.. [%?] )%b%f"
     PROMPT="$CURR_DIR$GIT_INFO$EXIT_CODE_PROMPT$PROMPT_CHAR "
 }
 
@@ -75,7 +75,7 @@ update_git_info() {
         GIT_DIRTY=""
         test -n "$(git status --porcelain)" && GIT_DIRTY='*' # required git 1.7+
 
-        GIT_INFO="%{$fg_bold[blue]%}@$GIT_BRANCH$GIT_AHEAD$GIT_DIRTY%{$reset_color%}"
+        GIT_INFO="%F{69}%B@$GIT_BRANCH$GIT_AHEAD$GIT_DIRTY%b%f"
     else
         GIT_INFO=""
     fi
