@@ -54,8 +54,10 @@ autoload -U colors && colors
 set_prompt() {
     local CURR_DIR="%F{47}%40<..<%~%<<%f"
     local PROMPT_CHAR="%F{168}%B%(!.#.>)%s%b"
-    local EXIT_CODE_PROMPT="%F{221}%B%(?.. [%?] )%b%f"
-    PROMPT="$CURR_DIR$GIT_INFO$EXIT_CODE_PROMPT$PROMPT_CHAR "
+    local EXIT_CODE_PROMPT="%F{221}%B%(?.. [%?])%b%f"
+    local STATUS_INDICATORS=""
+    [[ -n "$GIT_STATUS$EXIT_CODE_PROMPT" ]] && STATUS_INDICATORS="$GIT_STATUS$EXIT_CODE_PROMPT "
+    PROMPT="$CURR_DIR$GIT_BRANCH_INFO$STATUS_INDICATORS$PROMPT_CHAR "
 }
 
 update_git_info() {
@@ -74,10 +76,11 @@ update_git_info() {
             [[ $GIT_BEHIND == " ↓0" ]] && GIT_BEHIND=""
         fi
 
-        GIT_DIRTY=""
+        local GIT_DIRTY=""
         test -n "$(git status --porcelain)" && GIT_DIRTY=' δ' # requires git 1.7+
 
-        GIT_INFO="%F{69}%B@$GIT_BRANCH%F{46}$GIT_AHEAD%F{220}$GIT_BEHIND%F{197}$GIT_DIRTY%b%f"
+        GIT_BRANCH_INFO="%F{69}%B@$GIT_BRANCH%f"
+        [[ -n "$GIT_AHEAD$GIT_BEHIND$GIT_DIRTY" ]] && GIT_STATUS="%F{46}$GIT_AHEAD%F{220}$GIT_BEHIND%F{197}$GIT_DIRTY%b%f"
     else
         GIT_INFO=""
     fi
@@ -98,7 +101,7 @@ RPROMPT="   $SSH_PROMPT"
 
 _git_autofetch() {
     test -f .git/FETCH_HEAD || return
-    # test "$(ssh-add -l | wc -l)" -gt 0 || return
+    test "$(ssh-add -l | wc -l)" -gt 0 || return
 
     local NOW=$(date "+%s")
     local FETCH_DEADLINE=$(($NOW - 60))
