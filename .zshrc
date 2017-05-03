@@ -51,47 +51,55 @@ SHELLRC=~/.shellrc
 # Prompt
 
 autoload -U colors && colors
-set_prompt() {
+_set_prompt() {
     local CURR_DIR="%F{47}%40<..<%~%<<%f"
     local PROMPT_CHAR="%F{168}%B%(!.#.>)%s%b"
-    local PREFIX=" "
-    [[ -n "$GIT_STATUS" ]] && PREFIX=""
-    local EXIT_CODE_PROMPT="%F{221}%B%(?..${PREFIX}[%?] )%b%f"
-    PROMPT="$CURR_DIR$GIT_BRANCH_INFO$GIT_STATUS$EXIT_CODE_PROMPT$PROMPT_CHAR "
+    local EXIT_CODE_PROMPT="%F{221}%B%(?.. [%?] )%b%f"
+    PROMPT="$CURR_DIR$GIT_PROMPT$EXIT_CODE_PROMPT$PROMPT_CHAR "
 }
 
-update_git_info() {
-    GIT_BRANCH_INFO=""
-    GIT_STATUS=""
+_update_git_info() {
+    GIT_PROMPT=""
 
     git rev-parse --is-inside-work-tree &> /dev/null
     if [ $? -eq 0 ]; then
         local GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
+        local GIT_STATUS=""
+        local STATUS_SPACE=""
+
         if [ $GIT_BRANCH = "HEAD" ]; then
             GIT_BRANCH=$(git rev-parse --short HEAD 2> /dev/null)
         else
             local GIT_REMOTE=$(git config branch.$GIT_BRANCH.remote)
             local GIT_REMOTE_BRANCH="$GIT_REMOTE/$GIT_BRANCH"
             test -z "$GIT_REMOTE" && GIT_REMOTE_BRANCH="origin/master"
-            local GIT_AHEAD=" ↑$(git rev-list $GIT_REMOTE_BRANCH..HEAD 2> /dev/null | wc -l)"
-            local GIT_BEHIND=" ↓$(git rev-list HEAD..$GIT_REMOTE_BRANCH 2> /dev/null | wc -l)"
-            [[ $GIT_AHEAD == " ↑0" ]] && GIT_AHEAD=""
-            [[ $GIT_BEHIND == " ↓0" ]] && GIT_BEHIND=""
+
+            local GIT_AHEAD="$(git rev-list $GIT_REMOTE_BRANCH..HEAD 2> /dev/null | wc -l)"
+            if [ "$GIT_AHEAD" -gt 0 ]; then
+                GIT_STATUS="%F{46}↑$GIT_AHEAD"
+                STATUS_SPACE=" "
+            fi
+            local GIT_BEHIND="$(git rev-list HEAD..$GIT_REMOTE_BRANCH 2> /dev/null | wc -l)"
+            if [ "$GIT_BEHIND" -gt 0 ]; then
+                GIT_STATUS="$GIT_STATUS$STATUS_SPACE%F{220}↓$GIT_BEHIND"
+                STATUS_SPACE=" "
+            fi
         fi
 
-        local GIT_DIRTY=""
-        test -n "$(git status --porcelain)" && GIT_DIRTY=' δ' # requires git 1.7+
+        if [ -n "$(git status --porcelain)" ]; then
+            GIT_STATUS="$GIT_STATUS${STATUS_SPACE}%F{197}δ" # requires git 1.7+
+        fi
 
-        GIT_BRANCH_INFO="%F{69}%B@$GIT_BRANCH%f"
-        [[ -n "$GIT_AHEAD$GIT_BEHIND$GIT_DIRTY" ]] && GIT_STATUS="%F{46}$GIT_AHEAD%F{220}$GIT_BEHIND%F{197}$GIT_DIRTY%b%f "
-    else
-        GIT_INFO=""
+        GIT_PROMPT="%F{69}%B@$GIT_BRANCH%f%b"
+        if [[ -n "$GIT_STATUS" ]]; then
+            GIT_PROMPT="$GIT_PROMPT%B%F{69}($GIT_STATUS%F{69})%f%b"
+        fi
     fi
-    set_prompt
+    _set_prompt
 }
 
 autoload -Uz add-zsh-hook
-add-zsh-hook precmd update_git_info
+add-zsh-hook precmd _update_git_info
 
 # Show hostname in right prompt iff in SSH session or sudo su
 if [ -n "$SSH_CONNECTION" ] || [ -n "$SUDO_USER" ] || [ "$LOGNAME" != "$USER" ]; then
