@@ -3,6 +3,7 @@
 .hg
 .DS_Store
 .gitconfig_local
+.gitautofetch
 
 .idea
 *.iml

@@ -92,7 +92,7 @@
 
     # pulling changes more productively
     # fetch, prune removed remote branches and shortlog fetched changes
-    fe = !sh -c 'BR=${1:-"master"} && git fetch --prune && git lh $BR..origin/$BR' -
+    fe = !sh -c 'BR=${1:-$(git rev-parse --abbrev-ref HEAD)} && git fetch --prune && git lh $BR..origin/$BR' -
     # get remote updates even with local uncommited changes (but abort on conflicts)
     fm = !sh -c 'git fe && git merge --ff-only'
     fr = !sh -c 'git fe && git rb --autostash'

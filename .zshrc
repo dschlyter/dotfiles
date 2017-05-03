@@ -53,7 +53,7 @@ SHELLRC=~/.shellrc
 autoload -U colors && colors
 set_prompt() {
     local CURR_DIR="%F{47}%40<..<%~%<<%f"
-    local PROMPT_CHAR="%F{197}%B%(!.#.>)%s%b"
+    local PROMPT_CHAR="%F{168}%B%(!.#.>)%s%b"
     local EXIT_CODE_PROMPT="%F{221}%B%(?.. [%?] )%b%f"
     PROMPT="$CURR_DIR$GIT_INFO$EXIT_CODE_PROMPT$PROMPT_CHAR "
 }
@@ -68,14 +68,16 @@ update_git_info() {
             local GIT_REMOTE=$(git config branch.$GIT_BRANCH.remote)
             local GIT_REMOTE_BRANCH="$GIT_REMOTE/$GIT_BRANCH"
             test -z "$GIT_REMOTE" && GIT_REMOTE_BRANCH="origin/master"
-            local GIT_AHEAD="^$(git rev-list $GIT_REMOTE_BRANCH..HEAD 2> /dev/null | wc -l)"
-            [[ $GIT_AHEAD == "^0" ]] && GIT_AHEAD=""
+            local GIT_AHEAD=" ↑$(git rev-list $GIT_REMOTE_BRANCH..HEAD 2> /dev/null | wc -l)"
+            local GIT_BEHIND=" ↓$(git rev-list HEAD..$GIT_REMOTE_BRANCH 2> /dev/null | wc -l)"
+            [[ $GIT_AHEAD == " ↑0" ]] && GIT_AHEAD=""
+            [[ $GIT_BEHIND == " ↓0" ]] && GIT_BEHIND=""
         fi
 
         GIT_DIRTY=""
-        test -n "$(git status --porcelain)" && GIT_DIRTY='*' # required git 1.7+
+        test -n "$(git status --porcelain)" && GIT_DIRTY=' δ' # requires git 1.7+
 
-        GIT_INFO="%F{69}%B@$GIT_BRANCH$GIT_AHEAD$GIT_DIRTY%b%f"
+        GIT_INFO="%F{69}%B@$GIT_BRANCH%F{46}$GIT_AHEAD%F{220}$GIT_BEHIND%F{197}$GIT_DIRTY%b%f"
     else
         GIT_INFO=""
     fi
@@ -91,6 +93,24 @@ if [ -n "$SSH_CONNECTION" ] || [ -n "$SUDO_USER" ] || [ "$LOGNAME" != "$USER" ];
 fi
 
 RPROMPT="   $SSH_PROMPT"
+
+# Git autofetch
+
+_git_autofetch() {
+    test -f .git/FETCH_HEAD || return
+    # test "$(ssh-add -l | wc -l)" -gt 0 || return
+
+    local NOW=$(date "+%s")
+    local FETCH_DEADLINE=$(($NOW - 60))
+    test "$(stat -c "+%Y" .git/FETCH_HEAD)" -gt "$FETCH_DEADLINE" && return
+    test -f .gitautofetch && "$(cat .gitautofetch)" -gt "$FETCH_DEADLINE" && return
+
+    # log time to avoid repeated fetches on failure
+    echo "$NOW" > .gitautofetch
+    git fetch &
+}
+
+add-zsh-hook precmd _git_autofetch
 
 # Readline keybindings with ability to enter vim-mode
 
