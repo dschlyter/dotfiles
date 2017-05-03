@@ -23,7 +23,7 @@ nnoremap <leader>t :tabnew<cr>
 nnoremap <leader>j :tabnext<cr>
 nnoremap <leader>k :tabprev<cr>
 " open in same dir
-nnoremap <leader>e map :e <C-R>=expand("%:p:h") . "/" <CR>
+nnoremap <leader>e :e <C-R>=expand("%:p:h") . "/" <CR>
 
 " Fast markdown
 nnoremap <leader>- yyp^v$r-
