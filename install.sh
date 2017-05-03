@@ -94,12 +94,16 @@ esac
 if [ "$SHELL" == "/bin/zsh" ]; then
     echo "zsh is the current active shell"
 elif [ -f /bin/zsh ]; then
-    chsh -s /bin/zsh
+    if [[ "$*" != *"--no-zsh"* ]]; then
+        chsh -s /bin/zsh
+    else
+        echo "Skipping zsh shell change"
+    fi
 else
     echo "zsh not found, please install and chsh manually"
 fi
 
-if [[ "$@" == *"--sub"* ]]; then
+if [[ "$*" == *"--sub"* ]]; then
     echo "Initializing submodules."
     git submodule init
     git submodule update
