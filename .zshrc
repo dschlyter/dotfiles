@@ -110,17 +110,32 @@ RPROMPT="   $SSH_PROMPT"
 
 # Git autofetch
 
+
+
 _git_autofetch() {
     test -f .git/FETCH_HEAD || return
-    test "$(ssh-add -l | wc -l)" -gt 0 || return
 
     local NOW="$(date "+%s")"
-    local FETCH_DEADLINE="$(($NOW - 12 * 3600))"
+
+    if [ "$NOW" -lt "${_IGNORE_AUTOFETCH_UNTIL:-0}" ]; then
+        return
+    fi
+
+    local FETCH_INTERVAL="$((12 * 3600))"
+    local FETCH_DEADLINE="$(($NOW - $FETCH_INTERVAL))"
     test "$(stat -c "+%Y" .git/FETCH_HEAD)" -gt "$FETCH_DEADLINE" && return
+
     test -f .gitautofetch && test "$(cat .gitautofetch)" -gt "$FETCH_DEADLINE" && return
 
-    # log time to avoid repeated fetches on failure
-    echo "$NOW" > .gitautofetch
+    if [ -z "$(ssh-add -l | grep -v 'no identities')" ]; then
+        # missing ssh-keys is a global error, add a shell-flag for all directories
+        _IGNORE_AUTOFETCH_UNTIL="$(($NOW + 3600))"
+        return
+    fi
+
+    # log time to avoid repeated fetches on failure, abort if we are not allowed to touch the file
+    (echo "$NOW" > .gitautofetch) 2> /dev/null || return
+
     git fetch &
 }
 
