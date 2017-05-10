@@ -29,7 +29,7 @@ hs.hotkey.bind(modifierFocus, 'k', function()
 end)
 
 hs.hotkey.bind(modifierFocus, 'j', function()
-    orChain(focusDirection("South", false), function() 
+    orChain(focusDirection("South", false), function()
         focusLayer(1)
     end)
 end)
@@ -46,10 +46,18 @@ hs.hotkey.bind(modifierFocus, 'h', function()
     end)
 end)
 
+-- alt tab between individual windows
+-------------------------------------
+
+switcher_space = hs.window.switcher.new(hs.window.filter.new():setCurrentSpace(true):setDefaultFilter{}, 
+    {showTitles = false, showSelectedThumbnail = false})
+hs.hotkey.bind('alt','tab','Next window',function()switcher_space:next()end)
+hs.hotkey.bind('alt-shift','tab','Prev window',function()switcher_space:previous()end)
+
 -- reimplements focusWindowX with less buggy and more powerful functionality
 -- first try to find the best window, then fallback to all windows in that direction
 function focusDirection(direction, retryNonStrict)
-    return findFocused(function(window) 
+    return findFocused(function(window)
         local found = focusDirectionFrom(window, direction, true)
         if not found and retryNonStrict then
             found = focusDirectionFrom(window, direction, false)
@@ -92,7 +100,7 @@ end
 
 -- u for fullscreen
 -- jkhl for half screen
--- yinm for quarter window 
+-- yinm for quarter window
 --------------------------
 
 hs.hotkey.bind(modifierResize, 'u', function()
@@ -282,19 +290,27 @@ end)
 ----------
 
 -- application focus hotkeys
-hs.hotkey.bind({'alt'}, 'space', function()
+hs.hotkey.bind(modifierFocus, 'space', function()
     focusNextWindow("iTerm2", "iTerm")
 end)
 
-hs.hotkey.bind({'ctrl', 'alt'}, 'space', function()
-    focusNextWindow("Google Chrome", "Google Chrome")
+hs.hotkey.bind(modifierFocus, 'c', function()
+    focusNextWindow("Google Chrome")
 end)
 
 hs.hotkey.bind(modifierFocus, 'i', function()
-    focusNextWindow("IntelliJ IDEA", "IntelliJ IDEA")
+    focusNextWindow("IntelliJ IDEA")
+end)
+
+hs.hotkey.bind(modifierFocus, 's', function()
+    focusNextWindow("Spotify")
 end)
 
 function focusNextWindow(appName, launchName)
+    if not launchName then
+        launchName = appName
+    end
+
     local windows = orderedWindows(appName)
     log.d(hs.window.focusedWindow():application():title())
     if hs.window.focusedWindow():application():title() == appName then
