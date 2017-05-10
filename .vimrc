@@ -22,8 +22,11 @@ nnoremap <leader>B :bd!<cr>
 nnoremap <leader>t :tabnew<cr>
 nnoremap <leader>j :tabnext<cr>
 nnoremap <leader>k :tabprev<cr>
+
 " open in same dir
 nnoremap <leader>e :e <C-R>=expand("%:p:h") . "/" <CR>
+" or search common files with fasd
+nnoremap <leader>f :FasdOpen<cr>
 
 " Fast markdown
 nnoremap <leader>- yyp^v$r-
@@ -110,6 +113,21 @@ inoremap <CR>  <C-G>u<CR>
 " cute hacks
 " ==========
 
+" Open a file with fasd, a hack to have an interactive terminal
+function! s:FasdOpen()
+    silent !~/.fasd.sh -l | fzf > /tmp/vimopen
+    edit `cat /tmp/vimopen`
+    silent !rm> /tmp/vimopen
+    redraw!
+endfunction
+com! FasdOpen call s:FasdOpen()
+
+function! s:Autojump(target)
+    let dir = system("~/.fasd.sh -ld1 " . a:target)
+    cd `=dir`
+    pwd
+endfunction
+com! -nargs=1 J call s:Autojump(<f-args>)
 
 " Return to last cursor position when re-opening a file
 function! ResCur()
