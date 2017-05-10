@@ -54,6 +54,9 @@ alias tig='tig --all'
 
 alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc; rc"
 
+alias mt="mvn dependency:tree"
+alias gl="gradle publishToMavenLocal"
+
 #
 # Utility functions
 #
@@ -61,6 +64,11 @@ alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc; rc"
 export TIME_STYLE=long-iso # iso8601 for ls
 ls() {
     ${GNU_PREFIX:-/bin/}ls -h --color=auto --group-directories-first "$@"
+}
+
+# git diff can be used as a colorized diff on any filec, but autocomplete breaks so lets create a little alias
+diff() {
+    git diff "$@"
 }
 
 # Override defaults
