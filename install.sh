@@ -55,6 +55,7 @@ mkdir -p "$HOME/.vim"
 link .vim/colors
 link .ideavimrc
 link .tmux.conf
+link .tmux-scripts
 
 case "$(uname -s)" in
     Darwin)
