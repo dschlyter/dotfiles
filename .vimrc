@@ -115,9 +115,9 @@ inoremap <CR>  <C-G>u<CR>
 
 " Open a file with fasd, a hack to have an interactive terminal
 function! s:FasdOpen()
-    silent !~/.fasd.sh -l | fzf > /tmp/vimopen
-    edit `cat /tmp/vimopen`
-    silent !rm> /tmp/vimopen
+    silent !~/.fasd.sh -l | fzf > /tmp/vimopen-$USER
+    edit `cat /tmp/vimopen-$USER`
+    silent !rm /tmp/vimopen-$USER
     redraw!
 endfunction
 com! FasdOpen call s:FasdOpen()
