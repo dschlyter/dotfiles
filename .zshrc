@@ -162,6 +162,9 @@ foreground-vim() {
 zle -N foreground-vim
 bindkey '^Z' foreground-vim
 
+# jump one word forward in a quick and easy way
+bindkey '^V' forward-word
+
 # Completition
 
 zstyle ':completion:*' use-cache on

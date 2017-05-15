@@ -38,6 +38,17 @@ alias lla='ls -la'
 alias lal='ls -la'
 alias lt='ls -ltr'
 
+alias g="git"
+alias st="git st"
+alias di="git diff"
+alias lg="git lg"
+alias add="git add"
+alias fe="git fe"
+alias rb="git rb"
+alias pc="git pc"
+alias merge="git merge"
+alias push="git push"
+
 alias plz='sudo $(fc -ln -1)'
 alias se='sudoedit'
 alias vims='vim -S .vimsession'
@@ -55,7 +66,7 @@ alias tig='tig --all'
 alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc; rc"
 
 alias mt="mvn dependency:tree"
-alias gl="gradle publishToMavenLocal"
+alias gpl="gradle publishToMavenLocal"
 
 #
 # Utility functions
@@ -88,7 +99,7 @@ date() {
     fi
 }
 
-st() {
+sst() {
     ssh -t "$@" tmux
 }
 
