@@ -517,6 +517,10 @@ hs.hotkey.bind(modifierResize, 'z', function()
     saveApps()
 end)
 
+hs.hotkey.bind(modifierResize, 'x', function()
+    hs.caffeinate.systemSleep()
+end)
+
 function saveApps()
     local savedAppsBlacklist = Set{"Hammerspoon", "Finder"}
 
