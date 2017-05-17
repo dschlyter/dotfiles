@@ -28,6 +28,12 @@
   <action id="Git.Fetch">
     <keyboard-shortcut first-keystroke="ctrl meta t" />
   </action>
+  <action id="ImportModule">
+    <keyboard-shortcut first-keystroke="shift meta m" />
+  </action>
+  <action id="ImportProject">
+    <keyboard-shortcut first-keystroke="shift meta p" />
+  </action>
   <action id="Maven.Reimport">
     <keyboard-shortcut first-keystroke="ctrl meta i" />
   </action>
