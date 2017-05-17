@@ -46,6 +46,7 @@ alias claimbrew="sudo chmod -R g+rw /usr/local; sudo chgrp -R brew /usr/local"
 
 # multi-user spotify can be buggy
 alias claimspotify="(cd /Applications; sudo find Spotify.app -exec chmod 755 {} \;)"
+alias cliamspotify2='sudo find /Applications/Spotify.app -perm "+u+x" ! -perm "+o+x" -exec chmod og+x {} ;'
 
 # brew convinience function
 local BREW_UPDATE_FILE=/usr/local/.brew_lastupdate

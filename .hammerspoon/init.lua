@@ -387,6 +387,14 @@ hs.hotkey.bind(modifierSecondary, '-', function()
     hs.spotify.ff()
 end)
 
+hs.hotkey.bind({"alt", "shift", 'cmd'}, ',', function()
+    hs.spotify.setPosition(hs.spotify.getPosition() - 30)
+end)
+
+hs.hotkey.bind({"alt", "shift", 'cmd'}, '-', function()
+    hs.spotify.setPosition(hs.spotify.getPosition() + 30)
+end)
+
 hs.hotkey.bind(modifierComplicated, ',', function()
     local device = hs.audiodevice.current().device
     local vol = math.max(0, device:outputVolume() - 5)
