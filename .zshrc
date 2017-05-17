@@ -141,6 +141,27 @@ _git_autofetch() {
 
 add-zsh-hook precmd _git_autofetch
 
+_match_alias() {
+    local last_command="$1"
+    while read alias_line; do
+        if [[ "$last_command" == "${alias_line/*=}"* ]]; then
+            echo "$alias_line"
+        fi
+    done
+}
+
+_alias_remind() {
+    local last_command="$(fc -l -nIL -1 -1)"
+    local found_aliases="$(alias | sed "s/'//g" | _match_alias "$last_command")"
+
+    if [ -n "$found_aliases" ]; then
+        echo "There is an alias for that:"
+        echo "$found_aliases"
+    fi
+}
+
+add-zsh-hook precmd _alias_remind
+
 # Readline keybindings with ability to enter vim-mode
 
 bindkey -e

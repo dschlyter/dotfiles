@@ -45,6 +45,7 @@ alias lg="git lg"
 alias add="git add"
 alias fe="git fe"
 alias rb="git rb"
+alias cm="git cm"
 alias pc="git pc"
 alias merge="git merge"
 alias push="git push"
@@ -66,6 +67,7 @@ alias tig='tig --all'
 alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc; rc"
 
 alias mt="mvn dependency:tree"
+alias mp="mvn clean package"
 alias gpl="gradle publishToMavenLocal"
 
 #
