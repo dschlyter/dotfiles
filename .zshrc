@@ -110,10 +110,8 @@ RPROMPT="   $SSH_PROMPT"
 
 # Git autofetch
 
-
-
 _git_autofetch() {
-    test -f .git/FETCH_HEAD || return
+    [ -d .git/refs/remotes ] || return
 
     local NOW="$(date "+%s")"
 
@@ -123,9 +121,8 @@ _git_autofetch() {
 
     local FETCH_INTERVAL="$((12 * 3600))"
     local FETCH_DEADLINE="$(($NOW - $FETCH_INTERVAL))"
-    test "$(stat -c "+%Y" .git/FETCH_HEAD)" -gt "$FETCH_DEADLINE" && return
-
-    test -f .gitautofetch && test "$(cat .gitautofetch)" -gt "$FETCH_DEADLINE" && return
+    [ -f .git/FETCH_HEAD ] && [ "$(stat -c "+%Y" .git/FETCH_HEAD)" -gt "$FETCH_DEADLINE" ] && return
+    [ -f .gitautofetch ] && [ "$(cat .gitautofetch)" -gt "$FETCH_DEADLINE" ] && return
 
     if [ -z "$(ssh-add -l | grep -v 'no identities')" ]; then
         # missing ssh-keys is a global error, add a shell-flag for all directories
