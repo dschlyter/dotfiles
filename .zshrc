@@ -148,7 +148,7 @@ _match_alias() {
 }
 
 _alias_remind() {
-    local last_command="$(fc -l -nIL -1 -1)"
+    local last_command="$(fc -l -nIL -1 -1 2> /dev/null)"
     local found_aliases="$(alias | sed "s/'//g" | _match_alias "$last_command")"
 
     if [ -n "$found_aliases" ]; then

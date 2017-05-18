@@ -65,6 +65,10 @@
     <keyboard-shortcut first-keystroke="meta alt r" />
   </action>
   <action id="Resume" />
+  <action id="ShowRecentTests">
+    <keyboard-shortcut first-keystroke="shift meta semicolon" />
+    <keyboard-shortcut first-keystroke="ctrl meta u" />
+  </action>
   <action id="SwitchApply">
     <keyboard-shortcut first-keystroke="ctrl alt enter" />
   </action>
