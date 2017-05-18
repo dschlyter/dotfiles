@@ -39,6 +39,7 @@ nnoremap <leader>t "=strftime("%F %T")<CR>p
 
 " git shortcuts from plugings
 nnoremap <leader>g :Gstatus<cr>
+nnoremap <leader>l :Gblame<cr>
 nnoremap <leader>r :GitGutterUndoHunk<CR>
 nnoremap <leader>d :GitGutterPreviewHunk<CR>
 
