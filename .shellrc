@@ -336,6 +336,12 @@ d() {
     docker "$@"
 }
 
+dsh() {
+    CONTAINER="$1"
+    [ -n "$CONTAINER" ] && CONTAINER="$(docker ps --format "{{.ID}}" | nead -n 1)"
+    docker exec -it "$CONTAINER" bash
+}
+
 # alias docker to docker-restricted if available, when running as sudo alias will be ignored
 if type docker-restricted &> /dev/null; then
     alias docker="sudo $(which docker-restricted)"
