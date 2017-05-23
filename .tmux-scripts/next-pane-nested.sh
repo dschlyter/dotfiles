@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# selects the next/prev pane, or forwards keystroke to inner nested tmux if the current one has no sessions
+# selects the next/prev pane, or forwards keystroke to inner nested tmux if the current one has no panes
+# usecase: usually you either have panes inside the top-level, or the nested tmux. this allows control of both with the same hotkey
 
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail

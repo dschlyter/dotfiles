@@ -316,6 +316,8 @@ function focusNextWindow(appName, launchName)
     if hs.window.focusedWindow():application():title() == appName then
         if #windows > 1 then
             windows[2]:focus()
+        else
+            focusNext()
         end
     elseif #windows > 0 then
         windows[1]:focus()
@@ -333,6 +335,13 @@ function orderedWindows(appName)
         end
     end
     return ret
+end
+
+function focusNext()
+    local ordered = hs.window.orderedWindows()
+    if #ordered > 1 then
+        ordered[2]:focus()
+    end
 end
 
 -- enable readline style word navigation
