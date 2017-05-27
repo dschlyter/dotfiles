@@ -244,7 +244,7 @@ setopt nobeep                   # i hate beeps
 setopt autocd                   # change to dirs without cd
 setopt autopushd                # automatically append dirs to the push/pop list
 setopt pushdsilent
-setopt pushdignoredups          # and don't duplicate them
+setopt pushdignoredups          # and do not duplicate them
 #setopt nocheckjobs             # don't warn me about bg processes when exiting
 #setopt nohup                   # and don't kill them, either
 setopt listpacked               # compact completion lists
@@ -252,7 +252,7 @@ setopt listtypes                # show types in completion
 setopt extendedglob             # weird & wacky pattern matching - yay zsh!
 setopt nocaseglob
 setopt numericglobsort
-setopt nopromptcr               # don't add \r which overwrites cmd output with no \n
+setopt nopromptcr               # do not add \r which overwrites cmd output with no \n
 setopt histverify               # when using ! cmds, confirm first
 setopt interactivecomments      # escape commands so i can use them later
 setopt recexact                 # recognise exact, ambiguous matches

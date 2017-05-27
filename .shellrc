@@ -337,8 +337,7 @@ d() {
 }
 
 dsh() {
-    CONTAINER="$1"
-    [ -n "$CONTAINER" ] && CONTAINER="$(docker ps --format "{{.ID}}" | nead -n 1)"
+    CONTAINER="$(docker ps --name="$1" --format "{{.ID}}" | head -n 1)"
     docker exec -it "$CONTAINER" bash
 }
 
