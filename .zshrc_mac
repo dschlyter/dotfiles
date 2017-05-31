@@ -27,6 +27,8 @@ use_gnu du
 use_gnu stat
 use_gnu xargs
 use_gnu cal
+use_gnu head
+use_gnu tail
 
 # these are fixed by functions in .shellrc
 # use_gnu ls
@@ -42,15 +44,25 @@ function handlemail() {
 }
 
 # mutli-user brew can be a bit buggy, a hack to work around it
+# TODO remove
 alias claimbrew="sudo chmod -R g+rw /usr/local; sudo chgrp -R brew /usr/local"
 
 # multi-user spotify can be buggy
-alias claimspotify="(cd /Applications; sudo find Spotify.app -exec chmod 755 {} \;)"
-alias cliamspotify2='sudo find /Applications/Spotify.app -perm "+u+x" ! -perm "+o+x" -exec chmod og+x {} ;'
+# TODO remove one of these?
+alias claimspotify2="(cd /Applications; sudo find Spotify.app -exec chmod 775 {} \;)"
+alias cliamspotify='sudo find /Applications/Spotify.app -perm "+u+x" ! -perm "+o+x" -exec chmod og+x {} ;'
 
 # brew convinience function
 local BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
-alias bup="brew update && brew upgrade && date +%s > $BREW_UPDATE_FILE"
+function bup() {
+    umask 002
+    brew update && brew upgrade && date "+%s" > $BREW_UPDATE_FILE
+}
+
+function brew() {
+    umask 002
+    /usr/local/bin/brew "$@"
+}
 
 local NOW="$(date +%s)"
 local LAST_UPDATE="0$(cat $BREW_UPDATE_FILE)"

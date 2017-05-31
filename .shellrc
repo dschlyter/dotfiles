@@ -37,6 +37,9 @@ alias la='ls -a'
 alias lla='ls -la'
 alias lal='ls -la'
 alias lt='ls -ltr'
+alias ltr='ls -ltr **/*(.)'
+
+alias td='tree -d -L 3'
 
 alias g="git"
 alias st="git st"
@@ -172,6 +175,14 @@ drop() {
     tail -n +$(($1 + 1))
 }
 
+taker() {
+    tail -n "$1"
+}
+
+dropr() {
+    "${GNU_PREFIX}"head -n -"$1"
+}
+
 takeUntil() {
     COUNT=${2:-1}
     awk "BEGIN {p=0}; /$1/ {p+=1}; p < $COUNT"
@@ -197,6 +208,9 @@ chunk() {
     LINE_GROUP_SIZE="$(test "$1" && echo -L "$1")"
     xargs -d '\n' "$LINE_GROUP_SIZE" echo
 }
+
+# reverse input
+alias reverse=tac
 
 # Exploring the file system
 

@@ -16,9 +16,24 @@ alias -g C1='| cl 1'
 # Functions
 
 function eachdir {
+    local DEPTH=1
+
+    while getopts ":d:" opt; do
+        case $opt in
+            d)
+                DEPTH="$OPTARG"
+                ;;
+            \?)
+                echo "Invalid option: -$OPTARG" >&2
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
     max_ret=0
 
-    for dir in *; do
+    for dir in $(find . -type d -depth $DEPTH -not -path '*/\.*'); do
         test -d "$dir" || continue
         pushd .
         cd $dir
