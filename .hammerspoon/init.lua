@@ -312,7 +312,6 @@ function focusNextWindow(appName, launchName)
     end
 
     local windows = orderedWindows(appName)
-    log.d(hs.window.focusedWindow():application():title())
     if hs.window.focusedWindow():application():title() == appName then
         if #windows > 1 then
             windows[2]:focus()
@@ -343,6 +342,26 @@ function focusNext()
         ordered[2]:focus()
     end
 end
+
+-- focus chrome with google inbox to quickly add a note
+-- allow to quickly add a reminder and keep working on the current task
+hs.hotkey.bind(modifierFocus, 'm', function()
+    local windows = orderedWindows("Google Chrome")
+
+    local smallestWindow = nil
+    local smallestWindowSize = 9000 * 9000
+    for i,window in pairs(windows) do
+        local size = (window:frame().w) * (window:frame().h)
+        if size < smallestWindowSize then
+            smallestWindowSize = size
+            smallestWindow = window
+        end
+    end
+
+    smallestWindow:focus()
+
+    hs.eventtap.event.newKeyEvent({'cmd'}, '1', true):post()
+end)
 
 -- enable readline style word navigation
 hs.hotkey.bind({'alt'}, 'f', function()
@@ -697,6 +716,43 @@ function windowsForCurrentScreen()
         end
     end
     return ret
+end
+
+-- mouse use monitoring
+-----------------------
+
+local lastKeyPress = 0
+local accumulatedTime = 0
+
+local keytap = hs.eventtap.new({ hs.eventtap.event.types.keyDown }, function(event)
+    local now = os.time()
+    local elapsed = now - lastKeyPress
+    if elapsed > 30 then
+        elapsed = 1
+    end
+    lastKeyPress = now
+    accumulatedTime = accumulatedTime + elapsed
+    return false
+end)
+keytap:start()
+
+local mousetap = hs.eventtap.new({ hs.eventtap.event.types.mouseMoved }, function(event)
+    if accumulatedTime > 60 then
+        local minutes = pad(math.floor(accumulatedTime / 60), 2)
+        local seconds = pad(accumulatedTime % 60, 2)
+        hs.alert.show("Mouse unused for " .. minutes .. ":" .. seconds)
+    end
+    accumulatedTime = 0;
+    return false
+end)
+mousetap:start()
+
+function pad(str, size)
+    str = "" .. str
+    while string.len(str) < size do
+        str = "0" .. str
+    end
+    return str
 end
 
 -- base functionality that should really be in the language
