@@ -1,0 +1,34 @@
+#!/usr/bin/python
+
+# Lists all files in a git repo by last commit time
+# Useful for understanding what parts of a repo is actively worked on
+
+import subprocess
+import sys
+
+def run(command):
+    if isinstance(command, str):
+        command = command.split(" ")
+    return subprocess.check_output(command)
+
+commitfilelist = run("git log --format=format:%ai --name-only .")
+
+commitdate=""
+fileset = set()
+filelist = []
+
+for line in commitfilelist.split("\n"):
+    if line == "":
+        commitdate=""
+    if commitdate == "":
+        commitdate = line
+    else:
+        filename = line
+        if not filename in fileset:
+            fileset.add(filename)
+            filelist.append([commitdate, filename])
+
+filelist.reverse()
+
+for entry in filelist:
+    print entry[0], entry[1]
