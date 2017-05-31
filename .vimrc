@@ -33,7 +33,7 @@ nnoremap <leader>- yyp^v$r-
 nnoremap <leader>= yyp^v$r=
 nnoremap <leader>* I**<Esc>A**<Esc>
 
-" insert current date
+" insert current date or time
 nnoremap <leader>i "=strftime("%F")<CR>p
 nnoremap <leader>t "=strftime("%F %T")<CR>p
 
@@ -50,12 +50,10 @@ nnoremap <leader>u :GundoToggle<cr>
 " ================================
 
 " repeat last command and move down a line
-" (this chould be a nice plugin if expanded)
 noremap - mt.`tj
 
 " allow . and Q to execute once for each line of a visual selection
 vnoremap . :normal .<CR>
-
 noremap <Cr> o<Esc>
 
 " move to start and end of line using readline-style shortcuts
@@ -101,12 +99,14 @@ vnoremap p "_dP
 inoremap <S-Tab> <C-o><<
 
 " remap some useless or dangerous defaults
-" use Q to run the macro on q
+" use Q to run the macro on q (ie. quickly run q macro with a single key)
 noremap Q @q
 " use K to delete without writing to register
 nnoremap K "_d
 nnoremap KK "_dd
 vnoremap K "_d
+" use S to repeat the last substitution
+nnoremap S /<C-r>"<cr>.
 
 " break undo in sensible places
 inoremap <CR>  <C-G>u<CR>
