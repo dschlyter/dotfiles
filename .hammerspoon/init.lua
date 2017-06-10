@@ -298,7 +298,7 @@ hs.hotkey.bind(modifierFocus, 'c', function()
     focusNextWindow("Google Chrome")
 end)
 
-hs.hotkey.bind(modifierFocus, 'i', function()
+hs.hotkey.bind(modifierFocus, 'd', function()
     focusNextWindow("IntelliJ IDEA")
 end)
 
@@ -721,39 +721,100 @@ end
 -- mouse use monitoring
 -----------------------
 
-local lastKeyPress = 0
-local accumulatedTime = 0
+-- local lastKeyPress = 0
+-- local accumulatedKbTime = 0
 
-local keytap = hs.eventtap.new({ hs.eventtap.event.types.keyDown }, function(event)
-    local now = os.time()
-    local elapsed = now - lastKeyPress
-    if elapsed > 30 then
-        elapsed = 1
+-- local lastMouseMove = 0
+-- local accumulatedMouseTime = 0
+--
+-- function checkResetTracking(now)
+    -- local limit = 3600 * 5
+    -- if now - lastKeyPress > limit and now - lastMouseMove > limit then
+        -- lastKeyPress = 0
+        -- accumulatedKbTime = 0
+        -- lastMouseMove = 0
+        -- accumulatedMouseTime = 0
+    -- end
+-- end
+--
+-- local keytap = hs.eventtap.new({ hs.eventtap.event.types.keyDown }, function(event)
+    -- local now = os.time()
+    -- checkResetTracking(now)
+--
+    -- local elapsed = now - lastKeyPress
+    -- lastKeyPress = now
+--
+    -- if elapsed > 10 then
+        -- elapsed = 1
+    -- end
+--
+    -- accumulatedKbTime = accumulate(accumulatedKbTime, elapsed)
+    -- return false
+-- end)
+-- keytap:start()
+--
+-- -- todo maybe change to click + scroll here instead
+-- local mousetap = hs.eventtap.new({ hs.eventtap.event.types.leftMouseDown, hs.eventtap.event.types.scrollWheel }, function(event)
+    -- local now = os.time()
+    -- checkResetTracking(now)
+--
+    -- local elapsed = now - lastMouseMove
+    -- lastMouseMove = now
+--
+    -- if elapsed > 5 then
+        -- local percent = math.floor(accumulatedMouseTime / (math.max(1, accumulatedMouseTime + accumulatedKbTime)) * 100)
+        -- hs.alert.show("Mouse usage "..percent.."%")
+    -- end
+--
+    -- accumulatedMouseTime = accumulate(accumulatedMouseTime, elapsed)
+    -- return false
+-- end)
+-- mousetap:start()
+--
+-- function accumulate(accumulated, elapsed)
+    -- -- log.d(accumulatedKbTime, accumulatedMouseTime)
+--
+    -- if elapsed > 10 then
+        -- elapsed = 1
+    -- end
+    -- return accumulated + elapsed
+-- end
+
+-- finder file search
+---------------------
+
+hs.hotkey.bind(modifierFocus, 'g', function()
+    local output = os.capture(os.getenv("HOME") .. "/.fasd.sh -d -l -R", true)
+    local lines = parse_lines(output)
+
+    local choices = {}
+    for k in pairs(lines) do
+        local line = lines[k]
+        choices[#choices + 1] = {
+            ["text"] = line,
+            ["subText"] = line:gsub(".*/",""),
+            ["uuid"] = k
+        }
     end
-    lastKeyPress = now
-    accumulatedTime = accumulatedTime + elapsed
-    return false
+
+    local chooser = hs.chooser.new(function(res)
+        if res == nil then
+            return
+        end
+
+        local dir = res["text"]
+
+        hs.window.frontmostWindow():focus()
+        -- assume any modal dialog is finder, and open its dialog
+        if not hs.window.focusedWindow():isStandard() then
+            hs.eventtap.event.newKeyEvent({'cmd', 'shift'}, 'g', true):post()
+        end
+        hs.eventtap.keyStrokes(dir)
+
+    end)
+    chooser:choices(choices)
+    chooser:show()
 end)
-keytap:start()
-
-local mousetap = hs.eventtap.new({ hs.eventtap.event.types.mouseMoved }, function(event)
-    if accumulatedTime > 60 then
-        local minutes = pad(math.floor(accumulatedTime / 60), 2)
-        local seconds = pad(accumulatedTime % 60, 2)
-        hs.alert.show("Mouse unused for " .. minutes .. ":" .. seconds)
-    end
-    accumulatedTime = 0;
-    return false
-end)
-mousetap:start()
-
-function pad(str, size)
-    str = "" .. str
-    while string.len(str) < size do
-        str = "0" .. str
-    end
-    return str
-end
 
 -- base functionality that should really be in the language
 -----------------------------------------------------------
@@ -809,6 +870,28 @@ function Set (list)
         set[l] = true
     end
     return set
+end
+
+-- https://stackoverflow.com/questions/132397/get-back-the-output-of-os-execute-in-lua
+function os.capture(cmd, raw)
+    local f = assert(io.popen(cmd, 'r'))
+    local s = assert(f:read('*a'))
+    f:close()
+    if raw then
+        return s
+    end
+    s = string.gsub(s, '^%s+', '')
+    s = string.gsub(s, '%s+$', '')
+    s = string.gsub(s, '[\n\r]+', ' ')
+    return s
+end
+
+-- https://codea.io/talk/discussion/2118/split-a-string-by-return-newline
+function parse_lines(str)
+    local t = {}
+    local function helper(line) table.insert(t, line) return "" end
+    helper((str:gsub("(.-)\r?\n", helper)))
+    return t
 end
 
 -- restart scroll revserser on sleep wakeup, since it stops working

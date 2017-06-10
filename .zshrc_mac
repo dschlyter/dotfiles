@@ -34,6 +34,13 @@ use_gnu tail
 # use_gnu ls
 # use_gnu cp
 
+# copy result from j into system clipboard, for use in gui apps
+function jf() {
+    DIR="$(fasd -l -d -R "$@" | take 1)"
+    echo "$DIR"
+    echo "$DIR" | pbcopy
+}
+
 # quick hack to make writing shell functions easier (even if reusability/porability suffers)
 # run the correct executable on any OS with ${GNU_PREFIX}ls
 export GNU_PREFIX="g"
