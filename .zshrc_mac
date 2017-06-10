@@ -60,7 +60,7 @@ alias claimspotify2="(cd /Applications; sudo find Spotify.app -exec chmod 775 {}
 alias cliamspotify='sudo find /Applications/Spotify.app -perm "+u+x" ! -perm "+o+x" -exec chmod og+x {} ;'
 
 # brew convinience function
-local BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
+BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
 function bup() {
     umask 002
     brew update && brew upgrade && date "+%s" > $BREW_UPDATE_FILE

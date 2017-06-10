@@ -121,7 +121,7 @@ vpn() {
 }
 
 addkey() {
-    ssh "$1" tee -a .ssh/authorized_keys < ~/.ssh/id_rsa.pub
+    ssh "$1" bash -c "mkdir -p .ssh; tee -a .ssh/authorized_keys" < ~/.ssh/id_rsa.pub
 }
 
 p() {
