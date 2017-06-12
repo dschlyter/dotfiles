@@ -82,7 +82,7 @@ ls() {
     ${GNU_PREFIX:-/bin/}ls -h --color=auto --group-directories-first "$@"
 }
 
-# git diff can be used as a colorized diff on any filec, but autocomplete breaks so lets create a little alias
+# git diff can be used as a colorized diff on any files, but autocomplete breaks so let's create a little alias
 diff() {
     git diff "$@"
 }
@@ -219,6 +219,10 @@ md() {
     cd "$1" || return
 }
 
+tp() {
+    tree -P "*$1*"
+}
+
 # cd to the dir of a file or command
 cdt() {
     FILE="$1"
@@ -300,9 +304,21 @@ tag() {
     fi
     export TAG="$BASE$(realpath "$@")"
 }
+
 # a bit convoluted to work both in zsh and bash
 alias cpt='echo "$TAG" | xargs -L 1 -i cp {} .'
 alias mvt='echo "$TAG" | xargs -L 1 -i mv {} .'
+
+alias agh="ag --hidden"
+
+# jump directly to a line in a file in vim
+vag() {
+    vim "+silent /$*" $(ag -l "$@")
+}
+
+vagh() {
+    vim "+silent /$*" $(ag --hidden -l "$@")
+}
 
 # Various helpers
 

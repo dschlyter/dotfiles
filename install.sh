@@ -50,6 +50,7 @@ link .vimrc
 link .gitconfig
 link .gitignore
 link .git_template
+link .agignore
 
 mkdir -p "$HOME/.vim"
 link .vim/colors
