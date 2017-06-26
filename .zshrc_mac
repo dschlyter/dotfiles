@@ -7,6 +7,10 @@ alias sshot='screencapture -T 2 -t png -P screenshot.png'
 
 alias -g PC='| pbcopy'
 
+function free() {
+    vm_stat | perl -ne '/page size of (\d+)/ and $size=$1; /Pages\s+([^:]+)[^\d]+(\d+)/ and printf("%-16s % 16.2f Mi\n", "$1:", $2 * $size / 1048576);'
+}
+
 # set iterm title to current dir
 # credit to https://gist.github.com/phette23/5270658
 precmd() {

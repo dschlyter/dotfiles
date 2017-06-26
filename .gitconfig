@@ -24,7 +24,7 @@
     excludesfile = ~/.gitignore
     editor = vim
     autocrlf = input
-    # for some reasong this value is always automatically re-indented with a tab instead of spaces, I give up on reseting it everytime
+    # for some reason this value is always automatically re-indented with a tab instead of spaces, I give up on reseting it every time
 	trustctime = false
 [advice]
     statusHints = false
@@ -59,6 +59,7 @@
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
     lh = log --color --graph --date=iso --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
+    ls = !git lh --stat
     # lg shows all branches
     lg = !git lh --all
     ll = !git lg -n 9999

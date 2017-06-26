@@ -11,7 +11,7 @@
 export EDITOR="vim"
 export VISUAL="vim"
 export PAGER="less"
-# start on mondays when using gcal
+# start on Mondays when using gcal
 export GCAL="-s1"
 
 _add_to_path() {
@@ -155,7 +155,7 @@ vimd() {
 # Functional-style helpers
 
 # print specific column(s)
-# ie. echo a b c d e | cl 2 4 5
+# i.e. echo a b c d e | cl 2 4 5
 cl() {
     # print $ before first arg and join remaining with ',$'
     # replace -X with NF+1-X to allow printing last, second to last column etc

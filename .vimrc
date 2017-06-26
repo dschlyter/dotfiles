@@ -37,6 +37,9 @@ nnoremap <leader>* I**<Esc>A**<Esc>
 nnoremap <leader>i "=strftime("%F")<CR>p
 nnoremap <leader>t "=strftime("%F %T")<CR>p
 
+" toggle spellcheck
+nnoremap <leader>s :set spell!<CR>
+
 " git shortcuts from plugings
 nnoremap <leader>g :Gstatus<cr>
 nnoremap <leader>l :Gblame<cr>
@@ -48,6 +51,10 @@ nnoremap <leader>u :GundoToggle<cr>
 
 " possibly breaking customizations
 " ================================
+
+" make swedish keyboard buttons behave sort of like english
+map ä ]
+map å [
 
 " repeat last command and move down a line
 noremap - mt.`tj
@@ -367,6 +374,11 @@ set visualbell
 set noerrorbells
 
 set tabpagemax=20
+
+" spellcheck
+autocmd BufRead,BufNewFile *.md setlocal spell
+autocmd BufRead,BufNewFile *.txt setlocal spell
+set spellfile=$HOME/.vim/spell/en.utf-8.add
 
 " Command line tab completion
 set wildmenu

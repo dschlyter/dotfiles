@@ -54,6 +54,7 @@ link .agignore
 
 mkdir -p "$HOME/.vim"
 link .vim/colors
+link .vim/spell
 link .ideavimrc
 link .tmux.conf
 link .tmux-scripts
