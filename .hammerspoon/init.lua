@@ -754,6 +754,43 @@ hs.hotkey.bind(modifierFocus, 'g', function()
     chooser:show()
 end)
 
+-- quick searchable commands
+----------------------------
+
+hs.hotkey.bind(modifierFocus, 'q', function()
+    local home = os.getenv("HOME")
+    local freqcmd = home.."/bin/freqlist " ..home.."/.config/quickcommands"
+    local output = os.capture(freqcmd, true)
+    local lines = parse_lines(output)
+
+    local choices = {}
+    for k in pairs(lines) do
+        local line = lines[k]
+        choices[#choices + 1] = {
+            ["text"] = line:gsub(" .*$", ""),
+            ["subText"] = line:gsub("^[^ ]+ ",""),
+            ["uuid"] = k
+        }
+    end
+
+    local chooser = hs.chooser.new(function(res)
+        if res == nil then
+            return
+        end
+
+        local text = res["text"]
+        local cmd = res["subText"]
+
+        log.d("execute " .. cmd)
+
+        os.capture(freqcmd .. " " .. text .. " " .. cmd)
+        local output = os.capture(cmd, true)
+        log.d(output)
+    end)
+    chooser:choices(choices)
+    chooser:show()
+end)
+
 -- base functionality that should really be in the language
 -----------------------------------------------------------
 

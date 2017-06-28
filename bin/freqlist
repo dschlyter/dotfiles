@@ -1,0 +1,53 @@
+#!/bin/bash
+
+usage() {
+    echo "Simple frequency list"
+    echo "Usage:"
+    echo "Print list in frequency order: freqlist listfile"
+    echo "Add item or increment frequency: freqlist listfile something to add"
+}
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+
+if [ -z "${1:-}" ] || [ "$1" == "-h" ]; then
+    usage
+    exit 0
+fi
+
+LISTFILE="$1"
+shift 1
+CONTENT="$*"
+
+if [ -z "$CONTENT" ]; then
+    cat "$LISTFILE" | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}'
+else
+    test -f "$LISTFILE" || touch "$LISTFILE"
+
+    NEW_ITEM=1
+    while true; do
+        read -r line || true
+
+        if [ -z "$line" ]; then
+            if [ -n "$NEW_ITEM" ]; then
+                echo "1000 $CONTENT"
+            fi
+            break;
+        fi
+
+        set $line
+        SCORE="$1"
+        shift 1
+        LINE_CONTENT="$*"
+
+        SCORE="$((SCORE*95/100))"
+        if [ "$LINE_CONTENT" = "$CONTENT" ]; then
+            SCORE="$((SCORE+1000))"
+            NEW_ITEM=""
+        fi
+
+        echo "$SCORE $LINE_CONTENT"
+    done < "$LISTFILE" | sort -nr > /tmp/freqlist$$
+
+    mv /tmp/freqlist$$ "$LISTFILE"
+fi
