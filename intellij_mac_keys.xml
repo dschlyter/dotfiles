@@ -16,7 +16,7 @@
   <action id="CommentByLineComment">
     <keyboard-shortcut first-keystroke="meta slash" />
     <keyboard-shortcut first-keystroke="meta divide" />
-    <keyboard-shortcut first-keystroke="shift meta 7" />
+    <keyboard-shortcut first-keystroke="shift ctrl 7" />
   </action>
   <action id="DuplicatesForm.SendToRight" />
   <action id="FileChooser.GotoProject" />
@@ -69,12 +69,7 @@
     <keyboard-shortcut first-keystroke="shift f6" />
     <keyboard-shortcut first-keystroke="meta alt r" />
   </action>
-  <action id="RerunTests">
-    <keyboard-shortcut first-keystroke="ctrl meta r" />
-  </action>
-  <action id="Resume">
-    <keyboard-shortcut first-keystroke="shift alt r" />
-  </action>
+  <action id="Resume" />
   <action id="ShowRecentTests">
     <keyboard-shortcut first-keystroke="shift meta semicolon" />
     <keyboard-shortcut first-keystroke="ctrl meta u" />
@@ -94,4 +89,5 @@
   <action id="SwitchUp">
     <keyboard-shortcut first-keystroke="ctrl alt up" />
   </action>
+  <action id="ToggleBookmark7" />
 </keymap>

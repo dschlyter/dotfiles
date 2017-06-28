@@ -216,6 +216,9 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     call vundle#rc()
     Bundle 'gmarik/vundle'
 
+    " add text objects for function arguments e.g. da, <,
+    Bundle 'PeterRincker/vim-argumentative'
+
     " improve f and t commands
     Bundle 'svermeulen/vim-extended-ft'
 
