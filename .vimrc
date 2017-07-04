@@ -9,6 +9,7 @@ set nocompatible
 let mapleader = "ö"
 
 " plugin leader commands
+nnoremap <leader>R :source $HOME/.vimrc<cr>
 nnoremap <leader>n :noh<cr>
 nnoremap <leader>w :StripWhitespace<cr>
 
@@ -49,6 +50,48 @@ nnoremap <leader>d :GitGutterPreviewHunk<CR>
 " other plugin leader hotkeys
 nnoremap <leader>u :GundoToggle<cr>
 
+" have some custom commands under c prefix
+nnoremap <leader>ct 0R- [ ] <C-c>
+nnoremap <leader>cf :call CreateMdFile()<cr>
+nnoremap <leader>cl :call CreateMdLink()<cr>
+nnoremap <leader>cr :RandomLine<cr>
+command! RandomLine execute 'normal! '.(system('/bin/bash -c "echo -n $RANDOM"') % line('$')).'G'
+
+function! CreateMdFile()
+    execute "e " . expand("%:p:h") . "/<cfile>"
+    let filename = expand('%:t:r')
+    let filename = TitleCase(filename)
+    put =filename
+    normal ö=
+    " delete a wasteful first line
+    normal ggddG
+    normal 2o
+endfunction
+
+function! CreateMdLink()
+    normal diW
+    normal i[
+    let filename = TitleCase(@")
+    echo filename
+    execute "normal a" . filename
+    normal a](
+    normal p
+    normal a)
+endfunction
+
+function! TitleCase(title)
+    " remove path and file ending, if present
+    let title = substitute(a:title, '.*/', '', 'g')
+    let title = substitute(title, '[.]md', '', 'g')
+    " uppercase first letter
+    let title = substitute(title, '^\(\w\)', '\u\1', 'g')
+    " add spaces between uppercase letters
+    set noignorecase
+    let title = substitute(title, '\([^ ]\)\([A-Z]\)', '\1 \2', 'g')
+    set ignorecase
+    return title
+endfunction
+
 " possibly breaking customizations
 " ================================
 
@@ -77,6 +120,9 @@ inoremap <C-j> <Esc>:m .+1<CR>==gi
 inoremap <C-k> <Esc>:m .-2<CR>==gi
 vnoremap <C-j> :m '>+1<CR>gv=gv
 vnoremap <C-k> :m '<-2<CR>gv=gv
+
+" quicker file completition
+inoremap <C-f> <C-x><C-f>
 
 " leave insert with jj
 " inoremap jj <ESC>
@@ -298,14 +344,14 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
 
     " better session handling
     Bundle 'tpope/vim-obsession'
-    command Obs Obsession .vimsession
+    command! Obs Obsession .vimsession
 
     " enable dsb, cs'" and ysiw<div> syntax for changing surrounding elements
     Bundle "tpope/vim-surround"
     Bundle "tpope/vim-repeat"
 endif
 
-command BundleSetup !git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
+command! BundleSetup !git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
 
 " reenable filetype after plugin init
 filetype plugin indent on
