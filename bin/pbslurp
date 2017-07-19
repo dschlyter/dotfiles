@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+LAST=""
+
+while true; do
+    PASTE="$(pbpaste)"
+    if [ "$PASTE" != "$LAST" ]; then
+        echo "$PASTE"
+        LAST="$PASTE"
+    fi
+    sleep 1
+done
