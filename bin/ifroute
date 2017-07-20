@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+usage() {
+    echo "Usage: ifroute host/subnet interface"
+    echo "Creates a route to the specified host/subnet using the specified interface (using ipv4 only for now)"
+}
+
+if [ "$(uname -s)" != "Darwin" ]; then
+    echo "This script is for macOS only"
+    exit 0
+fi
+
+HOST="${1:-}"
+IFACE="${2:-}"
+
+if [ -z "$IFACE" ]; then
+    usage
+    exit 0
+fi
+
+GATEWAY_IP="$(netstat -nr -f inet | grep default | grep "$IFACE" | head -n 1 | awk '{print $2}')"
+
+if [ -z "$GATEWAY_IP" ]; then
+    echo "Unable to find gateway ip for interface $IFACE. Inspect the routing table with netstat -nr -f inet"
+    exit 1
+fi
+
+sudo route add "$HOST" "$GATEWAY_IP"
+
+echo "Note: delete route with 'sudo route delete $HOST'"
