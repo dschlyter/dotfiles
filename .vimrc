@@ -427,7 +427,8 @@ set tabpagemax=20
 " spellcheck
 autocmd BufRead,BufNewFile *.md setlocal spell
 autocmd BufRead,BufNewFile *.txt setlocal spell
-set spellfile=$HOME/.vim/spell/en.utf-8.add
+set spelllang=en,sv
+set spellcapcheck=
 
 " Command line tab completion
 set wildmenu
