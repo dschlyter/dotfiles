@@ -1,6 +1,9 @@
 <keymap version="1" name="Mac OS X 10.5+ Custom Keymap" parent="Mac OS X 10.5+">
-  <action id=":cursive.actions.paredit/backward-down">
+  <action id=":cursive.actions.paredit/backward">
     <keyboard-shortcut first-keystroke="shift ctrl h" />
+  </action>
+  <action id=":cursive.actions.paredit/backward-down">
+    <keyboard-shortcut first-keystroke="shift ctrl y" />
   </action>
   <action id=":cursive.actions.paredit/backward-up">
     <keyboard-shortcut first-keystroke="shift ctrl k" />
@@ -11,11 +14,23 @@
   <action id=":cursive.actions.paredit/barf-forwards">
     <keyboard-shortcut first-keystroke="shift meta 9" />
   </action>
+  <action id=":cursive.actions.paredit/forward">
+    <keyboard-shortcut first-keystroke="shift ctrl l" />
+  </action>
   <action id=":cursive.actions.paredit/forward-down">
     <keyboard-shortcut first-keystroke="shift ctrl j" />
   </action>
   <action id=":cursive.actions.paredit/forward-up">
-    <keyboard-shortcut first-keystroke="shift ctrl l" />
+    <keyboard-shortcut first-keystroke="shift ctrl n" />
+  </action>
+  <action id=":cursive.actions.paredit/move-form-down">
+    <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl d" />
+  </action>
+  <action id=":cursive.actions.paredit/move-form-up">
+    <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl u" />
+  </action>
+  <action id=":cursive.actions.paredit/raise">
+    <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl r" />
   </action>
   <action id=":cursive.actions.paredit/slurp-backwards">
     <keyboard-shortcut first-keystroke="shift ctrl 8" />
@@ -34,6 +49,9 @@
   </action>
   <action id=":cursive.repl.actions/run-top-sexp">
     <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl t" />
+  </action>
+  <action id=":cursive.repl.actions/search-history">
+    <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl s" />
   </action>
   <action id=":cursive.repl.actions/switch-namespace">
     <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl n" />
