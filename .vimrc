@@ -56,6 +56,7 @@ nnoremap <leader>cf :call CreateMdFile()<cr>
 nnoremap <leader>cl :call CreateMdLink()<cr>
 nnoremap <leader>cr :RandomLine<cr>
 command! RandomLine execute 'normal! '.(system('/bin/bash -c "echo -n $RANDOM"') % line('$')).'G'
+nnoremap <leader>ca vG<C-a>
 
 function! CreateMdFile()
     execute "e " . expand("%:p:h") . "/<cfile>"
