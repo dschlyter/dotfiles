@@ -24,25 +24,25 @@ local user = os.getenv('USER')
 
 hs.hotkey.bind(modifierFocus, 'k', function()
     orChain(focusDirection("North", false), function()
-        focusLayer(-1)
+        focusWindowOnSameScreen(-1)
     end)
 end)
 
 hs.hotkey.bind(modifierFocus, 'j', function()
     orChain(focusDirection("South", false), function()
-        focusLayer(1)
+        focusWindowOnSameScreen(1)
     end)
 end)
 
 hs.hotkey.bind(modifierFocus, 'l', function()
     orChain(focusDirection("East", false), function()
-        focusLayer(1)
+        focusWindowOnSameScreen(1)
     end)
 end)
 
 hs.hotkey.bind(modifierFocus, 'h', function()
     orChain(focusDirection("West", false), function()
-        focusLayer(-1)
+        focusWindowOnSameScreen(-1)
     end)
 end)
 
@@ -616,106 +616,48 @@ function killDocker()
     os.execute('bash -c "export PATH="$PATH:/usr/local/bin"; /Users/'..user..'/bin/dnuke"')
 end
 
--- advanced window focus - separate windows for current screen into non-overlapping layers and toggle between them
-------------------------------------------------------------------------------------------------------------------
+-- focus windows on the same screen
+-----------------------------------
 
-function focusLayer(dir)
-    local layers = buildLayers()
-    if #layers > 1 then
-        local newLayerIndex = (currentLayerIndex(layers) - 1 + dir) % #layers + 1
-        focusLayerWithIndex(layers, newLayerIndex)
-    end
-end
-
-function buildLayers()
+function focusWindowOnSameScreen(dir)
     local windows = windowsForCurrentScreen()
-    local layers = {}
-
-    for k,window in spairs(windows, windowOrdering) do
-        local added = false
-        for i,layer in ipairs(layers) do
-            if not added and fitsInLayer(layer, window) then
-                layer[#layer + 1] = window
-                added = true
-            end
-        end
-
-        if not added then
-            layers[#layers + 1] = {}
-            layers[#layers][1] = window
-        end
+    if #windows > 1 then
+        local newWindowIndex = (currentWindowIndex(windows) - 1 + dir) % #windows + 1
+        windows[newWindowIndex]:focus()
+        -- focusLayerWithIndex(layers, newLayerIndex)
     end
-
-    return layers
 end
 
-function fitsInLayer(layer, window)
-    for i,otherWindow in ipairs(layer) do
-        local intersection = window:frame():intersect(otherWindow:frame())
-        if intersection.w > 5 and intersection.h > 5 then
-            return false
-        end
-    end
-
-    return true
-end
-
-function currentLayerIndex(layers)
+function currentWindowIndex(windows)
     local focusedWindow = hs.window.focusedWindow()
-    for i,layer in ipairs(layers) do
-        for j,window in ipairs(layer) do
-            if window == focusedWindow then
-                return i
-            end
+    for i,window in ipairs(windows) do
+        if window == focusedWindow then
+            return i
         end
     end
     return 1
-end
-
-function focusLayerWithIndex(layers, newLayerIndex)
-    -- idea:
-    -- 1. focus the closest window to the current window to preserve location (ie. right window to right window)
-    -- 2. apply a small bias towards recently focused windows (ie. fullscreen window to right window, if more recently focused)
-
-    local focusBias = {}
-    for i,window in ipairs(hs.window.orderedWindows()) do
-        focusBias[window:id()] = i;
-    end
-
-    local layer = layers[newLayerIndex]
-
-    local focusedWindow = hs.window.frontmostWindow()
-    local closestWindow = nil
-    local bestDistance = nil
-    for i,window in ipairs(layer) do
-        local distance = window:frame():distance(focusedWindow:frame()) + focusBias[window:id()]
-        if closestWindow == nil or distance < bestDistance then
-            bestDistance = distance
-            closestWindow = window
-        end
-    end
-
-    for i,window in ipairs(layers[newLayerIndex]) do
-        if window ~= closestWindow then
-            -- raise would be better, but does not seem to work
-            -- window:raise()
-            window:focus()
-        end
-    end
-
-    closestWindow:focus()
 end
 
 function windowsForCurrentScreen()
     local currScreen = hs.window.frontmostWindow():screen()
     local windows = hs.window.visibleWindows()
     local ret = {}
-    for k,v in pairs(windows) do
+    for k,v in spairs(windows, windowOrdering) do
         if v:isStandard() and v:screen():id() == currScreen:id() then
             ret[#ret + 1] = v
         end
     end
     return ret
+end
+
+function windowOrdering(t, a, b)
+    local aTitle = t[a]:application():title()
+    local bTitle = t[b]:application():title()
+    if aTitle ~= bTitle then
+        return bTitle < aTitle
+    end
+
+    return t[b]:id() > t[a]:id()
 end
 
 -- finder file search
@@ -822,16 +764,6 @@ function sorted(t, order)
     local ret = {}
     for k,v in spairs(t,order) do ret[#ret+1] = v end
     return ret
-end
-
-function windowOrdering(t, a, b)
-    local aTitle = t[a]:application():title()
-    local bTitle = t[b]:application():title()
-    if aTitle ~= bTitle then
-        return bTitle < aTitle
-    end
-
-    return t[b]:id() > t[a]:id()
 end
 
 function toString(list)
