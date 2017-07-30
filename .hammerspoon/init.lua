@@ -98,21 +98,13 @@ function findFocused(func)
     end
 end
 
--- u for fullscreen
--- jkhl for half screen
+-- j for fullscreen
+-- hl for half screen
 -- yinm for quarter window
 --------------------------
 
-hs.hotkey.bind(modifierResize, 'u', function()
-    scaleFocused(0, 0, 1, 1)
-end)
-
-hs.hotkey.bind(modifierResize, 'j', function()
-    scaleFocused(0, 0.5, 1, 0.5)
-end)
-
 hs.hotkey.bind(modifierResize, 'k', function()
-    scaleFocused(0, 0, 1, 0.5)
+    scaleFocused(0, 0, 1, 1)
 end)
 
 hs.hotkey.bind(modifierResize, 'h', function()
@@ -121,22 +113,6 @@ end)
 
 hs.hotkey.bind(modifierResize, 'l', function()
     orChain(scaleFocused(0.5, 0, 0.5, 1), moveWindowOneScreenEast)
-end)
-
-hs.hotkey.bind(modifierResize, 'y', function()
-    scaleFocused(0, 0, 0.5, 0.5)
-end)
-
-hs.hotkey.bind(modifierResize, 'i', function()
-    scaleFocused(0.5, 0, 0.5, 0.5)
-end)
-
-hs.hotkey.bind(modifierResize, 'm', function()
-    scaleFocused(0.5, 0.5, 0.5, 0.5)
-end)
-
-hs.hotkey.bind(modifierResize, 'n', function()
-    scaleFocused(0, 0.5, 0.5, 0.5)
 end)
 
 function scaleFocused(x, y, w, h)
@@ -545,6 +521,8 @@ end)
 local savedApps = {}
 
 -- quickly close and restore open apps (useful before user switching)
+---------------------------------------------------------------------
+
 hs.hotkey.bind(modifierResize, 'a', function()
     restoreApps()
 end)
@@ -622,7 +600,7 @@ end
 function focusWindowOnSameScreen(dir)
     local windows = windowsForCurrentScreen()
     if #windows > 1 then
-        local newWindowIndex = (currentWindowIndex(windows) - 1 + dir) % #windows + 1
+        local newWindowIndex = indexMod(currentWindowIndex(windows) + dir, #windows)
         windows[newWindowIndex]:focus()
         -- focusLayerWithIndex(layers, newLayerIndex)
     end
@@ -659,6 +637,100 @@ function windowOrdering(t, a, b)
 
     return t[b]:id() > t[a]:id()
 end
+
+-- create customized focus chains
+---------------------------------
+
+chains = {}
+
+function focusNextInChain()
+    if #chains <= 0 then
+        hs.alert.show("No chain")
+        return
+    end
+
+    local windowId = hs.window.focusedWindow():id()
+    local currChain = chains[1]
+    local newIndex = 1
+    local chainIndex = indexOf(currChain, windowId)
+    if chainIndex > 0 then
+        newIndex = indexMod(chainIndex + 1, #currChain)
+    else
+        -- TODO maybe focus all windows?
+    end
+
+    local nextWindow = hs.window.get(currChain[newIndex])
+    if nextWindow then
+        nextWindow:focus()
+    else
+        if newIndex == 1 then
+            table.remove(chains, 1)
+        else
+            table.remove(currChain, newIndex)
+        end
+    end
+end
+
+function switchChain()
+    if (#chains <= 0) then
+        hs.alert.show("No chain")
+        return
+    end
+
+    local currChain = chains[1]
+    table.remove(chains, 1)
+    push(chains, currChain)
+
+    local nextWindow = hs.window.get(chains[1][1])
+    if nextWindow then
+        nextWindow:focus()
+    else
+        table.remove(chains, 1)
+    end
+end
+
+function createChain()
+    local focusedWindow = hs.window.focusedWindow()
+    local windowId = focusedWindow:id()
+
+    local currChainIndex = nil
+    for i,chain in pairs(chains) do
+        if chain[1] == windowId then
+            currChainIndex = i
+        end
+    end
+
+    if not currChainIndex then
+        table.insert(chains, 1, {windowId})
+    else
+        table.remove(chains, currChainIndex)
+        hs.alert.show("Chain deleted")
+    end
+end
+
+function includeInChain()
+    if #chains <= 0 then
+        createChain()
+        return
+    end
+    local currChain = chains[1]
+
+    local windowId = hs.window.focusedWindow():id()
+    local currIndex = indexOf(currChain, windowId)
+    if currIndex == -1 then
+        push(currChain, windowId)
+    elseif currIndex == 1 then
+        hs.alert.show("Can't remove chain root")
+    else
+        remove(currChain, windowId)
+        hs.alert.show("Removed from chain")
+    end
+end
+
+hs.hotkey.bind(modifierFocus, 'u', focusNextInChain)
+hs.hotkey.bind(modifierFocus, 'i', switchChain)
+hs.hotkey.bind(modifierPrimary, 'u', includeInChain)
+hs.hotkey.bind(modifierPrimary, 'i', createChain)
 
 -- finder file search
 ---------------------
@@ -736,6 +808,8 @@ end)
 -- base functionality that should really be in the language
 -----------------------------------------------------------
 
+--- list utils
+
 -- http://stackoverflow.com/questions/15706270/sort-a-table-in-lua
 function spairs(t, order)
     -- collect the keys
@@ -766,8 +840,22 @@ function sorted(t, order)
     return ret
 end
 
-function toString(list)
+function dumpList(list)
     return "[" .. table.concat(list, ", ") .. "]"
+end
+
+-- https://stackoverflow.com/questions/9168058/how-to-dump-a-table-to-console
+function dump(o)
+    if type(o) == 'table' then
+        local s = '{ '
+        for k,v in pairs(o) do
+            if type(k) ~= 'number' then k = '"'..k..'"' end
+            s = s .. '['..k..'] = ' .. dump(v) .. ','
+        end
+        return s .. '} '
+    else
+        return tostring(o)
+    end
 end
 
 -- http://stackoverflow.com/questions/656199/search-for-an-item-in-a-lua-list
@@ -777,6 +865,43 @@ function Set (list)
         set[l] = true
     end
     return set
+end
+
+function keys(table)
+    local ret = {}
+    for k,v in pairs(table) do
+        ret[#ret+1] = k
+    end
+    return ret
+end
+
+function indexOf(list, item)
+    for i,listItem in pairs(list) do
+        if listItem == item then
+            return i
+        end
+    end
+    return -1
+end
+
+function remove(list, item)
+    local index = indexOf(list, item)
+    if index > -1 then
+        table.remove(list, index)
+    end
+end
+
+function push(list, item)
+    list[#list+1] = item
+end
+
+---
+
+function indexMod(index, mod)
+    if mod <= 1 then
+        return 1
+    end
+    return ((index-1) % mod) + 1
 end
 
 -- https://stackoverflow.com/questions/132397/get-back-the-output-of-os-execute-in-lua
