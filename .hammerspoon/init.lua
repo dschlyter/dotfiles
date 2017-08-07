@@ -544,20 +544,20 @@ function saveApps()
         end
     end
 
-    log.d("Saving " .. #savedApps .. " apps " .. toString(savedApps))
+    log.d("Saving " .. #savedApps .. " apps " .. dumpList(savedApps))
     killAll(savedApps)
     killDocker()
 end
 
 function restoreApps()
     if #savedApps > 0 then
-        log.d("Restoring " .. #savedApps .. " saved apps " .. toString(savedApps))
+        log.d("Restoring " .. #savedApps .. " saved apps " .. dumpList(savedApps))
         openAll(savedApps)
         savedApps = {}
         restartScrollReverser()
     else
         local defaultApps = {"IntelliJ IDEA", "Google Chrome", "iTerm", "Spotify"}
-        log.d("Opening default apps" .. toString(defaultApps))
+        log.d("Opening default apps" .. dumpList(defaultApps))
         openAll(defaultApps)
     end
 end
