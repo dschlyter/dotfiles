@@ -12,6 +12,8 @@ let mapleader = "ö"
 nnoremap <leader>R :source $HOME/.vimrc<cr>
 nnoremap <leader>n :noh<cr>
 nnoremap <leader>w :StripWhitespace<cr>
+" paste from system clipboard (copy with Y)
+nnoremap <leader>p "+p
 
 " selection leader commands
 vnoremap <leader>G dGp<C-o>
@@ -20,7 +22,6 @@ vnoremap <leader>G dGp<C-o>
 nnoremap <leader>o :only<cr>
 nnoremap <leader>b :bd<cr>
 nnoremap <leader>B :bd!<cr>
-nnoremap <leader>t :tabnew<cr>
 nnoremap <leader>j :tabnext<cr>
 nnoremap <leader>k :tabprev<cr>
 
@@ -148,6 +149,9 @@ inoremap <C-l> <C-o>:bn<CR>
 
 " Don't copy the contents of an overwritten selection.
 vnoremap p "_dP
+
+" Copy to system clipboard
+vnoremap Y "+y
 
 " Make shift-tab work in reverse of tab in insert mode
 inoremap <S-Tab> <C-o><<
