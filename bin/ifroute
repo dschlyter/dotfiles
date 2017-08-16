@@ -5,8 +5,17 @@ set -euo pipefail
 IFS=$'\n\t'
 
 usage() {
-    echo "Usage: ifroute host/subnet interface"
+    echo "Usage: ifroute [options] host/subnet interface"
     echo "Creates a route to the specified host/subnet using the specified interface (using ipv4 only for now)"
+    echo "This can be useful when there is an IP-conflict on two different network interfaces"
+    echo
+    echo "Available option flags:"
+    echo "-r recreate, delete then recreate route"
+    echo "-d delete route"
+    echo
+    echo "Inspect the routes with"
+    echo "route get <host>"
+    echo "netstat -nr -f inet"
 }
 
 if [ "$(uname -s)" != "Darwin" ]; then
@@ -14,21 +23,48 @@ if [ "$(uname -s)" != "Darwin" ]; then
     exit 0
 fi
 
+CREATE="1"
+DELETE=""
+while getopts ":hrd" opt; do
+    case $opt in
+        h)
+            usage
+            exit 0
+            ;;
+        r)
+            DELETE="1"
+            ;;
+        d)
+            DELETE="1"
+            CREATE=""
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
 HOST="${1:-}"
 IFACE="${2:-}"
 
-if [ -z "$IFACE" ]; then
+if [[ -z "$HOST" || -z "$IFACE" && -n "$CREATE" ]]; then
     usage
     exit 0
 fi
 
-GATEWAY_IP="$(netstat -nr -f inet | grep default | grep "$IFACE" | head -n 1 | awk '{print $2}')"
-
-if [ -z "$GATEWAY_IP" ]; then
-    echo "Unable to find gateway ip for interface $IFACE. Inspect the routing table with netstat -nr -f inet"
-    exit 1
+if [ -n "$DELETE" ]; then
+    sudo route delete "$HOST"
 fi
 
-sudo route add "$HOST" "$GATEWAY_IP"
+if [ -n "$CREATE" ]; then
+    GATEWAY_IP="$(netstat -nr -f inet | grep default | grep "$IFACE" | head -n 1 | awk '{print $2}')"
 
-echo "Note: delete route with 'sudo route delete $HOST'"
+    if [ -z "$GATEWAY_IP" ]; then
+        echo "Unable to find gateway ip for interface $IFACE. Inspect the routing table with netstat -nr -f inet"
+        exit 1
+    fi
+
+    sudo route add "$HOST" "$GATEWAY_IP"
+fi
