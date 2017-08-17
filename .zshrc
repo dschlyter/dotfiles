@@ -33,10 +33,10 @@ function eachdir {
 
     max_ret=0
 
-    for dir in $(find . -type d -depth $DEPTH -not -path '*/\.*'); do
+    for dir in $(find -L . -maxdepth $DEPTH -type d -not -path '*/\.*'); do
+        test "$dir" "==" "." && continue
         test -d "$dir" || continue
-        pushd .
-        cd $dir
+        (cd $dir
         result="$(eval "$@" 2>&1)"
         ret=$?
         max_ret=$((ret > max_ret ? ret : max_ret))
@@ -46,8 +46,7 @@ function eachdir {
         elif [ -n "$result" ]; then
             cecho -b 12 "--- $dir ---"
             echo "$result"
-        fi
-        popd
+        fi)
     done
 
     return $max_ret

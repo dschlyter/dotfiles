@@ -33,6 +33,7 @@ use_gnu xargs
 use_gnu cal
 use_gnu head
 use_gnu tail
+use_gnu find
 
 # these are fixed by functions in .shellrc
 # use_gnu ls
