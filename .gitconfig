@@ -74,6 +74,8 @@
     # commit
     # patched commit with a file review and untracked sanity check first
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "Warning: Untracked files!" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
+    # fast forward another branch and push both that and current (ie. double push develop+master)
+    f2p = "!r() { BRANCH=\"$(git symbolic-ref --short -q HEAD)\"; git co $1 && git merge --ff-only \"$BRANCH\" && git push origin \"$1\" \"$BRANCH\"; }; r"
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # remove all whitespace changes
     rw=!sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git checkout "${@:-.}" && git reset'
