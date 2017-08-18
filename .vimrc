@@ -14,6 +14,8 @@ nnoremap <leader>n :noh<cr>
 nnoremap <leader>w :StripWhitespace<cr>
 " paste from system clipboard (copy with Y)
 nnoremap <leader>p "+p
+" copy into macro slot
+nnoremap <leader>q _v$h"qy
 
 " selection leader commands
 vnoremap <leader>G dGp<C-o>
@@ -26,8 +28,8 @@ nnoremap <leader>j :tabnext<cr>
 nnoremap <leader>k :tabprev<cr>
 
 " open in same dir
-nnoremap <leader>e :e <C-R>=expand("%:p:h") . "/" <CR>
 " or search common files with fasd
+nnoremap <leader>e :e <C-R>=expand("%:p:h") . "/" <CR>
 nnoremap <leader>f :FasdOpen<cr>
 
 " Fast markdown

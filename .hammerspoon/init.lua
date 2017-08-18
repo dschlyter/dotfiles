@@ -547,6 +547,7 @@ function saveApps()
     log.d("Saving " .. #savedApps .. " apps " .. dumpList(savedApps))
     killAll(savedApps)
     killDocker()
+    killSessions()
 end
 
 function restoreApps()
@@ -594,6 +595,11 @@ function killDocker()
     os.execute('bash -c "export PATH="$PATH:/usr/local/bin"; /Users/'..user..'/bin/dnuke"')
 end
 
+function killSessions()
+    log.d("Killing marked terminal sessions")
+    os.execute('/Users/'..user..'/bin/session -k')
+end
+
 -- focus windows on the same screen
 -----------------------------------
 
@@ -635,7 +641,8 @@ function windowOrdering(t, a, b)
         return bTitle < aTitle
     end
 
-    return t[b]:id() > t[a]:id()
+    -- finder windows may have null id
+    return default(t[b]:id(), 0) > default(t[a]:id(), 0)
 end
 
 -- create customized focus chains
@@ -809,6 +816,14 @@ end)
 -----------------------------------------------------------
 
 --- list utils
+
+function default(value, defaultValue)
+    if value == nil then
+        return defaultValue
+    end
+
+    return value
+end
 
 -- http://stackoverflow.com/questions/15706270/sort-a-table-in-lua
 function spairs(t, order)

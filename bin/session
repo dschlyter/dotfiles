@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+usage() {
+    echo "Usage: session <command>"
+    echo "session -k to kill all commands under a session"
+}
+
+KILL=""
+while getopts ":hk" opt; do
+    case $opt in
+        h)
+            usage
+            exit 0
+            ;;
+        k)
+            KILL="1"
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ -z "$KILL" ]; then
+    env SESSION_KILL=1 "$@"
+else
+    echo killing all
+    ps -wwwE | grep "SESSION_KILL[=]1" | awk '{print $1}' | xargs kill
+fi
