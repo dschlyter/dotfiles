@@ -63,6 +63,7 @@ alias claimbrew="sudo chmod -R g+rw /usr/local; sudo chgrp -R brew /usr/local"
 # TODO remove one of these?
 alias claimspotify2="(cd /Applications; sudo find Spotify.app -exec chmod 775 {} \;)"
 alias cliamspotify='sudo find /Applications/Spotify.app -perm "+u+x" ! -perm "+o+x" -exec chmod og+x {} ;'
+alias fix-spotlight='sudo mdutil -E /'
 
 # brew convinience function
 BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
