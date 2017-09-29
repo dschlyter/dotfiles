@@ -437,6 +437,14 @@ autocmd BufRead,BufNewFile *.txt setlocal spell
 set spelllang=en,sv
 set spellcapcheck=
 
+" spellcheck import between machines without breaking dotfiles git merge
+" https://stackoverflow.com/questions/27240638/is-there-a-quick-way-to-rebuild-spell-files-from-wordlists 
+for d in glob('~/.vim/spell/*.add', 1, 1)
+    if filereadable(d) && (!filereadable(d . '.spl') || getftime(d) > getftime(d . '.spl'))
+        exec 'mkspell! ' . fnameescape(d)
+    endif
+endfor
+
 " Command line tab completion
 set wildmenu
 set wildmode=list:longest
