@@ -9,6 +9,9 @@ usage() {
     echo "Creates a route to the specified host/subnet using the specified interface (using ipv4 only for now)"
     echo "This can be useful when there is an IP-conflict on two different network interfaces"
     echo
+    echo Example, access host growsmarter1 with interface en4
+    echo ifroute growsmarter1 en4
+    echo
     echo "Available option flags:"
     echo "-r recreate, delete then recreate route"
     echo "-d delete route"

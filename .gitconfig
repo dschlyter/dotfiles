@@ -68,6 +68,7 @@
     mine = "!r() { git lg --author='David Schlyter'; }; r"
     # everything i have done the last month. there is an echo and inverse grep empty lines to make sure newlines are properly inserted
     allmine = "!r() { find . -name .git -exec sh -c \"cd {}; git log --author='David Schlyter' --since='2 month' --date=iso --pretty=format:'%cd {} %s'; echo \" ';' | grep -v '^$' | sort; }; r"
+    logall = "!r() { find . -name .git -exec sh -c \"cd {}; git log --since='2 month' --date=iso --pretty=format:'%cd %an {} %s'; echo \" ';' | grep -v '^$' | sort; }; r"
     # show the first commit from log that matches sha-prefix, eg. git sc 72F
     sc = "!r() { git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show; }; r"
 

@@ -77,6 +77,7 @@
     <keyboard-shortcut first-keystroke="meta slash" />
     <keyboard-shortcut first-keystroke="meta divide" />
     <keyboard-shortcut first-keystroke="shift ctrl 7" />
+    <keyboard-shortcut first-keystroke="shift meta alt 7" />
   </action>
   <action id="Console.TableResult.AddColumn" />
   <action id="DuplicatesForm.SendToRight" />
@@ -132,7 +133,9 @@
     <keyboard-shortcut first-keystroke="shift f6" />
     <keyboard-shortcut first-keystroke="meta alt r" />
   </action>
-  <action id="Resume" />
+  <action id="Resume">
+    <keyboard-shortcut first-keystroke="f9" />
+  </action>
   <action id="ShowRecentTests">
     <keyboard-shortcut first-keystroke="shift meta semicolon" />
     <keyboard-shortcut first-keystroke="ctrl meta u" />

@@ -82,3 +82,6 @@ local DIFF_DAYS=$((($NOW - $LAST_UPDATE) / (3600 * 24)))
 if [ $DIFF_DAYS -gt 7 ]; then
     echo "Homebrew has not been upgraded in $DIFF_DAYS days. Run upgrade with 'bup'"
 fi
+
+# set tty for gpg
+export GPG_TTY=$(tty)

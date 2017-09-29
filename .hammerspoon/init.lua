@@ -35,15 +35,19 @@ hs.hotkey.bind(modifierFocus, 'j', function()
 end)
 
 hs.hotkey.bind(modifierFocus, 'l', function()
-    orChain(focusDirection("East", false), function()
-        focusWindowOnSameScreen(1)
-    end)
+    -- temp disable to learn new hotkeys
+
+    -- orChain(focusDirection("East", false), function()
+      --   focusWindowOnSameScreen(1)
+    -- end)
 end)
 
 hs.hotkey.bind(modifierFocus, 'h', function()
-    orChain(focusDirection("West", false), function()
-        focusWindowOnSameScreen(-1)
-    end)
+    -- temp disable to learn new hotkeys
+
+    -- orChain(focusDirection("West", false), function()
+        -- focusWindowOnSameScreen(-1)
+    -- end)
 end)
 
 -- alt tab between individual windows
