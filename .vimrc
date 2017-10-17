@@ -357,6 +357,9 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " enable dsb, cs'" and ysiw<div> syntax for changing surrounding elements
     Bundle "tpope/vim-surround"
     Bundle "tpope/vim-repeat"
+
+    " autodetect indent
+    Bundle 'tpope/vim-sleuth'
 endif
 
 command! BundleSetup !git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
@@ -408,9 +411,9 @@ set expandtab
 set smarttab
 
 " indentation
-set tabstop=4
-set shiftwidth=4
-set softtabstop=4
+" set tabstop=4
+" set shiftwidth=4
+" set softtabstop=4
 set smartindent
 set autoindent
 set shiftround
