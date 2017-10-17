@@ -370,6 +370,10 @@ d() {
     docker "$@"
 }
 
+dco() {
+    docker-compose "$@"
+}
+
 dsh() {
     CONTAINER="$(docker ps --filter name="$1" --format "{{.ID}}" | head -n 1)"
     docker exec -it "$CONTAINER" bash
