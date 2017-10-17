@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+usage() {
+    echo "$0 - convenience hack that kills an existing vim process for a file"
+    echo "Usage: $0 file"
+}
+
+while getopts ":hp:" opt; do
+    case $opt in
+        h)
+            usage
+            exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ -n "$1" ]; then
+    VIM_OUTPUT="$(echo q:q | vim "$@")" || true
+
+    if ! echo "$VIM_OUTPUT" | grep -q "Another program may be editing the same file."; then
+        echo "did not find the swap file dialog"
+        exit 1
+    fi
+
+    if ! echo "$VIM_OUTPUT" | grep -q "modified: no"; then
+        echo "file has been modified, restore the changes manually"
+        exit 1
+    fi
+
+    SWAP_FILE="$(echo "$VIM_OUTPUT" | grep "If you did this already, delete the swap file" | grep -oE '".*"' | tr -d '"' | tail -n 1)" || true
+    PROCESS_ID="$(echo "$VIM_OUTPUT" | grep "process ID" | grep -oE "[0-9]+" | tail -n 1)" || true
+
+    if [ -n "$PROCESS_ID" ]; then
+        echo "killing $PROCESS_ID"
+        kill -9 "$PROCESS_ID"
+        echo "deleting swap file $SWAP_FILE"
+        rm "$SWAP_FILE"
+        vim "$@"
+    else
+        echo "no process id found"
+    fi
+else
+    usage
+    exit 1
+fi

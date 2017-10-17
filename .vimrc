@@ -8,7 +8,6 @@ set nocompatible
 " key for custom commands, to prevent overwrite of standard commands
 let mapleader = "ö"
 
-" plugin leader commands
 nnoremap <leader>R :source $HOME/.vimrc<cr>
 nnoremap <leader>n :noh<cr>
 nnoremap <leader>w :StripWhitespace<cr>
@@ -16,6 +15,8 @@ nnoremap <leader>w :StripWhitespace<cr>
 nnoremap <leader>p "+p
 " copy into macro slot
 nnoremap <leader>q _v$h"qy
+nnoremap <leader>2 :set shiftwidth=2<cr>
+nnoremap <leader>4 :set shiftwidth=4<cr>
 
 " selection leader commands
 vnoremap <leader>G dGp<C-o>
@@ -356,6 +357,9 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " enable dsb, cs'" and ysiw<div> syntax for changing surrounding elements
     Bundle "tpope/vim-surround"
     Bundle "tpope/vim-repeat"
+
+    " autodetect indent
+    Bundle 'tpope/vim-sleuth'
 endif
 
 command! BundleSetup !git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
@@ -407,9 +411,9 @@ set expandtab
 set smarttab
 
 " indentation
-set tabstop=4
-set shiftwidth=4
-set softtabstop=4
+" set tabstop=4
+" set shiftwidth=4
+" set softtabstop=4
 set smartindent
 set autoindent
 set shiftround
@@ -436,6 +440,14 @@ autocmd BufRead,BufNewFile *.md setlocal spell
 autocmd BufRead,BufNewFile *.txt setlocal spell
 set spelllang=en,sv
 set spellcapcheck=
+
+" spellcheck import between machines without breaking dotfiles git merge
+" https://stackoverflow.com/questions/27240638/is-there-a-quick-way-to-rebuild-spell-files-from-wordlists 
+for d in glob('~/.vim/spell/*.add', 1, 1)
+    if filereadable(d) && (!filereadable(d . '.spl') || getftime(d) > getftime(d . '.spl'))
+        exec 'mkspell! ' . fnameescape(d)
+    endif
+endfor
 
 " Command line tab completion
 set wildmenu
