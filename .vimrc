@@ -8,7 +8,6 @@ set nocompatible
 " key for custom commands, to prevent overwrite of standard commands
 let mapleader = "ö"
 
-" plugin leader commands
 nnoremap <leader>R :source $HOME/.vimrc<cr>
 nnoremap <leader>n :noh<cr>
 nnoremap <leader>w :StripWhitespace<cr>
@@ -16,6 +15,8 @@ nnoremap <leader>w :StripWhitespace<cr>
 nnoremap <leader>p "+p
 " copy into macro slot
 nnoremap <leader>q _v$h"qy
+nnoremap <leader>2 :set shiftwidth=2<cr>
+nnoremap <leader>4 :set shiftwidth=4<cr>
 
 " selection leader commands
 vnoremap <leader>G dGp<C-o>
