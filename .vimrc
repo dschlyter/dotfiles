@@ -259,6 +259,20 @@ endtry
 " plugins
 " =======
 
+" default indent (however sleuth may override)
+" tab = spaces
+set expandtab
+set smarttab
+" indentation
+set tabstop=4
+set shiftwidth=4
+set softtabstop=4
+set smartindent
+set autoindent
+set shiftround
+
+" regular tabs for makefiles
+autocmd FileType make setlocal noexpandtab
 
 " some basic security
 " do not run plugins when using sudo / sudoedit
@@ -405,21 +419,6 @@ endif
 " assume the /g flag on :s substitutions to replace all matches in a line:
 set gdefault
 
-
-" tab = spaces
-set expandtab
-set smarttab
-
-" indentation
-" set tabstop=4
-" set shiftwidth=4
-" set softtabstop=4
-set smartindent
-set autoindent
-set shiftround
-
-" regular tabs for makefiles
-autocmd FileType make setlocal noexpandtab
 
 " don't store swapfiles in the current directory
 set directory-=.
