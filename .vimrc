@@ -284,6 +284,11 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     call vundle#rc()
     Bundle 'gmarik/vundle'
 
+    if has('python')
+      Bundle 'maralla/completor.vim'
+      let g:completor_python_binary = '/Library/Python/2.7/site-packages/jedi'
+    endif
+
     " add text objects for function arguments e.g. da, <,
     Bundle 'PeterRincker/vim-argumentative'
 

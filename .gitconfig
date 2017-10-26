@@ -120,6 +120,8 @@
 
     # gitflow, check unreleased features on develop branch
     features = !git lh master..develop --merges -n 9999
+    # check failures to merge changes into develop
+    fail = !git lh develop..master
     local = !git lg --branches --not --remotes
     dup = !git up develop
     dur = !git urb develop
@@ -129,6 +131,7 @@
     browser = google-chrome
 [include]
     # local override of settings, file relative to .gitconfig. requires git 1.7.10+
+    # this breaks in EGit :@
     path = .gitconfig_local
 [init]
     templatedir = ~/.git_template
