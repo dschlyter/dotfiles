@@ -41,6 +41,9 @@
   <action id=":cursive.repl.actions/clojure-repl-commands-group">
     <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl c" />
   </action>
+  <action id=":cursive.repl.actions/jump-to-repl">
+    <keyboard-shortcut first-keystroke="shift ctrl e" />
+  </action>
   <action id=":cursive.repl.actions/load-file">
     <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl l" />
   </action>
@@ -80,6 +83,9 @@
     <keyboard-shortcut first-keystroke="shift meta alt 7" />
   </action>
   <action id="Console.TableResult.AddColumn" />
+  <action id="Cursive.Repl.Command.figwheel">
+    <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl f" />
+  </action>
   <action id="DuplicatesForm.SendToRight" />
   <action id="EditorJoinLines" />
   <action id="EditorToggleColumnMode" />
