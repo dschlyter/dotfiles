@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+say "Timer set to "$1" minutes"
+for i in $(seq "$1"); do
+    sleep 60
+    echo "$(($1 - i)) minutes left"
+done
+say beep beep beep. the time is up
