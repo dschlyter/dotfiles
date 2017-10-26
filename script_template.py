@@ -16,18 +16,26 @@ def parse_args():
             help='optional trailing arg')
     return parser.parse_args()
 
-# helper debugging method
-def instrospect(object):
-    [method_name for method_name in dir(object)
-        if callable(getattr(object, method_name))]
-
-def run(command):
-    if isinstance(command, str):
-        command = command.split(" ")
-    return subprocess.check_output(command)
-
 def main():
     args = parse_args()
     print run("ls -la "+args.first)
+    print run("sleep 10")
+
+def run(command, shell=False, canFail=False, output=False):
+    try:
+        if isinstance(command, str):
+            if shell:
+                command = ["bash", "-c", command]
+            else:
+                command = command.split(" ")
+        stdout = subprocess.check_output(command)
+        if output:
+            print stdout
+        return stdout
+    except Exception as e:
+        if canFail:
+            return None
+        else:
+            raise
 
 main()

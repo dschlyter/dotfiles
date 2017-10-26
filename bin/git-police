@@ -10,7 +10,7 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Walks a git graph and lists all commits that seems to not have been merged with a pull request')
-    parser.add_argument('-d', '--days', dest='days', nargs='?', default=14, metavar='days', type=int,
+    parser.add_argument('-d', '--days', dest='days', default=14, metavar='days', type=int,
             help='number of days in the history to go back (default 14)')
     parser.add_argument('-f', '--from', dest='from_date',
             help='start from a specific date YYYY-MM-DD')
