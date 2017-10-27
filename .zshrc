@@ -16,12 +16,16 @@ alias -g C1='| cl 1'
 # Functions
 
 function eachdir {
-    local DEPTH=1
+    local depth=1
+    local quiet=""
 
-    while getopts ":d:" opt; do
+    while getopts ":d:q" opt; do
         case $opt in
             d)
-                DEPTH="$OPTARG"
+                depth="$OPTARG"
+                ;;
+            q)
+                quiet="yes"
                 ;;
             \?)
                 echo "Invalid option: -$OPTARG" >&2
@@ -33,18 +37,23 @@ function eachdir {
 
     max_ret=0
 
-    for dir in $(find -L . -maxdepth $DEPTH -type d -not -path '*/\.*'); do
+    for dir in $(find -L . -maxdepth $depth -type d -not -path '*/\.*'); do
         test "$dir" "==" "." && continue
         test -d "$dir" || continue
         (cd $dir
         result="$(eval "$@" 2>&1)"
         ret=$?
         max_ret=$((ret > max_ret ? ret : max_ret))
+
         if [ "$ret" -ne 0 ]; then
-            cecho -b 9 "--- $dir ---"
+            if [ -z "$quiet" ]; then
+                cecho -b 9 "--- $dir ---"
+            fi
             echo "$result"
         elif [ -n "$result" ]; then
-            cecho -b 12 "--- $dir ---"
+            if [ -z "$quiet" ]; then
+                cecho -b 12 "--- $dir ---"
+            fi
             echo "$result"
         fi)
     done

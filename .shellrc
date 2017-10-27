@@ -87,7 +87,7 @@ ls() {
 }
 
 # git diff can be used as a colorized diff on any files, but autocomplete breaks so let's create a little alias
-diff() {
+gdiff() {
     git diff "$@"
 }
 
@@ -211,6 +211,11 @@ flatten() {
 chunk() {
     LINE_GROUP_SIZE="$(test "$1" && echo -L "$1")"
     xargs -d '\n' "$LINE_GROUP_SIZE" echo
+}
+
+# remove empty lines
+trim() {
+    sed '/^[ \t]*$/d'
 }
 
 # reverse input

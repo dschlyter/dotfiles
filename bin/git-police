@@ -5,7 +5,8 @@
 import subprocess
 import sys
 
-import datetime
+from datetime import datetime
+from datetime import timedelta
 import argparse
 
 def parse_args():
@@ -14,16 +15,32 @@ def parse_args():
             help='number of days in the history to go back (default 14)')
     parser.add_argument('-f', '--from', dest='from_date',
             help='start from a specific date YYYY-MM-DD')
+    parser.add_argument('-t', '--to', dest='to_date',
+            help='end at a specific date YYYY-MM-DD')
     parser.add_argument('-a', '--all', dest='all', action='store_true',
             help='scan full project history (ignore days)')
+    parser.add_argument('-g', '--good', dest='select_good', action='store_true',
+            help='list good commits instead of bad ones')
 
     args = parser.parse_args()
-    args.start_date = (datetime.datetime.now() - datetime.timedelta(days=args.days)).isoformat()
     if (args.from_date):
-        args.start_date = datetime.datetime.strptime(args.from_date, "%Y-%m-%d").isoformat()
+        args.start_date = parse_date(args.from_date)
+    else:
+        args.start_date = (datetime.now() - timedelta(days=args.days)).date().isoformat()
+
+    if (args.to_date):
+        args.end_date = parse_date(args.to_date)
+    else:
+        args.end_date = None
+
     if (args.all):
-        args.start_date = datetime.datetime.strptime("1970-01-01", "%Y-%m-%d").isoformat()
+        args.start_date = "1970-01-01"
+        args.end_date = None
+
     return args
+
+def parse_date(str):
+    return datetime.strptime(str, "%Y-%m-%d").date().isoformat()
 
 def run(command):
     if isinstance(command, str):
@@ -62,10 +79,10 @@ def index(commits):
 
 def start_commit_dfs(sha, index):
     selected = []
-    commit_dfs(sha, index, {}, selected)
+    commit_dfs(sha, index, {}, selected, False)
     return selected
 
-def commit_dfs(sha, index, visited, selected):
+def commit_dfs(sha, index, visited, selected, is_good):
     if not sha or visited.get(sha):
         return
     visited[sha] = True
@@ -74,15 +91,20 @@ def commit_dfs(sha, index, visited, selected):
     if is_pr(commit):
         # when a pull request is issued the branch that is merged in is always the second parent
         # thus if we follow the first parent, we are still on the original branch
-        commit_dfs(commit['parents'][0], index, visited, selected)
+        parents = commit['parents']
+        commit_dfs(parents[0], index, visited, selected, is_good)
+        if parents[1]:
+            commit_dfs(parents[1], index, visited, selected, True)
     else:
-        if not is_old(commit):
+        if in_time_interval(commit) and is_good == args.select_good:
             selected.append(commit)
         for parent_sha in commit['parents']:
-            commit_dfs(parent_sha, index, visited, selected)
+            commit_dfs(parent_sha, index, visited, selected, is_good)
 
-def is_old(commit):
-    return args.start_date > commit['msg']
+def in_time_interval(commit):
+    commit_date = commit['msg'][0:10]
+    return args.start_date <= commit_date and \
+            (args.end_date is None or commit_date <= args.end_date)
 
 def is_pr(commit):
     return "Merge pull request" in commit['msg']
