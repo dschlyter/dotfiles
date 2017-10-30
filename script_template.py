@@ -53,7 +53,6 @@ def load_conf(path):
 
 def save_conf(path, data):
     with open(path, 'w') as data_file:
-        print json.dumps(data)
         json.dump(data, data_file)
 
 main()
