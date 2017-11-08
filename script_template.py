@@ -28,10 +28,13 @@ def main():
 def run(command, shell=False, canFail=False, output=False):
     try:
         parsed = parse_command(command, shell)
-        stdout = subprocess.check_output(parsed)
-        if output:
-            print stdout
-        return stdout.strip()
+        if not output:
+            return subprocess.check_output(parsed).strip()
+        else:
+            ret_val = subprocess.call(parsed)
+            if ret_val != 0 and not canFail:
+                raise Exception("command returned "+ret_val)
+            return ret_val == 0
     except Exception as e:
         if canFail:
             return None
@@ -39,13 +42,20 @@ def run(command, shell=False, canFail=False, output=False):
             raise
 
 def parse_command(command, shell):
-    if isinstance(command, str):
-        if re.search("['\"|]", command):
+    command_list = parse_into_arguments(command, shell)
+    return map(lambda arg: arg.encode('ascii', 'replace'), command_list)
+
+def parse_into_arguments(command, shell):
+    if isinstance(command, str) or isinstance(command, unicode):
+        if re.search("['\"|><]", command):
             shell = True
         if shell:
             return ["bash", "-c", command]
         return command.split(" ")
-    return command
+    elif isinstance(command, list):
+        return command
+    else:
+        raise Exception("Unsupported type issued to command")
 
 def load_conf(path):
     with open(path, 'r') as data_file:
