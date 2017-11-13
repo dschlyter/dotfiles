@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Credit https://gist.github.com/mroderick/4472d26c77ca9b7febd0 (with a small fix)
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+echo "Merged branches"
+for branch in $(git branch -r --merged | awk '{print $1}' | grep -v HEAD | grep -v 'origin/master' | grep -v 'origin/develop' ); do
+    echo -e "$(git log --no-merges -n 1 --format="%ci, %cr, %an, %ae, " "$branch" | head -n 1)" \\t"$branch"
+done | sort -r
+
+echo ""
+echo "Not merged branches"
+
+for branch in $(git branch -r --no-merged | awk '{print $1}' | grep -v HEAD | grep -v 'origin/master' | grep -v 'origin/develop' ); do
+    echo -e "$(git log --no-merges -n 1 --format="%ci, %cr, %an, %ae, " "$branch" | head -n 1)" \\t"$branch"
+done | sort -r

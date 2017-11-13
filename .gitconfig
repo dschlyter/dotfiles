@@ -50,6 +50,7 @@
     st = status -sb
     di = diff
     cm = commit -v
+    pu = push -u
     br = branch
     rb = rebase
     co = checkout

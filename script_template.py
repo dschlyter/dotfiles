@@ -33,7 +33,7 @@ def run(command, shell=False, canFail=False, output=False):
         else:
             ret_val = subprocess.call(parsed)
             if ret_val != 0 and not canFail:
-                raise Exception("command returned "+ret_val)
+                raise Exception("command returned "+str(ret_val))
             return ret_val == 0
     except Exception as e:
         if canFail:
