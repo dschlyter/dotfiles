@@ -21,6 +21,9 @@ nnoremap <leader>4 :set shiftwidth=4<cr>
 " selection leader commands
 vnoremap <leader>G dGp<C-o>
 
+" search for selected text
+vnoremap <leader>n y/<C-R>"<CR>
+
 " handle buffers and tabs
 nnoremap <leader>o :only<cr>
 nnoremap <leader>b :bd<cr>

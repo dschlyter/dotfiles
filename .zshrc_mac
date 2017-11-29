@@ -65,6 +65,12 @@ alias claimspotify2="(cd /Applications; sudo find Spotify.app -exec chmod 775 {}
 alias cliamspotify='sudo find /Applications/Spotify.app -perm "+u+x" ! -perm "+o+x" -exec chmod og+x {} ;'
 alias fix-spotlight='sudo mdutil -E /'
 
+# modify brew to make sure files written work for multiple users
+function brew() {
+    umask 002
+    /usr/local/bin/brew "$@"
+}
+
 # brew convinience function
 BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
 function bup() {
@@ -72,10 +78,6 @@ function bup() {
     brew update && brew upgrade && date "+%s" > $BREW_UPDATE_FILE
 }
 
-function brew() {
-    umask 002
-    /usr/local/bin/brew "$@"
-}
 
 local NOW="$(date +%s)"
 local LAST_UPDATE="0$(cat $BREW_UPDATE_FILE)"

@@ -4,9 +4,9 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-say "Timer set to "$1" minutes"
+say "Timer set to $1 minutes"
 for i in $(seq "$1"); do
     sleep 60
     echo "$(($1 - i)) minutes left"
 done
-say beep beep beep. the time is up
+say "Time is up! $1 minutes have now passed"

@@ -73,6 +73,12 @@
   <action id="Annotate">
     <keyboard-shortcut first-keystroke="ctrl meta l" />
   </action>
+  <action id="ChooseDebugConfiguration">
+    <keyboard-shortcut first-keystroke="shift ctrl alt d" />
+  </action>
+  <action id="ChooseRunConfiguration">
+    <keyboard-shortcut first-keystroke="shift ctrl alt r" />
+  </action>
   <action id="CloseProject">
     <keyboard-shortcut first-keystroke="shift meta w" />
   </action>
@@ -85,6 +91,10 @@
   <action id="Console.TableResult.AddColumn" />
   <action id="Cursive.Repl.Command.figwheel">
     <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl f" />
+  </action>
+  <action id="Debug">
+    <keyboard-shortcut first-keystroke="ctrl d" />
+    <keyboard-shortcut first-keystroke="ctrl alt d" />
   </action>
   <action id="DuplicatesForm.SendToRight" />
   <action id="EditorJoinLines" />
@@ -141,6 +151,10 @@
   </action>
   <action id="Resume">
     <keyboard-shortcut first-keystroke="f9" />
+  </action>
+  <action id="Run">
+    <keyboard-shortcut first-keystroke="ctrl r" />
+    <keyboard-shortcut first-keystroke="ctrl alt r" />
   </action>
   <action id="ShowRecentTests">
     <keyboard-shortcut first-keystroke="shift meta semicolon" />

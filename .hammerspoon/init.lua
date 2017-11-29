@@ -370,10 +370,6 @@ hs.hotkey.bind({'alt'}, 'n', function()
     hs.eventtap.event.newKeyEvent({}, 'down', true):post()
 end)
 
-hs.hotkey.bind({'ctrl', 'alt'}, 'r', function()
-    os.execute('osascript switchMouse.AppleScript')
-end)
-
 -- spotify and audio hotkeys
 hs.hotkey.bind(modifierPrimary, ',', function()
     hs.spotify.previous()

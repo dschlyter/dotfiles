@@ -23,6 +23,8 @@ set surround
 nnoremap <leader>- yyp^v$r-
 nnoremap <leader>= yyp^v$r=
 nnoremap <leader>* I**<Esc>A**<Esc>
+" search for selected text
+vnoremap <leader>n y/<C-R>"<CR>
 
 noremap - mt.`tj
 noremap <Cr> o<Esc>
