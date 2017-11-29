@@ -76,10 +76,12 @@ def parse_into_arguments(command, shell):
         raise Exception("Unsupported type issued to command")
 
 
-def load_conf(path):
-    with open(path, 'r') as data_file:
-        return json.load(data_file)
-
+def load_conf(path, default_value=None):
+    try:
+        with open(path, 'r') as data_file:
+            return json.load(data_file)
+    except:
+        return default_value
 
 def save_conf(path, data):
     with open(path, 'w') as data_file:
