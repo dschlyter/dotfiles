@@ -74,6 +74,7 @@ alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc; rc"
 alias mt="mvn dependency:tree"
 alias mp="mvn clean package"
 alias gpl="gradle publishToMavenLocal"
+alias n="./run.sh"
 
 alias speedtest='time wget --output-document=/dev/null http://speedtest.tele2.net/100MB.zip'
 
@@ -125,7 +126,8 @@ vpn() {
 }
 
 addkey() {
-    ssh "$1" bash -c "mkdir -p .ssh; tee -a .ssh/authorized_keys" < ~/.ssh/id_rsa.pub
+    # you can pass flags like -p 4711  or -i custom-key
+    ssh "$@" bash -c "mkdir -p .ssh; tee -a .ssh/authorized_keys" < ~/.ssh/id_rsa.pub
 }
 
 p() {

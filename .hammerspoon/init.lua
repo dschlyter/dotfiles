@@ -452,7 +452,7 @@ end
 -- pro tip: use listWindows from console to find correct names
 local windowPresetTable = {}
 windowPresetTable["iTerm2"] = "internal"
-windowPresetTable["Spotify"] = "internal"
+windowPresetTable["Spotify"] = "secondary"
 windowPresetTable["IntelliJ IDEA"] = "main"
 windowPresetTable["Eclipse"] = "main"
 windowPresetTable["Google Chrome"] = "secondary"
