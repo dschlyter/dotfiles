@@ -103,7 +103,7 @@ date() {
         BINARY=$BREW_BINARY
     fi
     if [ "$*" ]; then
-        $BINARY $*
+        $BINARY "$@"
     else
         $BINARY -Is
     fi
@@ -111,6 +111,10 @@ date() {
 
 sst() {
     ssh -t "$@" tmux
+}
+
+tmux-d() {
+    tmux ls | cl 1 | tr -d ":" MAP tmux detach -s
 }
 
 vpn() {
@@ -379,6 +383,10 @@ d() {
 
 dco() {
     docker-compose "$@"
+}
+
+drun() {
+    docker run -it --rm --name "$1" "$1"
 }
 
 dsh() {
