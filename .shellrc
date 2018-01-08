@@ -60,7 +60,7 @@ alias se='sudoedit'
 alias vims='vim -S .vimsession'
 alias i='unset HISTFILE'
 
-alias groot='cd $(git rev-parse --show-cdup)'
+alias groot='cd "./$(git rev-parse --show-cdup)"'
 alias inet="ifconfig | grep -E '(^[a-z])|inet ' | grep -B 1 'inet '"
 
 ## Flags on by default
@@ -160,6 +160,18 @@ ckl() {
 vimd() {
     rm "$HOME/tmp/$1.swp"
     vim "$1"
+}
+
+got() {
+    groot &&
+    mkdir -p git-of-theseus-data &&
+    cd git-of-theseus-data &&
+    git-of-theseus-analyze .. &&
+    git-of-theseus-stack-plot authors.json --outfile got-authors.png &&
+    git-of-theseus-stack-plot cohorts.json --outfile got-cohorts.png &&
+    git-of-theseus-stack-plot exts.json --outfile got-exts.png &&
+    git-of-theseus-survival-plot survival.json --outfile got-survival.png &&
+    open got-*.png
 }
 
 # Functional-style helpers
