@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# git-of-theseus helper script
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+usage() {
+    echo "Usage: TODO"
+}
+
+analyse="yes"
+plot="yes"
+open="yes"
+
+while getopts ":hnpr" opt; do
+    case $opt in
+        h)
+            usage
+            exit 0
+            ;;
+        n)
+            analyse="yes"
+            plot=""
+            open=""
+            ;;
+        p)
+            analyse=""
+            plot="yes"
+            open=""
+            ;;
+        r)
+            analyse=""
+            plot="yes"
+            open="yes"
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+cd "./$(git rev-parse --show-cdup)" &&
+mkdir -p git-of-theseus-data &&
+cd git-of-theseus-data || return
+
+if [[ -n "$analyse" ]]; then
+    git-of-theseus-analyze --branch "$(git rev-parse --abbrev-ref HEAD)" .. || return
+fi
+
+if [[ -n "$plot" ]]; then
+    git-of-theseus-stack-plot authors.json --outfile got-authors.png &&
+    git-of-theseus-stack-plot cohorts.json --outfile got-cohorts.png &&
+    git-of-theseus-stack-plot exts.json --outfile got-exts.png &&
+    git-of-theseus-survival-plot survival.json --outfile got-survival.png || return
+fi
+
+if [[ -n "$open" ]]; then
+    open got-*.png
+fi
