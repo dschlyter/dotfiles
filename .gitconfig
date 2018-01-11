@@ -58,6 +58,7 @@
     cop = checkout -p
     cp = cherry-pick
 
+    # log and display
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
     lh = log --color --graph --date=iso --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
@@ -77,11 +78,10 @@
     # commit
     # patched commit with a file review and untracked sanity check first
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "Warning: Untracked files!" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
-    # fast forward another branch and push both that and current (ie. double push develop+master)
-    f2p = "!r() { BRANCH=\"$(git symbolic-ref --short -q HEAD)\"; git co $1 && git merge --ff-only \"$BRANCH\" && git push origin \"$1\" \"$BRANCH\"; }; r"
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # remove all whitespace changes
     rw=!sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git checkout "${@:-.}" && git reset'
+    bc = "!r() { git checkout -b $1 && git commit -p; }; r"
 
     # amend and rebase
     # amend without changing git commit message
@@ -91,12 +91,17 @@
     fixup = !sh -c '(git diff-files --quiet || (echo "Unstaged changes, please commit or stash with --keep-index" && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -
     fup = !sh -c 'git fixup "$(git select)"'
     select = "!r() { git log --pretty --oneline --decorate | fzf | awk '{print ""$""1}'; }; r"
+    cps = "!r() { git cherry-pick $(git select); }; r"
     # checkout/reset back n commits
     con = "!r() { COUNT=$1; shift; git co HEAD~$COUNT $@; }; r"
     rsn = "!r() { COUNT=$1; shift; git reset HEAD~$COUNT $@; }; r"
     rsm = branch -f master origin/master
     # rebase the last n commits
     rbn = "!r() { git rebase -i HEAD~$1; }; r"
+
+    # pushing
+    # fast forward another branch and push both that and current (ie. double push develop+master)
+    f2p = "!r() { BRANCH=\"$(git symbolic-ref --short -q HEAD)\"; git co $1 && git merge --ff-only \"$BRANCH\" && git push origin \"$1\" \"$BRANCH\"; }; r"
 
     # pulling changes more productively
     # fetch, prune removed remote branches and shortlog fetched changes
@@ -122,6 +127,7 @@
     # quick alias for setting upstream
     su = !sh -c 'git branch -u "origin/$(git rev-parse --abbrev-ref HEAD)"'
 
+    # tag management
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
     tv = "!f() { git tag -m \"Version $1\" $1; }; f"
     tagd = "!r() { git tag -d $1; git push origin --delete $1; }; r"
