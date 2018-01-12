@@ -40,6 +40,7 @@ link . .dotfiles
 link bin
 
 link .zshrc
+link .zgen_plugins
 bak_nonlink .bashrc
 link .bashrc
 link .shellrc
@@ -65,7 +66,7 @@ case "$(uname -s)" in
         link .zshrc_mac
         link .hammerspoon
 
-        INTELLIJ_PREFS="$(echo /Users/$USER/Library/Preferences/IntelliJIdea* | xargs -n 1 echo | tail -n 1)"
+        INTELLIJ_PREFS="$(echo "/Users/$USER/Library/Preferences/IntelliJIdea"* | xargs -n 1 echo | tail -n 1)"
         if [ -d "$INTELLIJ_PREFS" ]; then
             mkdir -p "$INTELLIJ_PREFS/keymaps"
             INTELLIJ_KEYMAP="intellij_mac_keys.xml"
@@ -73,7 +74,7 @@ case "$(uname -s)" in
             bak_nonlink "$TARGET"
             link "$INTELLIJ_KEYMAP" "$TARGET"
         else
-            echo $INTELLIJ_PREFS
+            echo "$INTELLIJ_PREFS"
             echo "IntelliJ preferences not found, skipping."
         fi
         ;;
@@ -106,12 +107,13 @@ else
     echo "zsh not found, please install and chsh manually"
 fi
 
-if [[ "$*" == *"--sub"* ]]; then
-    echo "Initializing submodules."
-    git submodule init
-    git submodule update
+if [[ "$*" == *"--zgen"* ]]; then
+    echo "Initializing zgen"
+    zg_dir="${HOME}/.zgen"
+    test -d "$zg_dir" && rm -rf "$zg_dir"
+    git clone https://github.com/tarjoilija/zgen.git "$zg_dir"
 else
-    echo "Not installing/updating submodules (syntax highlighting), run with --sub to enable"
+    echo "Not installing/updating zgen (zsh plugins), run with --zgen to enable" 
 fi
 
 if [[ "$*" == *"--fzf"* ]]; then

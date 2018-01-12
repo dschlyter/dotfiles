@@ -1,0 +1,20 @@
+# docs here https://github.com/tarjoilija/zgen
+
+zgen reset
+
+zgen load zsh-users/zsh-syntax-highlighting
+zgen load zsh-users/zsh-completions
+zgen load zsh-users/zsh-autosuggestions
+
+zgen oh-my-zsh plugins/pip
+zgen oh-my-zsh plugins/colored-man-pages
+
+# osx specific utilities
+# most notably: finder-path, finder-selection
+zgen load unixorn/tumult.plugin.zsh
+
+zgen load "docker/cli" "contrib/completion/zsh/"
+zgen load "docker/compose" "contrib/completion/zsh/"
+
+
+zgen save

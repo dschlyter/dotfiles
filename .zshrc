@@ -1,3 +1,28 @@
+# conf_load_start_time="$(gdate +%s%3N)"
+
+# Plugins
+# (it seems that this works best at the top of the config)
+
+source ~/.zgen/zgen.zsh
+
+if which zgen > /dev/null; then
+    # plugin conf - needs to be loaded everytime
+    typeset -A ZSH_HIGHLIGHT_STYLES
+    ZSH_HIGHLIGHT_STYLES[single-hyphen-option]='fg=cyan'
+    ZSH_HIGHLIGHT_STYLES[double-hyphen-option]='fg=cyan'
+    ZSH_HIGHLIGHT_STYLES[dollar-double-quoted-argument]='fg=cyan'
+    ZSH_HIGHLIGHT_STYLES[path]='fg=magenta,bold'
+    ZSH_HIGHLIGHT_STYLES[path_prefix]='fg=white,bold'
+
+    plugin_def="$HOME/.zgen_plugins"
+    if ! zgen saved || [[ "$plugin_def" -nt "$HOME/.zgen/init.zsh" ]]; then
+        # fix compaudit warnings
+        export ZGEN_COMPINIT_FLAGS="-u"
+        echo "zplug conf change detected, reinitializing"
+        source "$plugin_def"
+    fi
+fi
+
 # Aliases
 
 ## Conveniences
@@ -284,15 +309,11 @@ setopt histignorealldups        # removes duplicate commands, even if non-sequen
 
 export REPORTTIME=10 # print stats for commands running longer than 10 secs
 
-source_if_exists ~/.dotfiles/submodules/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-typeset -A ZSH_HIGHLIGHT_STYLES
-ZSH_HIGHLIGHT_STYLES[single-hyphen-option]='fg=cyan'
-ZSH_HIGHLIGHT_STYLES[double-hyphen-option]='fg=cyan'
-ZSH_HIGHLIGHT_STYLES[dollar-double-quoted-argument]='fg=cyan'
-ZSH_HIGHLIGHT_STYLES[path]='fg=magenta,bold'
-ZSH_HIGHLIGHT_STYLES[path_prefix]='fg=white,bold'
-
 # Overriding configs goes in .zshrc_local
 source_if_exists ~/.zshrc_local
 source_if_exists ~/.zshrc_cygwin
 source_if_exists ~/.zshrc_mac
+
+# 2018-01-11 macbook, 350 ms
+# 2018-01-11 macbook, after zplug installation, 250 ms, amazing
+# echo "time to load zshrc $(($(gdate +%s%3N) - conf_load_start_time)) ms"

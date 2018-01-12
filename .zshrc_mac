@@ -39,6 +39,11 @@ use_gnu find
 # use_gnu ls
 # use_gnu cp
 
+function cdf() {
+    # requires tumult plugin
+    cd $(finder-path)
+}
+
 # copy result from j into system clipboard, for use in gui apps
 function jf() {
     DIR="$(fasd -l -d -R "$@" | take 1)"

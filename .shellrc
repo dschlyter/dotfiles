@@ -162,18 +162,6 @@ vimd() {
     vim "$1"
 }
 
-got() {
-    groot &&
-    mkdir -p git-of-theseus-data &&
-    cd git-of-theseus-data &&
-    git-of-theseus-analyze .. &&
-    git-of-theseus-stack-plot authors.json --outfile got-authors.png &&
-    git-of-theseus-stack-plot cohorts.json --outfile got-cohorts.png &&
-    git-of-theseus-stack-plot exts.json --outfile got-exts.png &&
-    git-of-theseus-survival-plot survival.json --outfile got-survival.png &&
-    open got-*.png
-}
-
 # Functional-style helpers
 
 # print specific column(s)
@@ -389,13 +377,8 @@ timing() {
 # Docker utils
 #
 
-d() {
-    docker "$@"
-}
-
-dco() {
-    docker-compose "$@"
-}
+alias d=docker
+alias dco=docker-compose
 
 drun() {
     docker run -it --rm --name "$1" "$1"
