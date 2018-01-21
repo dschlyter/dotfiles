@@ -136,8 +136,12 @@ addkey() {
 
 p() {
     DOC=$1
-    if [ -n "$(echo ~/docs/plans/$DOC*)" ]; then
-        vim ~/docs/plans/"$DOC"*
+    if [ -n "$(echo ~/docs/plans/"$DOC"*)" ]; then
+        if [[ "$2" == "k" ]]; then
+            kvim ~/docs/plans/"$DOC"*
+        else
+            vim ~/docs/plans/"$DOC"*
+        fi
     else
         if ! [[ $DOC == *.txt ]]; then
             DOC="$DOC.txt"
