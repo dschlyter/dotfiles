@@ -8,6 +8,7 @@
 .idea
 *.iml
 .gradle
+.gradletasknamecache
 
 *.o
 a.out

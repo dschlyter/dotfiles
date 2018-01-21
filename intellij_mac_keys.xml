@@ -119,6 +119,9 @@
   <action id="ImportProject">
     <keyboard-shortcut first-keystroke="shift meta p" />
   </action>
+  <action id="MakeModule">
+    <keyboard-shortcut first-keystroke="shift alt m" />
+  </action>
   <action id="Maven.Reimport">
     <keyboard-shortcut first-keystroke="ctrl meta i" />
   </action>

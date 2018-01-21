@@ -127,6 +127,8 @@
     brc = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
     # quick alias for setting upstream
     su = !sh -c 'git branch -u "origin/$(git rev-parse --abbrev-ref HEAD)"'
+    # when you forget to create a feature branch and push on main
+    rbr = !"r() { branch=\"$(git symbolic-ref --short HEAD)\" && git branch -m \"$1\" && git branch \"$branch\" \"origin/$branch\"; }; r"
 
     # tag management
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
