@@ -1,0 +1,89 @@
+#!/usr/bin/python
+
+import argparse
+import subprocess
+import re
+
+import time
+from datetime import datetime
+from datetime import timedelta
+
+description="""Poor mans alarm\n
+            Requires: brew install spotify"""
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('hour', type=int,
+                        help='hour of alarm')
+    parser.add_argument('minute', type=int,
+                        help='minute of alarm')
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    now = datetime.now()
+    alarm = now.replace(hour=args.hour, minute=args.minute)
+    if alarm < now:
+        alarm = alarm + timedelta(days=1)
+    print "Alarm is set to", alarm
+
+    pm_format = alarm.strftime("%m/%d/%Y %H:%M:00")
+    print "Setting wakeup from sleep with pmset at", pm_format
+    run("sudo pmset schedule wake '"+pm_format+"'")
+
+    print "testing spotify (is speakers turned on etc)"
+    run("spotify play")
+    time.sleep(1)
+    run("spotify stop")
+
+    print "Waiting for alarm time"
+    while datetime.now() < alarm:
+        # TODO debug print, remove
+        print "script is awake", datetime.now()
+        time.sleep(60)
+
+    print "Starting spotify"
+    run("spotify play")
+
+
+# high level fire and forget execution
+def run(command, shell=False, can_fail=False, output=False):
+    parsed = parse_command(command, shell)
+    if not output:
+        try:
+            return subprocess.check_output(parsed).strip()
+        except subprocess.CalledProcessError as e:
+            if can_fail:
+                return None
+            else:
+                raise
+    else:
+        ret_val = subprocess.call(parsed)
+        if not can_fail and ret_val != 0:
+            raise Exception("command returned "+str(ret_val))
+        return ret_val == 0
+
+
+def parse_command(command, shell):
+    command_list = parse_into_arguments(command, shell)
+    return map(lambda arg: arg.encode('ascii', 'replace'), command_list)
+
+
+def parse_into_arguments(command, shell):
+    if isinstance(command, str) or isinstance(command, unicode):
+        if re.search("['\"|><]", command):
+            shell = True
+        if shell:
+            return ["bash", "-c", command]
+        return command.split(" ")
+    elif isinstance(command, list):
+        return command
+    else:
+        raise Exception("Unsupported type issued to command")
+
+
+if __name__ == '__main__':
+    main()

@@ -10,6 +10,7 @@ from tempfile import TemporaryFile
 
 description='TODO describe script'
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-c', '--counter', dest='counter', default=14, type=int,
@@ -21,6 +22,7 @@ def parse_args():
     parser.add_argument('second', nargs='?', default=42,
             help='optional trailing arg')
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
@@ -58,6 +60,7 @@ def execute(command, shell=False):
             t.seek(0)
             return {"ret": e.returncode, "stdout": None, "stderr": t.read().strip()}
 
+
 def parse_command(command, shell):
     command_list = parse_into_arguments(command, shell)
     return map(lambda arg: arg.encode('ascii', 'replace'), command_list)
@@ -83,8 +86,11 @@ def load_conf(path, default_value=None):
     except:
         return default_value
 
+
 def save_conf(path, data):
     with open(path, 'w') as data_file:
         json.dump(data, data_file)
 
-main()
+
+if __name__ == '__main__':
+    main()

@@ -31,6 +31,10 @@ add_to_path() {
     echo "_add_to_path '$(realpath $1)'" >> ~/.shellrc_local
 }
 
+path() {
+    echo "$PATH" | tr ":" "\n"
+}
+
 # Aliases
 
 alias ll='ls -l'

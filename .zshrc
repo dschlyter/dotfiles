@@ -37,6 +37,7 @@ alias -g L='| less'
 alias -g MAP='| xargs --no-run-if-empty -n 1'
 alias -g MAPI='| xargs --no-run-if-empty -n 1 -i'
 alias -g C1='| cl 1'
+alias -g GS='$(git select)'
 
 # Functions
 
