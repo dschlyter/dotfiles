@@ -97,6 +97,9 @@
     <keyboard-shortcut first-keystroke="ctrl alt d" />
   </action>
   <action id="DuplicatesForm.SendToRight" />
+  <action id="EditorDuplicateLines">
+    <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl v" />
+  </action>
   <action id="EditorJoinLines" />
   <action id="EditorToggleColumnMode" />
   <action id="FileChooser.GotoProject" />

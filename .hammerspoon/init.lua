@@ -35,19 +35,15 @@ hs.hotkey.bind(modifierFocus, 'j', function()
 end)
 
 hs.hotkey.bind(modifierFocus, 'l', function()
-    -- temp disable to learn new hotkeys
-
-    -- orChain(focusDirection("East", false), function()
-      --   focusWindowOnSameScreen(1)
-    -- end)
+    orChain(focusDirection("East", false), function()
+      focusWindowOnSameScreen(1)
+    end)
 end)
 
 hs.hotkey.bind(modifierFocus, 'h', function()
-    -- temp disable to learn new hotkeys
-
-    -- orChain(focusDirection("West", false), function()
-        -- focusWindowOnSameScreen(-1)
-    -- end)
+    orChain(focusDirection("West", false), function()
+        focusWindowOnSameScreen(-1)
+    end)
 end)
 
 -- alt tab between individual windows
@@ -691,6 +687,7 @@ function switchChain()
     local nextWindow = hs.window.get(chains[1][1])
     if nextWindow then
         nextWindow:focus()
+        hs.alert.show("Next chain")
     else
         table.remove(chains, 1)
     end
@@ -709,6 +706,7 @@ function createChain()
 
     if not currChainIndex then
         table.insert(chains, 1, {windowId})
+        hs.alert.show("Chain created")
     else
         table.remove(chains, currChainIndex)
         hs.alert.show("Chain deleted")
@@ -726,6 +724,7 @@ function includeInChain()
     local currIndex = indexOf(currChain, windowId)
     if currIndex == -1 then
         push(currChain, windowId)
+        hs.alert.show("Added to chain")
     elseif currIndex == 1 then
         hs.alert.show("Can't remove chain root")
     else
