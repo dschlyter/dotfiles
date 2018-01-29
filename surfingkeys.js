@@ -1,3 +1,5 @@
+// Load from: https://github.com/dschlyter/dotfiles/blob/master/surfingkeys.js
+
 // Coolest stuffs to remember
 /*
 alt-t - toggle
@@ -25,6 +27,21 @@ om - search marks
 
 // New key for toggle surfingkeys
 map('K', '<Alt-s>');
+
+// Disable surfingkeys for a second (allows for escaping application shortcuts)
+mapkey('-', 'Escape', function() {
+    toggleBlacklistSilent();
+    setTimeout(function() { toggleBlacklistSilent(); }, 1000);
+});
+
+// Copy of the source code to toggle surfingkeys, but avoid showing popup https://github.com/brookhong/Surfingkeys/blob/master/content_scripts/normal.js#L351
+// This depends on internal details and may break in the future
+function toggleBlacklistSilent() {
+    runtime.command({
+        action: 'toggleBlacklist',
+        blacklistPattern: (runtime.conf.blacklistPattern ? runtime.conf.blacklistPattern.toJSON() : "")
+    });
+}
 
 // Enable ctrl-c
 vmapkey('<Ctrl-c>', 'Abort', function() {
