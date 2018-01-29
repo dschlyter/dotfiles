@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Print each argument on a new line, mostly for testing how arguments gets passed
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+while [[ -n "${1:-}" ]]; do
+    echo "$1"
+    shift
+done

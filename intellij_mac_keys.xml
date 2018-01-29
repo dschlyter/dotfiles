@@ -78,6 +78,7 @@
   </action>
   <action id="ChooseRunConfiguration">
     <keyboard-shortcut first-keystroke="shift ctrl alt r" />
+    <keyboard-shortcut first-keystroke="ctrl meta alt r" />
   </action>
   <action id="CloseProject">
     <keyboard-shortcut first-keystroke="shift meta w" />
