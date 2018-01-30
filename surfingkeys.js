@@ -1,4 +1,4 @@
-// Load from: https://github.com/dschlyter/dotfiles/blob/master/surfingkeys.js
+// Load from: https://raw.githubusercontent.com/dschlyter/dotfiles/master/surfingkeys.js
 
 // Coolest stuffs to remember
 /*
@@ -27,6 +27,11 @@ om - search marks
 
 // NO EMOJI!
 settings.startToShowEmoji = 9001
+
+// Unmap specific keys, on specific domains
+unmap('t', /inbox.google.com/);
+unmap('.', /jira./);
+unmap('i', /jira./);
 
 // New key for toggle surfingkeys
 map('K', '<Alt-s>');
