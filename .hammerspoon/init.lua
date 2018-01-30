@@ -514,22 +514,53 @@ hs.hotkey.bind(modifierResize, 'p', function()
     positionWindowsByPreset()
 end)
 
-local savedApps = {}
-
 -- quickly close and restore open apps (useful before user switching)
 ---------------------------------------------------------------------
+
+local savedApps = {}
 
 hs.hotkey.bind(modifierResize, 'a', function()
     restoreApps()
 end)
 
 hs.hotkey.bind(modifierResize, 'z', function()
+    saveTimestamp()
     saveApps()
 end)
 
 hs.hotkey.bind(modifierResize, 'x', function()
     hs.caffeinate.systemSleep()
 end)
+
+local lastSave = 0
+local saveFile = "/tmp/hammerspoon-save"
+
+function saveTimestamp()
+    lastSave = os.time()
+
+    f = io.open(saveFile, "w")
+    f:write(lastSave)
+    f:close()
+end
+
+function checkForAutorestore()
+    log.d("Checking for automatic restore of apps")
+    if #savedApps <= 0 then
+        return
+    end
+
+    f = io.open(saveFile, "r")
+    if f then
+        local fileTime = f:read("*all")
+        if tonumber(fileTime) > lastSave then
+            log.d("Found saved timestamp from another user, initiating restore")
+            restoreApps()
+        else
+            log.d("Saved apps are the most recent change")
+        end
+        f:close()
+    end
+end
 
 function saveApps()
     local savedAppsBlacklist = Set{"Hammerspoon", "Finder"}
@@ -945,6 +976,7 @@ end
 
 hs.caffeinate.watcher.new(function(event)
     if (event == hs.caffeinate.watcher.systemDidWake) then
+        checkForAutorestore()
         restartScrollReverser()
     end
 end):start()
