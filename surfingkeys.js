@@ -33,6 +33,10 @@ unmap('t', /inbox.google.com/);
 unmap('.', /jira./);
 unmap('i', /jira./);
 
+// These are too common as app shortcuts, and not used much
+unmap('j');
+unmap('k');
+
 // New key for toggle surfingkeys
 map('K', '<Alt-s>');
 
