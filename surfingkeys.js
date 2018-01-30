@@ -26,7 +26,7 @@ om - search marks
 */
 
 // NO EMOJI!
-settings.startToShowEmoji = 9001
+iunmap(":");
 
 // Unmap specific keys, on specific domains
 unmap('t', /inbox.google.com/);

@@ -3,6 +3,7 @@
 import argparse
 import subprocess
 import re
+import os.path
 
 import time
 from datetime import datetime
@@ -32,7 +33,11 @@ def main():
 
     pm_format = alarm.strftime("%m/%d/%Y %H:%M:00")
     print "Setting wakeup from sleep with pmset at", pm_format
-    run("sudo pmset schedule wake '"+pm_format+"'")
+    # install this file to run without password
+    if os.path.isfile("/opt/sudo/wake"):
+        run("sudo /opt/sudo/wake '"+pm_format+"'")
+    else:
+        run("sudo pmset schedule wake '"+pm_format+"'")
 
     print "testing spotify (is speakers turned on etc)"
     run("spotify play")
