@@ -25,6 +25,9 @@ ox - recently closed search
 om - search marks
 */
 
+// NO EMOJI!
+settings.startToShowEmoji = 9001
+
 // New key for toggle surfingkeys
 map('K', '<Alt-s>');
 
