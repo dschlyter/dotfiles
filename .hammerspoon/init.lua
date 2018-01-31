@@ -538,9 +538,13 @@ local saveFile = "/tmp/hammerspoon-save"
 function saveTimestamp()
     lastSave = os.time()
 
-    f = io.open(saveFile, "w")
-    f:write(lastSave)
-    f:close()
+    local f = io.open(saveFile, "w")
+    if f then
+        f:write(lastSave)
+        f:close()
+    else
+        hs.alert.show("Error saving timestamp, write permission error?")
+    end
 end
 
 function checkForAutorestore()
@@ -549,7 +553,7 @@ function checkForAutorestore()
         return
     end
 
-    f = io.open(saveFile, "r")
+    local f = io.open(saveFile, "r")
     if f then
         local fileTime = f:read("*all")
         if tonumber(fileTime) > lastSave then
