@@ -30,12 +30,14 @@ iunmap(":");
 
 // Unmap specific keys, on specific domains
 unmap('t', /inbox.google.com/);
+unmap('g', /mail.google.com/);
 unmap('.', /jira./);
 unmap('i', /jira./);
 
 // These are too common as app shortcuts, and not used much
 unmap('j');
 unmap('k');
+unmap('e');
 
 // New key for toggle surfingkeys
 map('K', '<Alt-s>');
