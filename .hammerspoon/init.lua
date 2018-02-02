@@ -524,8 +524,9 @@ hs.hotkey.bind(modifierResize, 'a', function()
 end)
 
 hs.hotkey.bind(modifierResize, 'z', function()
-    saveTimestamp()
     saveApps()
+    saveTimestamp()
+    hs.timer.waitUntil(shouldAutorestore, runAutorestore, 15)
 end)
 
 hs.hotkey.bind(modifierResize, 'x', function()
@@ -547,24 +548,28 @@ function saveTimestamp()
     end
 end
 
-function checkForAutorestore()
+function shouldAutorestore()
     log.d("Checking for automatic restore of apps")
     if #savedApps <= 0 then
-        return
+        return false
     end
 
     local f = io.open(saveFile, "r")
     if f then
         local fileTime = f:read("*all")
         if tonumber(fileTime) > lastSave then
-            log.d("Found saved timestamp from another user, initiating restore")
-            restoreApps()
-        else
-            log.d("Saved apps are the most recent change")
+            return true
         end
         f:close()
     end
+    return false
 end
+
+function runAutorestore()
+    log.d("Initiating automatic restore")
+    restoreApps()
+end
+
 
 function saveApps()
     local savedAppsBlacklist = Set{"Hammerspoon", "Finder"}
@@ -980,7 +985,6 @@ end
 
 hs.caffeinate.watcher.new(function(event)
     if (event == hs.caffeinate.watcher.systemDidWake) then
-        checkForAutorestore()
         restartScrollReverser()
     end
 end):start()
