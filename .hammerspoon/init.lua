@@ -526,7 +526,7 @@ end)
 hs.hotkey.bind(modifierResize, 'z', function()
     saveApps()
     saveTimestamp()
-    hs.timer.waitUntil(shouldAutorestore, runAutorestore, 15)
+    -- hs.timer.waitUntil(shouldAutorestore, runAutorestore, 15)
 end)
 
 hs.hotkey.bind(modifierResize, 'x', function()
@@ -545,6 +545,12 @@ function saveTimestamp()
         f:close()
     else
         hs.alert.show("Error saving timestamp, write permission error?")
+    end
+end
+
+function checkForAutoRestore()
+    if shouldAutorestore() then
+        runAutorestore()
     end
 end
 
@@ -984,6 +990,7 @@ end
 -------------------------------------------------------------------
 
 hs.caffeinate.watcher.new(function(event)
+    log.d(event)
     if (event == hs.caffeinate.watcher.systemDidWake) then
         restartScrollReverser()
     end
@@ -993,3 +1000,10 @@ function restartScrollReverser()
     log.d("Restarting scroll reverser after sleep wakeup")
     os.execute('pkill "Scroll Reverser" && open "/Applications/Scroll Reverser.app"')
 end
+
+hs.wifi.watcher.new(function(watcher, message, interface)
+    log.d("Wifi change detected")
+    if hs.wifi.currentNetwork("en0") ~= nil then
+        checkForAutoRestore()
+    end
+end):start()
