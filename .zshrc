@@ -221,6 +221,11 @@ bindkey -M vicmd '^E' end-of-line
 bindkey -M vicmd '^K' up-line-or-history
 bindkey -M vicmd '^J' down-line-or-history
 
+# edit command in editor with v key
+autoload -U edit-command-line
+zle -N edit-command-line
+bindkey -M vicmd v edit-command-line
+
 # Toggle vim with Ctrl-Z
 # Should be after bindkey -v
 foreground-vim() {

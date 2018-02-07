@@ -49,6 +49,7 @@
     # shorthands with good defaults
     st = status -sb
     di = diff
+    dic = diff --cached
     cm = commit -v
     pu = push -u
     br = branch

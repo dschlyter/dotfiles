@@ -77,6 +77,7 @@ alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc; rc"
 
 alias mt="mvn dependency:tree"
 alias mp="mvn clean package"
+alias mi="mvn clean install"
 alias gpl="gradle publishToMavenLocal"
 alias n="./run.sh"
 
