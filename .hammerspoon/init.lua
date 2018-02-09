@@ -526,18 +526,20 @@ end)
 hs.hotkey.bind(modifierResize, 'z', function()
     saveApps()
     saveTimestamp()
-    -- hs.timer.waitUntil(shouldAutorestore, runAutorestore, 15)
+    hs.timer.waitUntil(shouldAutorestore, runAutorestore, 15)
 end)
 
 hs.hotkey.bind(modifierResize, 'x', function()
     hs.caffeinate.systemSleep()
 end)
 
+local lastWifi = "none"
 local lastSave = 0
 local saveFile = "/tmp/hammerspoon-save"
 
 function saveTimestamp()
     lastSave = os.time()
+    lastWifi = getWifi()
 
     local f = io.open(saveFile, "w")
     if f then
@@ -554,21 +556,33 @@ function checkForAutoRestore()
     end
 end
 
+function getWifi()
+    return hs.wifi.currentNetwork("en0")
+end
+
 function shouldAutorestore()
     log.d("Checking for automatic restore of apps")
     if #savedApps <= 0 then
+        log.d("No saved apps")
         return false
     end
 
     local f = io.open(saveFile, "r")
     if f then
         local fileTime = f:read("*all")
-        if tonumber(fileTime) > lastSave then
-            return true
-        end
         f:close()
+        if tonumber(fileTime) <= lastSave then
+            log.d("No more recent save")
+            return false
+        end
     end
-    return false
+
+    if getWifi() ~= lastWifi then
+        log.d("Not on wifi "+lastWifi)
+        return false
+    end
+
+    return true
 end
 
 function runAutorestore()
@@ -990,7 +1004,6 @@ end
 -------------------------------------------------------------------
 
 hs.caffeinate.watcher.new(function(event)
-    log.d(event)
     if (event == hs.caffeinate.watcher.systemDidWake) then
         restartScrollReverser()
     end
@@ -1000,10 +1013,3 @@ function restartScrollReverser()
     log.d("Restarting scroll reverser after sleep wakeup")
     os.execute('pkill "Scroll Reverser" && open "/Applications/Scroll Reverser.app"')
 end
-
-hs.wifi.watcher.new(function(watcher, message, interface)
-    log.d("Wifi change detected")
-    if hs.wifi.currentNetwork("en0") ~= nil then
-        checkForAutoRestore()
-    end
-end):start()
