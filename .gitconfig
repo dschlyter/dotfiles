@@ -99,6 +99,7 @@
     rsm = branch -f master origin/master
     # rebase the last n commits
     rbn = "!r() { git rebase -i HEAD~$1; }; r"
+    # rebase on mainline
 
     # pushing
     # fast forward another branch and push both that and current (ie. double push develop+master)
@@ -120,6 +121,7 @@
     urb = !sh -c 'git up $1 && git rebase --autostash $1' -
     mup = !git up master
     mur = !git urb master
+    ur = "!r() { git urb $(git rev-parse develop > /dev/null 2>&1 && echo develop || echo master); }; r"
 
     # branch management
     # branch cleanup
