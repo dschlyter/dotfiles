@@ -1,0 +1,26 @@
+#!/usr/bin/python
+
+import argparse
+import os
+import random
+
+description='Generates an xkcd password'
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=description)
+    return parser.parse_args()
+
+
+def main():
+    script_location = os.path.realpath(__file__)
+    curr_dir = os.path.dirname(script_location)
+    with open(curr_dir + "/data/common-words", 'r') as f:
+        words = f.read().splitlines()
+        r = random.SystemRandom()
+        selected = []
+        for i in range(4):
+            index = r.randint(0, len(words))
+            selected.append(words[index])
+        print "-".join(selected)
+
+main()

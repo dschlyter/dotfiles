@@ -78,6 +78,7 @@ alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc; rc"
 alias mt="mvn dependency:tree"
 alias mp="mvn clean package"
 alias mi="mvn clean install"
+alias mia="mvn -Dmaven.test.failure.ignore=true --fail-at-end clean install"
 alias gpl="gradle publishToMavenLocal"
 alias n="./run.sh"
 
