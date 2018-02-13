@@ -535,7 +535,7 @@ end)
 
 local lastWifi = "none"
 local lastSave = 0
-local saveFile = "/tmp/hammerspoon-save"
+local saveFile = "/opt/data/hammerspoon-save"
 
 function saveTimestamp()
     lastSave = os.time()
