@@ -524,9 +524,13 @@ hs.hotkey.bind(modifierResize, 'a', function()
 end)
 
 hs.hotkey.bind(modifierResize, 'z', function()
+    if not savedAppsExist() then
+        hs.timer.doWhile(savedAppsExist, checkForAutoRestore, 15)
+    else
+        log.d("Not starting timer, there should already be one running")
+    end
     saveApps()
     saveTimestamp()
-    hs.timer.waitUntil(shouldAutorestore, runAutorestore, 15)
 end)
 
 hs.hotkey.bind(modifierResize, 'x', function()
@@ -550,6 +554,10 @@ function saveTimestamp()
     end
 end
 
+function savedAppsExist()
+    return #savedApps > 0
+end
+
 function checkForAutoRestore()
     if shouldAutorestore() then
         runAutorestore()
@@ -562,7 +570,7 @@ end
 
 function shouldAutorestore()
     log.d("Checking for automatic restore of apps")
-    if #savedApps <= 0 then
+    if not savedAppsExist() then
         log.d("No saved apps")
         return false
     end
