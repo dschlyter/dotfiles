@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# set a hostname quickly
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+usage() {
+    echo "set-host <hostname> <ip>"
+}
+
+if [[ -z "${2:-}" ]]; then
+    usage
+    exit 1
+fi
+
+hosts="/etc/hosts"
+
+sudo ${GNU_PREFIX}sed -i "/\\s$1$/d" "$hosts"
+sudo bash -c "echo '$2' '$1' >> '$hosts'"

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# simple script to transform pbcopy from a piped command to a argument command
+# this is needed for the nnn file manager to use as a copy command
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+echo -n "$1" | pbcopy

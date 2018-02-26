@@ -2,6 +2,10 @@
 
 _add_to_path ~/.dotfiles/bin/mac
 
+#
+# Aliases
+#
+
 # display power management log for current day (mostly interesting for display lock / unlock times)
 alias pmlog='open $(echo /var/log/powermanagement/2* | xargs -n 1 echo | tail -n 1)'
 alias o='open'
@@ -11,15 +15,50 @@ alias sshot='screencapture -T 2 -t png -P screenshot.png'
 
 alias -g PC='| pbcopy'
 
+#
+# Util functions
+#
+
 function free() {
     vm_stat | perl -ne '/page size of (\d+)/ and $size=$1; /Pages\s+([^:]+)[^\d]+(\d+)/ and printf("%-16s % 16.2f Mi\n", "$1:", $2 * $size / 1048576);'
 }
 
-# set iterm title to current dir
-# credit to https://gist.github.com/phette23/5270658
-precmd() {
-    echo -ne "\e]1;${PWD##*/}\a"
+function port_user() {
+    lsof -i tcp:"$1"
 }
+
+
+function cdf() {
+    # requires tumult plugin
+    cd $(finder-path)
+}
+
+# copy result from j into system clipboard, for use in gui apps
+function jf() {
+    DIR="$(fasd -l -d -R "$@" | take 1)"
+    echo "$DIR"
+    echo "$DIR" | pbcopy
+}
+
+function handlemail() {
+    cat /var/mail/$USER
+    sudo rm /var/mail/$USER
+}
+
+# multi-user spotify can be buggy
+# TODO remove one of these?
+alias claimspotify2="(cd /Applications; sudo find Spotify.app -exec chmod 775 {} \;)"
+alias cliamspotify='sudo find /Applications/Spotify.app -perm "+u+x" ! -perm "+o+x" -exec chmod og+x {} ;'
+alias fix-spotlight='sudo mdutil -E /'
+
+
+#
+# GNU utils
+#
+
+# quick hack to make writing shell functions easier (even if reusability/porability suffers)
+# run the correct executable on any OS with ${GNU_PREFIX}ls
+export GNU_PREFIX="g"
 
 # use updated coreutils and findutils from homebrew by default
 function use_gnu() {
@@ -43,36 +82,9 @@ use_gnu find
 # use_gnu ls
 # use_gnu cp
 
-function cdf() {
-    # requires tumult plugin
-    cd $(finder-path)
-}
-
-# copy result from j into system clipboard, for use in gui apps
-function jf() {
-    DIR="$(fasd -l -d -R "$@" | take 1)"
-    echo "$DIR"
-    echo "$DIR" | pbcopy
-}
-
-# quick hack to make writing shell functions easier (even if reusability/porability suffers)
-# run the correct executable on any OS with ${GNU_PREFIX}ls
-export GNU_PREFIX="g"
-
-function handlemail() {
-    cat /var/mail/$USER
-    sudo rm /var/mail/$USER
-}
-
-# mutli-user brew can be a bit buggy, a hack to work around it
-# TODO remove
-alias claimbrew="sudo chmod -R g+rw /usr/local; sudo chgrp -R brew /usr/local"
-
-# multi-user spotify can be buggy
-# TODO remove one of these?
-alias claimspotify2="(cd /Applications; sudo find Spotify.app -exec chmod 775 {} \;)"
-alias cliamspotify='sudo find /Applications/Spotify.app -perm "+u+x" ! -perm "+o+x" -exec chmod og+x {} ;'
-alias fix-spotlight='sudo mdutil -E /'
+#
+# Homebrew
+#
 
 # modify brew to make sure files written work for multiple users
 function brew() {
@@ -95,5 +107,18 @@ if [ $DIFF_DAYS -gt 7 ]; then
     echo "Homebrew has not been upgraded in $DIFF_DAYS days. Run upgrade with 'bup'"
 fi
 
+#
+# Other settings
+#
+
+export NNN_COPIER="copier"
+
+
 # set tty for gpg
 export GPG_TTY=$(tty)
+
+# set iterm title to current dir
+# credit to https://gist.github.com/phette23/5270658
+precmd() {
+    echo -ne "\e]1;${PWD##*/}\a"
+}

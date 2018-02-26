@@ -80,7 +80,7 @@ alias mp="mvn clean package"
 alias mi="mvn clean install"
 alias mia="mvn -Dmaven.test.failure.ignore=true --fail-at-end clean install"
 alias gpl="gradle publishToMavenLocal"
-alias n="./run.sh"
+alias run="./run.sh"
 
 alias speedtest='time wget --output-document=/dev/null http://speedtest.tele2.net/100MB.zip'
 
@@ -286,6 +286,20 @@ function s() {
         cat "$@"
     fi
 }
+
+# Seamless switch in and out of n
+
+export NNN_TMPFILE="/tmp/nnn"
+n() {
+    nnn "$@"
+
+    if [ -f $NNN_TMPFILE ]; then
+        . $NNN_TMPFILE
+        rm $NNN_TMPFILE
+    fi
+}
+
+# Other file helpers
 
 fixenc() {
     mv "$1" "$1.orig"
