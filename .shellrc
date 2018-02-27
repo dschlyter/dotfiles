@@ -301,6 +301,11 @@ n() {
 
 # Other file helpers
 
+tabsvsspaces() {
+    echo "Tabs: $(grep -r "^\\t" . | wc -l)"
+    echo "Spaces: $(grep -r "^  " . | wc -l)"
+}
+
 fixenc() {
     mv "$1" "$1.orig"
     iconv -f ISO-8859-1 -t UTF-8 "$1.orig" > "$1"

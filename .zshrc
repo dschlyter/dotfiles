@@ -3,7 +3,8 @@
 # Plugins
 # (it seems that this works best at the top of the config)
 
-source ~/.zgen/zgen.zsh
+zgen_conf=~/.zgen/zgen.zsh
+test -f "$zgen_conf" && source "$zgen_conf"
 
 if which zgen > /dev/null; then
     # plugin conf - needs to be loaded everytime
