@@ -586,7 +586,7 @@ function shouldAutorestore()
     end
 
     if getWifi() ~= lastWifi then
-        log.d("Not on wifi "+lastWifi)
+        log.d("Not on wifi " .. lastWifi)
         return false
     end
 
