@@ -49,10 +49,11 @@ end)
 -- alt tab between individual windows
 -------------------------------------
 
-switcher_space = hs.window.switcher.new(hs.window.filter.new():setCurrentSpace(true):setDefaultFilter{},
-    {showTitles = false, showSelectedThumbnail = false})
-hs.hotkey.bind({'alt'},'tab',nil,function()switcher_space:next()end)
-hs.hotkey.bind({'alt', 'shift'},'tab',nil,function()switcher_space:previous()end)
+-- crashes on startup, some kind of hammerspoon bug?
+-- switcher_space = hs.window.switcher.new(hs.window.filter.new():setCurrentSpace(true):setDefaultFilter{},
+    -- {showTitles = false, showSelectedThumbnail = false})
+-- hs.hotkey.bind({'alt'},'tab',nil,function()switcher_space:next()end)
+-- hs.hotkey.bind({'alt', 'shift'},'tab',nil,function()switcher_space:previous()end)
 
 -- reimplements focusWindowX with less buggy and more powerful functionality
 -- first try to find the best window, then fallback to all windows in that direction

@@ -259,6 +259,19 @@ cdt() {
     cd "$(dirname "$FILE")" || return 1
 }
 
+# raise a dir one level, having it consume the parent dir
+raise() {
+    if [[ ! -d "$1" ]]; then
+        echo "Usage: raise dir-to-be-removed"
+        return 0
+    fi
+    tmp="$1-raised-tmp"
+    # rename to avoid the common name conflict with nested dirs
+    mv "$1" "$tmp"
+    mv "$tmp"/* "$tmp"/..
+    rmdir "$tmp"
+}
+
 u() {
     if [ -z "$1" ]; then
         cd ..
