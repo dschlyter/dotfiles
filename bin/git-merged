@@ -6,14 +6,49 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-echo "Merged branches"
+usage() {
+    echo "Usage:"
+    echo "git-merged # list merged and unmerged branches"
+    echo "git-merged purge # delete all merged branches older than a week from remote"
+}
+
+case "${1:-}" in
+    purge)
+        mode="purge"
+        ;;
+    "")
+        mode="list"
+        ;;
+    *)
+        usage
+        exit 0
+esac
+
+print_branch() {
+    branch="$1"
+    echo "$(git log --no-merges -n 1 --format="%ci, %cr, %an, %ae, " "$branch" | head -n 1)" \\t"$branch"
+}
+
+if [ "$mode" == "list" ]; then
+    echo "Merged branches"
+fi
+
 for branch in $(git branch -r --merged | awk '{print $1}' | grep -v HEAD | grep -v 'origin/master' | grep -v 'origin/develop' ); do
-    echo -e "$(git log --no-merges -n 1 --format="%ci, %cr, %an, %ae, " "$branch" | head -n 1)" \\t"$branch"
+    if [ "$mode" == "list" ]; then
+        print_branch "$branch"
+    elif [ "$mode" == "purge" ]; then
+        if [ -n "$(git log -1 --before='1 week ago' -s "$branch")" ]; then
+            git push origin --delete "${branch/origin\//}"
+            echo "deleted $(print_branch "$branch")"
+        fi
+    fi
 done | sort -r
 
-echo ""
-echo "Not merged branches"
+if [ "$mode" == "list" ]; then
+    echo ""
+    echo "Not merged branches"
 
-for branch in $(git branch -r --no-merged | awk '{print $1}' | grep -v HEAD | grep -v 'origin/master' | grep -v 'origin/develop' ); do
-    echo -e "$(git log --no-merges -n 1 --format="%ci, %cr, %an, %ae, " "$branch" | head -n 1)" \\t"$branch"
-done | sort -r
+    for branch in $(git branch -r --no-merged | awk '{print $1}' | grep -v HEAD | grep -v 'origin/master' | grep -v 'origin/develop' ); do
+        print_branch "$branch"
+    done | sort -r
+fi

@@ -43,6 +43,7 @@ alias lla='ls -la'
 alias lal='ls -la'
 alias lt='ls -ltr'
 alias ltr='ls -ltr **/*(.)'
+alias ltd='ls -dltr */'
 alias lv='ls -v'
 
 alias td='tree -d -L 3'
