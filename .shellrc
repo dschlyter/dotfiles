@@ -53,6 +53,7 @@ alias st="git st"
 alias di="git diff"
 alias lg="git lg"
 alias add="git add"
+alias ai="git add -i"
 alias fe="git fe"
 alias rb="git rb"
 alias cm="git cm"
@@ -212,6 +213,10 @@ takeUntil() {
 dropUntil() {
     COUNT=${2:-1}
     awk "BEGIN {p=0}; /$1/ {p+=1}; p >= $COUNT"
+}
+
+dropLong() {
+    sed '/^.\{200\}./d'
 }
 
 # distinct lines without requiring sort like: sort | uniq
