@@ -1,12 +1,18 @@
 #!/bin/bash
 
-# no set -e because we want commands to always run
+# no set -e because we want commands to always run, and we want wordsplit
 
 RUNNING="$(docker ps | awk '{print $1}' | tail -n +2)"
 for CONTAINER in $RUNNING; do
     docker kill "$CONTAINER"
 done
 
-docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
-docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2>/dev/null
-docker volume prune -f
+docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2> /dev/null
+docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2> /dev/null
+
+if [[ "$1" == "volumes" ]]; then
+    docker volume prune -f
+else
+    echo "Not removing volumes, run '$0 volumes' to remove. These volumes exist"
+    docker volume ls
+fi
