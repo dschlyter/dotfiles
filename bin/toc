@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+
+import argparse
+
+
+description='Allows for quickly reading markdown files by 1. printing a table of contents 2. Printing just the content under a title'
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('file',
+            help='markdown file')
+    parser.add_argument('title', nargs='?',
+            help='title substring')
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    title = args.title
+    with open(args.file) as f:
+        lines = f.readlines()
+
+        # without title arg, print all titles
+        if title is None:
+            for i in range(len(lines)):
+                if is_heading(lines, i):
+                    print(lines[i], end="")
+
+        # with title arg, print all content under that title
+        else:
+            should_print = False
+            for i in range(len(lines)):
+                if is_heading(lines, i):
+                    should_print = title.lower() in lines[i].lower()
+                if should_print:
+                    print(lines[i], end="")
+
+def is_heading(lines, i):
+    if lines[i].startswith("#"):
+        return True
+    if i+1 < len(lines) and (lines[i+1].startswith("---") or lines[i+1].startswith("===")):
+        return True
+    return False
+
+
+if __name__ == '__main__':
+    main()

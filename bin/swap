@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Swap two files, at most one them must exist. I.e. swap myFile myFile.bak
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+usage() {
+    echo "Usage: TODO"
+}
+
+file1="$1"
+file2="$2"
+tmp_file="${file1}-swap$$"
+
+if [[ ! -e "$file1" && ! -e "$file2" ]]; then
+    echo "None of the files exist"
+    exit 1
+fi
+
+if [[ -e "$file2" ]]; then
+    mv "$file2" "$tmp_file"
+fi
+
+if [[ -e "$file1" ]]; then
+    echo "mv $file1 -> $file2"
+    mv "$file1" "$file2"
+fi
+
+if [[ -e "$tmp_file" ]]; then
+    echo "mv $file2 -> $file1"
+    mv "$tmp_file" "$file1"
+fi
