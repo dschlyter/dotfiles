@@ -601,17 +601,18 @@ end
 
 
 function saveApps()
+    local appsWithoutWindowsToKill = Set{"Docker"}
     local savedAppsBlacklist = Set{"Hammerspoon", "Finder"}
 
     for i,app in pairs(hs.application.runningApplications()) do
-        if #app:visibleWindows() > 0 and not savedAppsBlacklist[app:name()] then
+        if (#app:visibleWindows() > 0 or appsWithoutWindowsToKill[app:name()]) and not savedAppsBlacklist[app:name()] then
             table.insert(savedApps, app:name())
         end
     end
 
     log.d("Saving " .. #savedApps .. " apps " .. dumpList(savedApps))
     killAll(savedApps)
-    killDocker()
+    -- killDocker()
     killSessions()
 end
 
@@ -655,6 +656,7 @@ function killAll(appNames)
     end
 end
 
+-- TODO maybe remove if killing the docker application works well
 function killDocker()
     log.d("Killing docker")
     os.execute('bash -c "export PATH="$PATH:/usr/local/bin"; /Users/'..user..'/bin/dnuke"')

@@ -18,6 +18,10 @@ nnoremap <leader>q _v$h"qy
 nnoremap <leader>2 :set shiftwidth=2<cr>
 nnoremap <leader>4 :set shiftwidth=4<cr>
 
+" quick hex editor
+nnoremap <leader>xd :% ! xxd<cr>
+nnoremap <leader>xr :% ! xxd -r<cr>
+
 " selection leader commands
 vnoremap <leader>G dGp<C-o>
 nnoremap <leader>G VdGp<C-o>
