@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Sum the first digit of all lines, ignoring leading whitespace and trailing text
+# Primariliy intended to be called from vim with !fsum
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+grep -oE "^ *[0-9]+" | awk '{s+=$1} END {print s}'

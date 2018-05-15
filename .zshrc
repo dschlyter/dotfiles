@@ -39,6 +39,7 @@ alias -g MAP='| xargs --no-run-if-empty -n 1'
 alias -g MAPI='| xargs --no-run-if-empty -n 1 -i'
 alias -g C1='| cl 1'
 alias -g GS='$(git select)'
+alias -g DL='"$HOME/downloads/$(ls -1 -tr $HOME/downloads | tail -n 1)"'
 
 # Functions
 
