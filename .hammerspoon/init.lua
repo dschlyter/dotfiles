@@ -540,11 +540,13 @@ end)
 
 local lastWifi = "none"
 local lastSave = 0
+local lastScreenCount = nil
 local saveFile = "/opt/data/hammerspoon-save"
 
 function saveTimestamp()
     lastSave = os.time()
     lastWifi = getWifi()
+    lastScreenCount = #hs.screen.allScreens()
 
     local f = io.open(saveFile, "w")
     if f then
@@ -572,7 +574,7 @@ end
 function shouldAutorestore()
     log.d("Checking for automatic restore of apps")
     if not savedAppsExist() then
-        log.d("No saved apps")
+        log.d("Restore: No saved apps")
         return false
     end
 
@@ -581,13 +583,19 @@ function shouldAutorestore()
         local fileTime = f:read("*all")
         f:close()
         if tonumber(fileTime) <= lastSave then
-            log.d("No more recent save")
-            return false
+            log.d("Restore: No more recent save")
+            -- return false
         end
     end
 
     if getWifi() ~= lastWifi then
-        log.d("Not on wifi " .. lastWifi)
+        log.d("Restore: Not on wifi " .. lastWifi)
+        return false
+    end
+
+    local screenCount = #hs.screen.allScreens()
+    if screenCount ~= lastScreenCount then
+        log.d("Restore: Screen count is " .. screenCount .. ", waiting for " .. lastScreenCount)
         return false
     end
 
