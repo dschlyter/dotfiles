@@ -349,10 +349,6 @@ hs.hotkey.bind({'alt'}, 'b', function()
     hs.eventtap.event.newKeyEvent({'alt'}, 'left', true):post()
 end)
 
-hs.hotkey.bind({'ctrl', 'alt'}, 'b', function()
-    os.execute('curl -X POST 192.168.10.124:29330/blank')
-end)
-
 hs.hotkey.bind({'ctrl', 'alt'}, 's', function()
     hs.timer.doAfter(1, function()
         hs.caffeinate.startScreensaver()
@@ -584,7 +580,7 @@ function shouldAutorestore()
         f:close()
         if tonumber(fileTime) <= lastSave then
             log.d("Restore: No more recent save")
-            -- return false
+            return false
         end
     end
 
