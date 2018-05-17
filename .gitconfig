@@ -55,6 +55,7 @@
     pufl = push --force-with-lease
     br = branch
     rb = rebase
+    rba = rebase --autostash
     co = checkout
     cb = checkout -b
     cop = checkout -p
@@ -79,7 +80,7 @@
 
     # commit
     # patched commit with a file review and untracked sanity check first
-    pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "Warning: Untracked files!" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
+    pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "!!! - Warning: Untracked files - !!! - press any key to confirm" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # remove all whitespace changes
     rw=!sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git checkout "${@:-.}" && git reset'
