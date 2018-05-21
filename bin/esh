@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Execute shell. Execute a shell command from third party programs with better error reporting.
+
+# load good path stuff
+test -f "$HOME/.profile" && source "$HOME/.profile"
+
+if ! eval "$@" 2> /tmp/esh-error; then
+    osascript -e "display notification \"$(cat /tmp/esh-error)\" with title \"esh error\""
+fi

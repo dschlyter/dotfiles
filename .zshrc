@@ -28,6 +28,7 @@ fi
 
 ## Conveniences
 alias b='popd'
+alias h='harpo'
 alias zshrc='vim ~/.zshrc; rc'
 alias rc='source ~/.zshrc'
 

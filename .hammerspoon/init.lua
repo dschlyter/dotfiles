@@ -849,6 +849,39 @@ hs.hotkey.bind(modifierFocus, 'g', function()
     chooser:show()
 end)
 
+--- harpo integration
+---------------------
+
+hs.hotkey.bind(modifierPrimary, 'c', function()
+    local output = trim(os.capture("~/.esh harpo list", true))
+    local lines = parse_lines(output)
+
+    showChooser(lines, function(text, cmd)
+        -- local output = trim(os.capture("~/.esh harpo unlock "..text, true))
+        -- log.d(output)
+        hs.alert.show(text)
+    end)
+end)
+
+hs.hotkey.bind(modifierPrimary, 'v', function()
+    local output = trim(os.capture("~/.esh harpo last password", true))
+    enterText(output)
+end)
+
+hs.hotkey.bind(modifierPrimary, 'b', function()
+    local output = trim(os.capture("~/.esh harpo last username", true))
+    enterText(output)
+end)
+
+function enterText(text)
+    if text and #text > 0 then
+        hs.eventtap.keyStrokes(text)
+    else
+        hs.alert.show("nothing to enter")
+    end
+end
+
+
 -- quick searchable commands
 ----------------------------
 
@@ -858,6 +891,16 @@ hs.hotkey.bind(modifierFocus, 'q', function()
     local output = os.capture(freqcmd, true)
     local lines = parse_lines(output)
 
+    showChooser(lines, function(text, cmd)
+        log.d("execute " .. cmd)
+
+        os.capture(freqcmd .. " " .. text .. " " .. cmd)
+        local output = os.capture(cmd, true)
+        log.d(output)
+    end)
+end)
+
+function showChooser(lines, callback)
     local choices = {}
     for k in pairs(lines) do
         local line = lines[k]
@@ -874,17 +917,13 @@ hs.hotkey.bind(modifierFocus, 'q', function()
         end
 
         local text = res["text"]
-        local cmd = res["subText"]
+        local subtext = res["subText"]
 
-        log.d("execute " .. cmd)
-
-        os.capture(freqcmd .. " " .. text .. " " .. cmd)
-        local output = os.capture(cmd, true)
-        log.d(output)
+        callback(text, subtext)
     end)
     chooser:choices(choices)
     chooser:show()
-end)
+end
 
 -- base functionality that should really be in the language
 -----------------------------------------------------------
@@ -1013,6 +1052,10 @@ function parse_lines(str)
     local function helper(line) table.insert(t, line) return "" end
     helper((str:gsub("(.-)\r?\n", helper)))
     return t
+end
+
+function trim(s)
+  return (s:gsub("^%s*(.-)%s*$", "%1"))
 end
 
 -- restart scroll revserser on sleep wakeup, since it stops working
