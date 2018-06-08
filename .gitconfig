@@ -117,7 +117,7 @@
     behind = "!r() { git merge-base --is-ancestor HEAD $1; }; r"
     fwd = "!r() { git behind origin/develop && git co develop && git ff; }; r"
     fwm = "!r() { git behind origin/master && git co master && git ff; }; r"
-    fw = "!r() { git fe; git fwd || git fwm || git ff; }; r"
+    fw = "!r() { git fe; git ff; git fwd || git fwm; }; r"
     u = !git fw && git brc
     # fast forward branch without checking them out
     up = !sh -c 'git fe $1 && git merge-base --is-ancestor $1 origin/$1 && echo $BR && git branch -f $1 origin/$1' -
