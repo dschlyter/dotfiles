@@ -1,4 +1,25 @@
-# conf_load_start_time="$(gdate +%s%3N)"
+# kind of ridiculous that zsh startup needs profiling
+
+# 0 disabled, 1 enabled, 2 verbose
+profiling_level=0
+test $profiling_level -gt 0 && profiling_start_time="$(gdate +%s%3N)"
+
+profiling_log() {
+    if [[ $profiling_level -gt 0 ]]; then
+        echo $(($(gdate +%s%3N) - profiling_start_time)) "$@"
+    fi
+}
+
+profiling_log "start"
+
+# even more profiling, but a bit verbose
+test $profiling_level -gt 1 && zmodload zsh/zprof
+
+# profiling notes
+# 2018-01-11 macbook, 350 ms
+# 2018-01-11 macbook, after zplug installation, 250 ms, amazing
+# causes of slowness
+# completition, try delete .zcompdump (maybe automate this when startup is slow if this reoccurs)
 
 # Plugins
 # (it seems that this works best at the top of the config)
@@ -23,6 +44,8 @@ if which zgen > /dev/null; then
         source "$plugin_def"
     fi
 fi
+
+profiling_log "plugins loaded"
 
 # Aliases
 
@@ -95,10 +118,14 @@ function cs {
     cd ../$(ls ../(/) | grep "$*" | fzf -1)
 }
 
+profiling_log "aliases loaded"
+
 # Aliases and functions shared with bash config
 
 SHELLRC=~/.shellrc
 [ -f $SHELLRC ] && source $SHELLRC
+
+profiling_log "shellrc loaded"
 
 # Prompt
 
@@ -160,6 +187,8 @@ fi
 
 RPROMPT="   $SSH_PROMPT"
 
+profiling_log "prompt loaded"
+
 # Git autofetch
 
 _git_autofetch() {
@@ -211,6 +240,8 @@ _alias_remind() {
 
 add-zsh-hook precmd _alias_remind
 
+profiling_log "functions loaded"
+
 # Readline keybindings with ability to enter vim-mode
 
 bindkey -e
@@ -240,6 +271,8 @@ bindkey '^Z' foreground-vim
 # jump one word forward in a quick and easy way
 bindkey '^V' forward-word
 
+profiling_log "settings loaded"
+
 # Completition
 
 zstyle ':completion:*' use-cache on
@@ -265,15 +298,18 @@ LS_COLORS="di=01;34:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:
 zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
 
 autoload -Uz compinit
+
 if [[ "$(uname -s)" == "Darwin" ]]; then
     # skip single-user security checks to allow for multi user homebrew
     compinit -u
 else
     compinit
 fi
+profiling_log "completition loaded"
 
 # fasd should be setup after compinit
 fasd_setup
+profiling_log "fasd loaded"
 
 # setup fzf
 # ctrl-r history search
@@ -287,6 +323,7 @@ export FZF_CTRL_R_OPTS="-e"
 
 source_if_exists ~/.fzf.zsh
 source_if_exists ~/.dotfiles/.fzf_extensions.zsh
+profiling_log "fzf and extensions loaded"
 
 # Settings
 
@@ -323,6 +360,7 @@ source_if_exists ~/.zshrc_local
 source_if_exists ~/.zshrc_cygwin
 source_if_exists ~/.zshrc_mac
 
-# 2018-01-11 macbook, 350 ms
-# 2018-01-11 macbook, after zplug installation, 250 ms, amazing
-# echo "time to load zshrc $(($(gdate +%s%3N) - conf_load_start_time)) ms"
+profiling_log "local conf loaded"
+profiling_log "done!"
+
+test $profiling_level -gt 1 && zprof
