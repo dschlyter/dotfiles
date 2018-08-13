@@ -51,11 +51,13 @@
     di = diff
     dic = diff --cached
     cm = commit -v
+    cma = !git cm --amend
     pu = push -u
     pufl = push --force-with-lease
     br = branch
     rb = rebase
     rba = rebase --autostash
+    rbc = rebase --continue
     co = checkout
     cb = checkout -b
     cop = checkout -p
@@ -152,6 +154,7 @@
     local = !git lg --branches --not --remotes
     dup = !git up develop
     dur = !git urb develop
+    durp = !git dir && git pufl
 
     yolo = !git add -A && git commit -m \"$(curl -s whatthecommit.com/index.txt)\" && git push
 [web]

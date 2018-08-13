@@ -26,6 +26,8 @@ nnoremap <leader>* I**<Esc>A**<Esc>
 " search for selected text
 vnoremap <leader>n y/<C-R>"<CR>
 
+nnoremap <leader>R :source ~/.ideavimrc<CR>
+
 noremap - mt.`tj
 noremap <Cr> o<Esc>
 

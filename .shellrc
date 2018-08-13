@@ -95,6 +95,11 @@ ls() {
     ${GNU_PREFIX:-/bin/}ls -h --color=auto --group-directories-first "$@"
 }
 
+# cross platform get ip https://stackoverflow.com/questions/13322485/how-to-get-the-primary-ip-address-of-the-local-machine-on-linux-and-os-x
+my_ip() {
+    ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -n 1
+}
+
 # git diff can be used as a colorized diff on any files, but autocomplete breaks so let's create a little alias
 gdiff() {
     git diff "$@"
