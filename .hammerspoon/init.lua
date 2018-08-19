@@ -8,10 +8,10 @@ local modifierPrimary = {"alt", "ctrl"}
 local modifierSecondary = {"alt", "shift"}
 local modifierComplicated = {"alt", "ctrl", "cmd"}
 
-local modifierResize = {"alt", "ctrl"}
-local modifierMoveScreen = {"alt", "shift"}
-local modifierMoveScreenIndex = {"alt", "ctrl"}
-local modifierMoveSpace = {"alt", "ctrl"}
+local modifierResize = modifierPrimary
+local modifierMoveScreen = modifierSecondary
+local modifierMoveScreenIndex = modifierPrimary
+local modifierMoveSpace = modifierPrimary
 local minimumMoveDistance = 10
 
 hs.window.animationDuration = 0
@@ -50,10 +50,10 @@ end)
 -------------------------------------
 
 -- crashes on startup, some kind of hammerspoon bug?
--- switcher_space = hs.window.switcher.new(hs.window.filter.new():setCurrentSpace(true):setDefaultFilter{},
-    -- {showTitles = false, showSelectedThumbnail = false})
--- hs.hotkey.bind({'alt'},'tab',nil,function()switcher_space:next()end)
--- hs.hotkey.bind({'alt', 'shift'},'tab',nil,function()switcher_space:previous()end)
+switcher_space = hs.window.switcher.new(hs.window.filter.new():setCurrentSpace(true):setDefaultFilter{},
+    {showTitles = false, showSelectedThumbnail = false})
+hs.hotkey.bind({'alt'},'tab',nil,function()switcher_space:next()end)
+hs.hotkey.bind({'alt', 'shift'},'tab',nil,function()switcher_space:previous()end)
 
 -- reimplements focusWindowX with less buggy and more powerful functionality
 -- first try to find the best window, then fallback to all windows in that direction
@@ -62,8 +62,8 @@ function focusDirection(direction, retryNonStrict)
         local found = focusDirectionFrom(window, direction, true)
         if not found and retryNonStrict then
             found = focusDirectionFrom(window, direction, false)
-        end
         return found
+    end
     end)
 end
 
@@ -409,6 +409,32 @@ hs.hotkey.bind(modifierComplicated, '-', function()
     device:setVolume(vol)
 end)
 
+-- pin windows to current screen
+
+local windowSpawnRules = {}
+
+hs.hotkey.bind(modifierSecondary, 'p', function()
+    local f = hs.window.focusedWindow()
+    local a = hs.window.focusedWindow():application():name()
+    local s = f:screen():id()
+
+    if not windowSpawnRules[a] then
+        hs.alert.show(a .. " pinned to screen")
+        windowSpawnRules[a] = s
+    else
+        hs.alert.show("pin removed for " .. a)
+        windowSpawnRules[a] = nil
+    end
+end)
+
+hs.window.filter.default:subscribe(hs.window.filter.windowCreated, function (w, appName) 
+    if windowSpawnRules[appName] then
+        hs.alert.show("rule triggered")
+        local s = hs.screens.find(windowSpawnRules[appName])
+        w:moveToScreen(s)
+    end
+end)
+
 -- save and restore window positions when switching monitors
 ------------------------------------------------------------
 local windowPositions = {}
@@ -594,6 +620,7 @@ function shouldAutorestore()
         log.d("Restore: Screen count is " .. screenCount .. ", waiting for " .. lastScreenCount)
         return false
     end
+    log.d("Restore: Screen count is " .. screenCount .. ", matching " .. lastScreenCount)
 
     return true
 end

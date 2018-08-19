@@ -117,6 +117,10 @@
   <action id="Git.Fetch">
     <keyboard-shortcut first-keystroke="ctrl meta t" />
   </action>
+  <action id="HideActiveWindow">
+    <keyboard-shortcut first-keystroke="shift escape" />
+    <keyboard-shortcut first-keystroke="alt escape" />
+  </action>
   <action id="ImportModule">
     <keyboard-shortcut first-keystroke="shift meta m" />
   </action>
