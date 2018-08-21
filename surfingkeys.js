@@ -1,4 +1,5 @@
-// Load from: https://raw.githubusercontent.com/dschlyter/dotfiles/master/surfingkeys.js
+// Load from: https://jsapp.dschlyter.se/public/surfingkeys.js
+// Mirror of: https://raw.githubusercontent.com/dschlyter/dotfiles/master/surfingkeys.js
 
 // Coolest stuffs to remember
 /*

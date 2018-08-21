@@ -45,23 +45,20 @@ end
 
 -- reimplements focusWindowX with less buggy and more powerful functionality
 -- first try to find the best window, then fallback to all windows in that direction
-function l.focusDirection(direction, retryNonStrict)
+function l.focusDirection(direction)
     return shared.findFocused(function(window)
-        local found = l.focusDirectionFrom(window, direction, true)
-        if not found and retryNonStrict then
-            found = l.focusDirectionFrom(window, direction, false)
-        return found
-    end
+        return l.focusDirectionFrom(window, direction)
     end)
 end
 
-function l.focusDirectionFrom(window, direction, strict)
+function l.focusDirectionFrom(window, direction)
     -- otherWindows will be ordered with on-top window first
+    local strict = true
     local otherWindows = window["windowsTo"..direction](window, nil, strict, strict)
 
     for k,v in pairs(otherWindows) do
         -- when finding non-strict, stay on the same screen, to avoid completely confusing refocuses
-        if v:isStandard() and (strict or v:screen():id() == window:screen():id()) then
+        if v:isStandard() then
             v:focus()
             -- bug, if an application has multiple windows, a window on the current screen can steal focus
             -- solve this by focusing again if the intended window did not get the focus
