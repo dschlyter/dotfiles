@@ -52,7 +52,7 @@
     dic = diff --cached
     cm = commit -v
     cma = !git cm --amend
-    pu = push -u --tags origin HEAD
+    pu = push -u --follow-tags
     pufl = push --force-with-lease
     br = branch
     rb = rebase
