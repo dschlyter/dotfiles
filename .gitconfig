@@ -52,7 +52,7 @@
     dic = diff --cached
     cm = commit -v
     cma = !git cm --amend
-    pu = push -u
+    pu = push -u --tags origin HEAD
     pufl = push --force-with-lease
     br = branch
     rb = rebase
@@ -111,22 +111,24 @@
 
     # pulling changes more productively
     # fetch, prune removed remote branches and shortlog fetched changes
-    fe = !sh -c 'BR=${1:-$(git rev-parse --abbrev-ref HEAD)} && git fetch --prune && git lh $BR..origin/$BR || true' -
+    fe = !sh -c 'PRE=${1:-$(git rev-parse origin/HEAD)} && git fetch --tags --prune && git lh $PRE..origin/HEAD || true' -
     # get remote updates even with local uncommited changes (but abort on conflicts)
     ff = !sh -c 'git lazy-fe && git merge --ff-only'
     fr = !sh -c 'git lazy-fe && git rb --autostash'
-    # forward to develop or master if it is ahead
+    # forward to develop or master if current branch is merged
+    branch-exists = "!r() { git rev-parse $1 > /dev/null 2>&1; }; r"
     behind = "!r() { git merge-base --is-ancestor HEAD $1; }; r"
     fwd = "!r() { git behind origin/develop && git co develop && git ff; }; r"
     fwm = "!r() { git behind origin/master && git co master && git ff; }; r"
-    fw = "!r() { git fe; git ff; git fwd || git fwm; }; r"
+    fw = "!r() { git fe; git ff 2> /dev/null; if git branch-exists develop; then git fwd; else git fwm; fi || true; }; r"
+    # combined update all the things command
     u = !git fw && git brc
     # fast forward branch without checking them out
     up = !sh -c 'git fe $1 && git merge-base --is-ancestor $1 origin/$1 && echo $BR && git branch -f $1 origin/$1' -
     urb = !sh -c 'git up $1 && git rebase --autostash $1' -
     mup = !git up master
     mur = !git urb master
-    ur = "!r() { git urb $(git rev-parse develop > /dev/null 2>&1 && echo develop || echo master); }; r"
+    ur = "!r() { git urb $(git branch-exists develop && echo develop || echo master); }; r"
     # lazy fetch, for having fetch in commands that may be chained together, without fetching multiple times
     # # lazy fetch, for having fetch in commands that may be chained together, without fetching multiple times
     last-fetch = "!r() { echo $(( $(date +%s) - $(${GNU_PREFIX}stat -c %Y .git/FETCH_HEAD) )); }; r"
