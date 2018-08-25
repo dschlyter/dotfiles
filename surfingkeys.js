@@ -40,6 +40,14 @@ unmap('j');
 unmap('k');
 unmap('e');
 
+// Proxy keys are annoying
+unmap('spa')
+unmap('spb')
+unmap('spd')
+unmap('sps')
+unmap('spc')
+unmap('sfr')
+
 // New key for toggle surfingkeys
 map('K', '<Alt-s>');
 
