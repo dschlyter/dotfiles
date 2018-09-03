@@ -56,9 +56,9 @@ alias zshrc='vim ~/.zshrc; rc'
 alias rc='source ~/.zshrc'
 
 ## Global aliases
-alias -g P='|'
 alias -g G='| grep -i'
 alias -g L='| less'
+alias -g H='| head'
 alias -g MAP='| xargs --no-run-if-empty -n 1'
 alias -g MAPI='| xargs --no-run-if-empty -n 1 -i'
 alias -g C1='| cl 1'
@@ -66,6 +66,21 @@ alias -g GS='$(git select)'
 alias -g DL='"$HOME/downloads/$(ls -1 -tr $HOME/downloads | tail -n 1)"'
 
 # Functions
+
+# quickly redefine local functions in editor
+function redef {
+    test -n "$1" || return 1
+    where "$1" > /tmp/redef
+    test $? -eq 0 || return 1
+
+    cat /tmp/redef > /tmp/redef-orig
+    $EDITOR /tmp/redef
+    if ! diff -q /tmp/redef /tmp/redef-edit; then
+        eval "$(cat /tmp/redef)"
+    else
+        echo "No changes"
+    fi
+}
 
 function eachdir {
     local depth=1

@@ -6,6 +6,21 @@ fj() {
     dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m)" && cd "${dir}" || return 1
 }
 
+cf() {
+    local dir
+    dir="$(find . -type d | fzf -1 -0 +m)" && cd "${dir}" || return 1
+}
+
+# vim with fast
+vf() {
+  # zsh demon black magic here
+  files=$(fasd -Rdl "$1" | fzf -0 -m) && $EDITOR ${(@f)files}
+}
+
+vc() {
+  files=$(find . | fzf -0 -m) && $EDITOR ${(@f)files}
+}
+
 # this is awesome :D - inject recently used files from fasd onto CLI filtering with fzf search
 # this code is mostly copied and tweaked from .fzf/shell/completion.zsh for Ctrl-T
 __fasdsel() {

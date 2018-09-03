@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# scp to directory that requires sudo access
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+orig_file="$(basename "$1")"
+host=${2//:*/}
+location=${2//*:/}
+
+if [[ "$host" == "$location" ]]; then
+    echo no host specified
+    exit 1
+fi
+
+scp "$1" "$host:$orig_file"
+ssh -tt "$host" sudo mv "$orig_file" "$location"
+
+
