@@ -3,6 +3,8 @@
 local export = {}
 local l = {}
 
+local shared = require "shared"
+
 -- quick searchable commands
 function export.quickCommands()
     local home = os.getenv("HOME")
@@ -52,6 +54,40 @@ function export.finderSearch()
     end)
     chooser:choices(choices)
     chooser:show()
+end
+
+function export.pasteAppClip()
+    l.withClipFile(function(clipFile)
+        local output = trim(os.capture("tail -r "..clipFile, true))
+        local lines = parse_lines(output)
+
+        l.showChooser(lines, function(text, cmd)
+            l.enterText(text)
+        end)
+    end)
+end
+
+function export.copyAppClip()
+    l.withClipFile(function(clipFile)
+        local output = os.capture("echo $(pbpaste) >> " .. clipFile, true)
+        hs.alert.show("Clip saved!")
+    end)
+end
+
+function export.editAppClips()
+    l.withClipFile(function(clipFile)
+        local output = os.capture("open " .. clipFile, true)
+        hs.alert.show(open)
+    end)
+end
+
+function l.withClipFile(callback)
+    shared.findFocused(function(window)
+        local app = window:application():name()
+        app = app:gsub(" ", "")
+        local clipFile = os.getenv("HOME").."/.config/appclips-"..app
+        callback(clipFile)
+    end)
 end
 
 --- harpo integration

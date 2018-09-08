@@ -48,6 +48,7 @@ hs.hotkey.bind(modifierFocus, 's', focus.focusSpotify)
 
 hs.hotkey.bind(modifierFocus, 'g', chooser.finderSearch)
 hs.hotkey.bind(modifierFocus, 'q', chooser.quickCommands)
+hs.hotkey.bind(modifierFocus, 'v', chooser.pasteAppClip)
 
 hs.hotkey.bind(modifierFocus, 'm', hotkeys.focusFirstChromeTab)
 
@@ -85,7 +86,9 @@ hs.hotkey.bind(modifierPrimary, 'p', positions.positionWindowsByPreset)
 hs.hotkey.bind(modifierPrimary, 'u', chain.includeInChain)
 hs.hotkey.bind(modifierPrimary, 'i', chain.createChain)
 
-hs.hotkey.bind(modifierPrimary, 'c', chooser.harpoList)
+hs.hotkey.bind(modifierPrimary, 'c', chooser.copyAppClip)
+
+-- hs.hotkey.bind(modifierPrimary, 'c', chooser.harpoList)
 hs.hotkey.bind(modifierPrimary, 'v', chooser.harpoPaste)
 hs.hotkey.bind(modifierPrimary, 'b', chooser.harpoPasteUser)
 
@@ -94,6 +97,7 @@ hs.hotkey.bind(modifierPrimary, 'z', saveapps.save)
 hs.hotkey.bind(modifierPrimary, 'x', hs.caffeinate.systemSleep)
 
 -- hotkeys on secondary
+hs.hotkey.bind(modifierSecondary, 'v', chooser.editAppClips)
 hs.hotkey.bind(modifierSecondary, 'p', pin.pinFocused)
 
 hs.hotkey.bind(modifierSecondary, 'h', move.moveWindowOneScreenWest)
