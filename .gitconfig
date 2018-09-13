@@ -140,7 +140,9 @@
     # branch management
     # branch cleanup
     branch-age = for-each-ref --sort=committerdate refs/remotes/origin/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'
+    # delete or rename branch, both locally and remotely
     brd = "!r() { git branch -d $1; git push origin --delete $1; }; r"
+    brm = !"r() { old_name=$(git rev-parse --abbrev-ref HEAD) && git br -m $1 && git push origin :$old_name $1 && git su; }; r"
     brc = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
     # quick alias for setting upstream
     su = !sh -c 'git branch -u "origin/$(git rev-parse --abbrev-ref HEAD)"'
