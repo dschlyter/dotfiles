@@ -250,6 +250,14 @@ alias reverse=tac
 
 # Exploring the file system
 
+ff() {
+    find . | grep "$@"
+}
+
+gf() {
+    git ls-files | grep "$@"
+}
+
 md() {
     mkdir -p "$1"
     cd "$1" || return

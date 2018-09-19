@@ -69,6 +69,7 @@
     lh = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ai) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
     ls = !git lh --stat
     # lg shows all branches
+    ln = !git lh --no-merges
     lg = !git lh --all
     ll = !git lg -n 9999
     # log including all branchless (rebased, amended, dropped) commits

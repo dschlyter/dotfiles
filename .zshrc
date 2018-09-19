@@ -146,10 +146,11 @@ profiling_log "shellrc loaded"
 
 autoload -U colors && colors
 _set_prompt() {
+    test -n "$VIRTUAL_ENV" && local VENV="(venv) "
     local CURR_DIR="%F{47}%40<..<%~%<<%f"
     local PROMPT_CHAR="%F{168}%B%(!.#.>)%s%b"
     local EXIT_CODE_PROMPT="%F{221}%B%(?.. [%?] )%b%f"
-    PROMPT="$CURR_DIR$GIT_PROMPT$EXIT_CODE_PROMPT$PROMPT_CHAR "
+    PROMPT="$VENV$CURR_DIR$GIT_PROMPT$EXIT_CODE_PROMPT$PROMPT_CHAR "
 }
 
 _update_git_info() {
