@@ -10,7 +10,7 @@ from datetime import datetime
 from datetime import timedelta
 
 description="""Poor mans alarm\n
-            Requires: brew install spotify"""
+            Requires: brew install shpotify"""
 
 
 def parse_args():

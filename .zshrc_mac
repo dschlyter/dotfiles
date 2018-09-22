@@ -88,17 +88,16 @@ use_gnu find
 
 # modify brew to make sure files written work for multiple users
 function brew() {
-    umask 002
-    /usr/local/bin/brew "$@"
+    (umask 002;
+    /usr/local/bin/brew "$@")
 }
 
 # brew convinience function
 BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
 function bup() {
-    umask 002
-    brew update && brew upgrade && date "+%s" > $BREW_UPDATE_FILE
+    (umask 002;
+    brew update && brew upgrade && date "+%s" > $BREW_UPDATE_FILE)
 }
-
 
 local NOW="$(date +%s)"
 local LAST_UPDATE="0$(cat $BREW_UPDATE_FILE)"
@@ -106,6 +105,24 @@ local DIFF_DAYS=$((($NOW - $LAST_UPDATE) / (3600 * 24)))
 if [ $DIFF_DAYS -gt 7 ]; then
     echo "Homebrew has not been upgraded in $DIFF_DAYS days. Run upgrade with 'bup'"
 fi
+
+# TODO if this does not work, just run with a single user with su on the other??
+# fix brew if multipe users does not work
+function fix-brew() {
+    function p() {
+        echo "$@"; eval "$@"
+    }
+
+    p sudo chmod -R ug+rws /usr/local/*
+    p sudo chgrp -R brew /usr/local/*
+
+    p sudo chgrp -R brew /Library/Caches/Homebrew
+    p sudo chmod -R g+rws /Library/Caches/Homebrew
+
+    echo 'Current group members'
+    dscacheutil -q group -a name brew
+    echo 'Add users with: sudo dseditgroup -o edit -a $USER -t user brew'
+}
 
 #
 # Other settings

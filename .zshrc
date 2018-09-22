@@ -291,6 +291,11 @@ profiling_log "settings loaded"
 
 # Completition
 
+function fix-comp() {
+    rm $HOME/.zcompdump
+    rc
+}
+
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path ~/.zsh/cache
 

@@ -16,13 +16,12 @@ echo $GIT_AUTOUPDATE_REPOS
 # key file for read-only access to private repos
 KEY_FILE="$HOME/.ssh/autoupdate_rsa"
 if [ -f "$KEY_FILE" ]; then
-    export GIT_SSH_COMMAND="ssh -i $KEY_FILE"
+    export GIT_SSH_COMMAND="ssh -i $KEY_FILE -F $HOME/.ssh/config_nokrypton"
 fi
 
 for repo in $GIT_AUTOUPDATE_REPOS; do
     if [ -d "$repo" ]; then
-        pushd .
-        cd $repo
+        (cd $repo
 
         echo Updating $repo
         # all github repos used for auto-update are public, so this rewrite is good enough for now
@@ -30,9 +29,7 @@ for repo in $GIT_AUTOUPDATE_REPOS; do
         git fetch "$ORIGIN"
         # semi hack warning, update origin/master from custom fetch
         cp .git/FETCH_HEAD .git/refs/remotes/origin/master
-        git merge --ff-only
-
-        popd
+        git merge --ff-only) || true
     else
         echo Skipping $repo - no such repo
     fi
