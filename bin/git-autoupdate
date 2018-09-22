@@ -16,7 +16,13 @@ echo $GIT_AUTOUPDATE_REPOS
 # key file for read-only access to private repos
 KEY_FILE="$HOME/.ssh/autoupdate_rsa"
 if [ -f "$KEY_FILE" ]; then
-    export GIT_SSH_COMMAND="ssh -i $KEY_FILE -F $HOME/.ssh/config_nokrypton"
+    KRYPTON_OVERRIDE_CONFIG="$HOME/.ssh/config_nokrypton"
+    if [[ -f "$KRYPTON_OVERRIDE_CONFIG" ]]; then
+        KRYPTON_OVERRIDE=" -F $KRYPTON_OVERRIDE_CONFIG"
+    fi
+
+    export GIT_SSH_COMMAND="ssh -i $KEY_FILE${KRYPTON_OVERRIDE:-}"
+    echo $GIT_SSH_COMMAND
 fi
 
 for repo in $GIT_AUTOUPDATE_REPOS; do
