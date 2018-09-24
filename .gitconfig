@@ -55,7 +55,6 @@
     pu = push -u --follow-tags
     pufl = push --force-with-lease
     br = branch
-    bra = branch -a --sort=-committerdate --format='%(authorname) - %(refname:short)'
     rb = rebase
     par = pull --rebase --autostash
     rba = rebase --autostash
@@ -143,10 +142,11 @@
 
     # branch management
     # branch cleanup
-    branch-age = for-each-ref --sort=committerdate refs/remotes/origin/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'
+    bra = branch -a --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) ' 
     # delete or rename branch, both locally and remotely
     brd = "!r() { git branch -d $1; git push origin --delete $1; }; r"
     brm = !"r() { old_name=$(git curr-br) && git br -m $1 && git push origin :$old_name $1 && git su; }; r"
+    # branch cleanup
     brc = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
     # quick alias for setting upstream
     su = !sh -c 'git branch -u "origin/$(git curr-br)"'
@@ -162,7 +162,7 @@
 
     # github
     github-url = !echo "https://github.com/$(git config --get remote.origin.url | sed -e 's/.*://' -e 's/[.]git$//')"
-    pr = !open "$(git github-url)/compare/$(git curr-br)?expand=1"
+    pr = !git same origin/$(git curr-br) $(git curr-br) || git pu && open "$(git github-url)/compare/$(git curr-br)?expand=1"
 
     # gitflow stuff (for those unfortunate enough to use gitflow)
     mmd = !git co develop && git merge --ff-only && git co master && git merge --ff-only && git merge develop

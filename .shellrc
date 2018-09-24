@@ -60,6 +60,7 @@ alias cm="git cm"
 alias pc="git pc"
 alias merge="git merge"
 alias pu="git pu"
+alias pb="git pu &"
 
 alias plz='sudo $(fc -ln -1)'
 alias se='sudoedit'
