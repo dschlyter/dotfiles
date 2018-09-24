@@ -40,11 +40,13 @@ hs.hotkey.bind(modifierFocus, 'k', focus.up)
 hs.hotkey.bind(modifierFocus, 'j', focus.down)
 hs.hotkey.bind(modifierFocus, 'l', focus.left)
 hs.hotkey.bind(modifierFocus, 'h', focus.right)
+hs.hotkey.bind(modifierFocus, 'o', focus.recentOnSameScreen)
 
 hs.hotkey.bind(modifierFocus, 'space', focus.focusTerminal)
 hs.hotkey.bind(modifierFocus, 'c', focus.focusChrome)
 hs.hotkey.bind(modifierFocus, 'd', focus.focusIntellij)
 hs.hotkey.bind(modifierFocus, 's', focus.focusSpotify)
+hs.hotkey.bind(modifierFocus, 'w', focus.focusOtherApp)
 
 hs.hotkey.bind(modifierFocus, 'g', chooser.finderSearch)
 hs.hotkey.bind(modifierFocus, 'q', chooser.quickCommands)

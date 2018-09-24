@@ -27,6 +27,12 @@ function export.right()
     end)
 end
 
+function export.recentOnSameScreen()
+    shared.findFocused(function(window)
+        l.focusRecentOnSameScreen()
+    end)
+end
+
 function export.focusChrome()
     l.focusNextWindow("Google Chrome")
 end
@@ -41,6 +47,10 @@ end
 
 function export.focusSpotify()
     l.focusNextWindow("Spotify")
+end
+
+function export.focusOtherApp()
+    l.focusNot({"Google Chrome", "iTerm2", "IntelliJ IDEA", "Spotify"})
 end
 
 -- reimplements focusWindowX with less buggy and more powerful functionality
@@ -117,6 +127,28 @@ function l.windowOrdering(t, a, b)
     return default(t[b]:id(), 0) > default(t[a]:id(), 0)
 end
 
+-- same screen focus next
+function l.focusRecentOnSameScreen()
+    local currScreen = hs.window.frontmostWindow():screen()
+    local windows = l.orderedWindowsOnScreen(currScreen)
+
+    if #windows >= 2 then
+        windows[2]:focus()
+    end
+end
+
+function l.orderedWindowsOnScreen(screen)
+    local windows = hs.window.orderedWindows()
+
+    local ret = {}
+    for i,window in pairs(windows) do
+        if window:isStandard() and window:screen():id() == screen:id() then
+            ret[#ret + 1] = window
+        end
+    end
+    return ret
+end
+
 -- focus apps
 function l.focusNextWindow(appName, launchName)
     if not launchName then
@@ -134,6 +166,28 @@ function l.focusNextWindow(appName, launchName)
         windows[1]:focus()
     else
         hs.application.launchOrFocus(launchName)
+    end
+end
+
+function l.focusNot(appNames)
+    local focused = hs.window.focusedWindow()
+    local windows = hs.window.orderedWindows()
+
+    for i,window in pairs(windows) do
+        local focused = window:id() == focused:id()
+
+        local application = window:application():title()
+        local match = false
+        for i,appName in pairs(appNames) do
+            if appName == application then
+                match = true
+            end
+        end
+
+        if not (match or focused) then
+            window:focus()
+            return
+        end
     end
 end
 

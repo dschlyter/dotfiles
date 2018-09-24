@@ -175,6 +175,7 @@
     dur = !git urb develop
     durp = !git dir && git pufl
 
+    cleanout = !git -Xdf && git gc
     yolo = !git add -A && git commit -m \"$(curl -s whatthecommit.com/index.txt)\" && git push
 [web]
     browser = google-chrome
