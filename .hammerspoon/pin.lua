@@ -23,7 +23,6 @@ end
 
 hs.window.filter.default:subscribe(hs.window.filter.windowCreated, function (w, appName) 
     if windowSpawnRules[appName] then
-        hs.alert.show("rule triggered")
         local s = hs.screen.find(windowSpawnRules[appName])
         w:moveToScreen(s)
     end

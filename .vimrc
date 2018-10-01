@@ -328,8 +328,10 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     noremap <C-n> :NERDTreeToggle<cr>
 
     " search code with ag from vim
-    Bundle 'rking/ag.vim'
-    noremap <C-g> :Ag
+    " ag.vim is deprecated, use ack.vim with ag as the search executable
+    Bundle 'mileszs/ack.vim'
+    let g:ackprg = 'ag --vimgrep --smart-case'
+    noremap <C-g> :Ack<space>
 
     " colorscheme for vim
     Bundle 'nanotech/jellybeans.vim'
