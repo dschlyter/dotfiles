@@ -145,7 +145,7 @@ vpn() {
 
 addkey() {
     # you can pass flags like -p 4711  or -i custom-key
-    ssh "$@" bash -c "mkdir -p .ssh; tee -a .ssh/authorized_keys" < ~/.ssh/id_rsa.pub
+    ssh "$@" bash -c "mkdir -p .ssh; tee -a .ssh/authorized_keys" < ~/.ssh/id_ed25519.pub
 }
 
 p() {

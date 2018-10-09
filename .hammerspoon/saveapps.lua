@@ -6,6 +6,8 @@ local l = {}
 local user = os.getenv('USER')
 local savedApps = {}
 
+local startup = require "startup"
+
 function export.restore()
     l.restoreApps()
 end
@@ -112,7 +114,7 @@ function l.restoreApps()
         log.d("Restoring " .. #savedApps .. " saved apps " .. dumpList(savedApps))
         openAll(savedApps)
         savedApps = {}
-        restartScrollReverser()
+        startup.restartScrollReverser()
     else
         local defaultApps = {"IntelliJ IDEA", "Google Chrome", "iTerm", "Spotify"}
         log.d("Opening default apps" .. dumpList(defaultApps))
