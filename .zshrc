@@ -233,7 +233,12 @@ _git_autofetch() {
     git fetch &
 }
 
-add-zsh-hook precmd _git_autofetch
+# disabled
+# add-zsh-hook precmd _git_autofetch
+
+if which direnv &> /dev/null; then
+    eval "$(direnv hook zsh)"
+fi
 
 _match_alias() {
     local last_command="$1"

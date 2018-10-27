@@ -113,7 +113,7 @@
 
     # pulling changes more productively
     # fetch, prune removed remote branches and shortlog fetched changes
-    fe = !sh -c 'PRE=${1:-$(git rev-parse origin/HEAD)} && git fetch --tags --prune && git lh $PRE..origin/HEAD || true' -
+    fe = !sh -c 'PRE=${1:-$(git rev-parse origin/master)} && git fetch --tags --prune && git lh $PRE..$(git rev-parse origin/master) || true' -
     # utils for branch comparisons
     curr-br = rev-parse --abbrev-ref HEAD
     branch-exists = "!r() { git rev-parse $1 > /dev/null 2>&1; }; r"

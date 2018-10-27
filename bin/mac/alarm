@@ -19,6 +19,8 @@ def parse_args():
                         help='hour of alarm')
     parser.add_argument('minute', type=int,
                         help='minute of alarm')
+    parser.add_argument('--sleep', dest="sleep", action='store_true',
+                        help='minute of alarm')
     return parser.parse_args()
 
 
@@ -44,12 +46,18 @@ def main():
     time.sleep(1)
     run("spotify stop")
 
+    if args.sleep:
+        time.sleep(3)
+        run("pmset displaysleepnow")
+
     print "Waiting for alarm time"
     while datetime.now() < alarm:
         # TODO debug print, remove
         print "script is awake", datetime.now()
         time.sleep(60)
 
+    # sleep a bit, maybe helps with bugs??
+    time.sleep(10)
     print "Starting spotify"
     run("spotify play")
 

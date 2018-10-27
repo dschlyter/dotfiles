@@ -96,7 +96,12 @@ function brew() {
 BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
 function bup() {
     (umask 002;
+    # because multi-user brew is so broken
+    grab /usr/local
     brew update && brew upgrade && date "+%s" > $BREW_UPDATE_FILE)
+    echo "Restporing permissions for brew"
+    fix-brew
+    # Add users with: sudo dseditgroup -o edit -a $USER -t user brew
 }
 
 local NOW="$(date +%s)"
@@ -106,22 +111,12 @@ if [ $DIFF_DAYS -gt 7 ]; then
     echo "Homebrew has not been upgraded in $DIFF_DAYS days. Run upgrade with 'bup'"
 fi
 
-# TODO if this does not work, just run with a single user with su on the other??
-# fix brew if multipe users does not work
 function fix-brew() {
-    function p() {
-        echo "$@"; eval "$@"
-    }
+    sudo chmod -R ug+rwx /usr/local/*
+    sudo chgrp -R brew /usr/local/*
 
-    p sudo chmod -R ug+rws /usr/local/*
-    p sudo chgrp -R brew /usr/local/*
-
-    p sudo chgrp -R brew /Library/Caches/Homebrew
-    p sudo chmod -R g+rws /Library/Caches/Homebrew
-
-    echo 'Current group members'
-    dscacheutil -q group -a name brew
-    echo 'Add users with: sudo dseditgroup -o edit -a $USER -t user brew'
+    # sudo chgrp -R brew /Library/Caches/Homebrew
+    # sudo chmod -R g+rwx /Library/Caches/Homebrew
 }
 
 #
