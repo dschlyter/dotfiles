@@ -54,11 +54,13 @@ alias b='popd'
 alias h='harpo'
 alias zshrc='vim ~/.zshrc; rc'
 alias rc='source ~/.zshrc'
+alias zl="vim $HOME/.zshrc_local; rc"
 
 ## Global aliases
 alias -g G='| grep -i'
 alias -g L='| less'
 alias -g H='| head'
+alias -g R='| reverse'
 alias -g MAP='| xargs --no-run-if-empty -n 1'
 alias -g MAPI='| xargs --no-run-if-empty -n 1 -i'
 alias -g C1='| cl 1'
@@ -79,6 +81,28 @@ function redef {
         eval "$(cat /tmp/redef)"
     else
         echo "No changes"
+    fi
+}
+
+# quickly save the previous command
+function save {
+    if [[ -n "$1" ]]; then
+        local last_command="$(fc -l -nIL -1 -1 2> /dev/null)"
+        eval "$1() { $last_command; }"
+    else
+        echo "Name required as first arg"
+    fi
+}
+
+# quickly save a set of the previous commands
+function save-hist {
+    if [[ -n "$1" ]]; then
+        tmp_file="/tmp/save-hist"
+        history -10 | sed 's/[ 0-9]+//' > "$tmp_file"
+        "$EDITOR" "$tmp_file"
+        eval "$1() { $(cat $tmp_file); }"
+    else
+        echo "Name required as first arg"
     fi
 }
 
@@ -365,6 +389,7 @@ HISTFILE=~/.zsh_history
 HISTSIZE=10000
 SAVEHIST=10000
 setopt INC_APPEND_HISTORY       # append history incrementally as commands are entered
+setopt sharehistory             # update history from other shells shile running
 
 ## mostly from ofb.net zshtricks
 
