@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n'
+
+last_commits="$(git log --oneline --format='%ai/%an' "$@")"
+
+decorate_line() {
+    name="$(echo $1 | cut -f 2)"
+    last_time="$(echo "$last_commits" | grep "$name" | head -n 1 | cut -f 1 -d /)"
+    echo $last_time "$@"
+}
+
+for line in $(git shortlog -s -n "$@"); do
+    decorate_line "$line"
+done

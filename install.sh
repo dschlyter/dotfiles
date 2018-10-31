@@ -51,6 +51,7 @@ link .vimrc
 link .gitconfig
 link .gitignore
 link .git_template
+link git-scripts .git-scripts
 link .agignore
 
 mkdir -p "$HOME/.vim"

@@ -76,7 +76,7 @@ alias mv='mv -i'
 alias cp='${GNU_PREFIX}cp -i'
 alias tig='tig --all'
 
-alias erc="vim ~/.shellrc* ~/.zshrc* ~/.bashrc; rc"
+alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc; rc"
 
 alias mt="mvn dependency:tree"
 alias mp="mvn clean package"

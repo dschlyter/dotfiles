@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+# git seems to change to repo root for some reason, switch back
+# note: without any args. execution will be in the root dir with no GIT_PREFIX to go back
+if [[ -n "$GIT_PREFIX" ]]; then
+    cd "$GIT_PREFIX"
+fi
+
+script="$1"
+shift
+"$HOME/.git-scripts/$script" "$@"

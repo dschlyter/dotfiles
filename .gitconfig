@@ -65,7 +65,8 @@
     com = checkout master
     cp = cherry-pick
 
-    contribs = shortlog -s -n
+    # entry point for custom scripts (nicer than defining them inline here)
+    contribs = "!$HOME/.git-scripts/entry contribs"
     df = "!r() { git status --porcelain | awk '{print $2}' | fzf | xargs git diff; }; r"
     dg = "!r() { git status --porcelain | awk '{print $2}' | grep -i \"$1\" | xargs git diff; }; r"
 
@@ -78,6 +79,7 @@
     ln = !git lh --no-merges
     lg = !git lh --all
     ll = !git lg -n 9999
+    lhl = !git lh -n 9999
     # log including all branchless (rebased, amended, dropped) commits
     la = !git lg $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
     mine = "!r() { git lg --author='David Schlyter'; }; r"
@@ -147,7 +149,7 @@
 
     # branch management
     bra = branch -a --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
-    braf = "!r() { git bra --color | fzf --ansi | awk '{print $5}' | xargs git co ; }; r"
+    braf = "!r() { git bra --color | fzf --ansi | awk '{print $5}' | sed 's,origin/,,' | xargs git co ; }; r"
     # branch cleanup
     # delete or rename branch, both locally and remotely
     brd = "!r() { git branch -d $1; git push origin --delete $1; }; r"
