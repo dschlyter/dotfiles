@@ -4,11 +4,11 @@ local l = {}
 local shared = require "shared"
 
 function export.pressLeft()
-    hs.eventtap.event.newKeyEvent({'alt'}, 'right', true):post()
+    hs.eventtap.event.newKeyEvent({'alt'}, 'left', true):post()
 end
 
 function export.pressRight()
-    hs.eventtap.event.newKeyEvent({'alt'}, 'left', true):post()
+    hs.eventtap.event.newKeyEvent({'alt'}, 'right', true):post()
 end
 
 function export.pressUp()

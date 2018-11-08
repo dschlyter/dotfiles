@@ -49,6 +49,10 @@ function export.focusSpotify()
     l.focusNextWindow("Spotify")
 end
 
+function export.focusSlack()
+    l.focusNextWindow("Slack")
+end
+
 function export.focusOtherApp()
     l.focusNot({"Google Chrome", "iTerm2", "IntelliJ IDEA", "Spotify"})
 end

@@ -8,6 +8,13 @@ function export.fullscreen()
     l.scaleFocused(0, 0, 1, 1)
 end
 
+function export.sendToBack()
+    shared.findFocused(function(win)
+        -- TODO this is totally broken
+        win:sendToBack()
+    end)
+end
+
 function export.left()
     orChain(l.scaleFocused(0, 0, 0.5, 1), export.moveWindowOneScreenWest)
 end

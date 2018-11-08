@@ -61,15 +61,19 @@ function export.pasteAppClip()
         local output = trim(os.capture("tail -r "..clipFile, true))
         local lines = parse_lines(output)
 
-        l.showChooser(lines, function(text, cmd)
-            l.enterText(text)
+        l.showChooserWithSplitter(lines,
+        function (text, subtext)
+            l.enterText(subtext)
+        end
+        , function (line)
+            return {line, line}
         end)
     end)
 end
 
 function export.copyAppClip()
     l.withClipFile(function(clipFile)
-        local output = os.capture("echo $(pbpaste) >> " .. clipFile, true)
+        local output = os.capture("echo $(date) $(pbpaste) >> " .. clipFile, true)
         hs.alert.show("Clip saved!")
     end)
 end
@@ -122,12 +126,19 @@ end
 
 -- shared code
 function l.showChooser(lines, callback)
+    return l.showChooserWithSplitter(lines, callback, function (line)
+        return {line:gsub(" .*$", ""), line:gsub("^[^ ]+ ","")}
+    end)
+end
+
+function l.showChooserWithSplitter(lines, callback, splitter)
     local choices = {}
     for k in pairs(lines) do
         local line = lines[k]
+        split = splitter(line)
         choices[#choices + 1] = {
-            ["text"] = line:gsub(" .*$", ""),
-            ["subText"] = line:gsub("^[^ ]+ ",""),
+            ["text"] = split[1],
+            ["subText"] = split[2],
             ["uuid"] = k
         }
     end

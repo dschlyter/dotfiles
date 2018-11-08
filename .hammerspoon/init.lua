@@ -46,13 +46,14 @@ hs.hotkey.bind(modifierFocus, 'space', focus.focusTerminal)
 hs.hotkey.bind(modifierFocus, 'c', focus.focusChrome)
 hs.hotkey.bind(modifierFocus, 'd', focus.focusIntellij)
 hs.hotkey.bind(modifierFocus, 's', focus.focusSpotify)
+hs.hotkey.bind(modifierFocus, 'x', focus.focusSlack)
 hs.hotkey.bind(modifierFocus, 'w', focus.focusOtherApp)
 
 hs.hotkey.bind(modifierFocus, 'g', chooser.finderSearch)
 hs.hotkey.bind(modifierFocus, 'q', chooser.quickCommands)
 hs.hotkey.bind(modifierFocus, 'v', chooser.pasteAppClip)
 
-hs.hotkey.bind(modifierFocus, 'm', hotkeys.focusFirstChromeTab)
+hs.hotkey.bind(modifierFocus, 'm', move.sendToBack)
 
 hs.hotkey.bind(modifierFocus, 'u', chain.focusNextInChain)
 hs.hotkey.bind(modifierFocus, 'i', chain.switchChain)
