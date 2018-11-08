@@ -50,6 +50,7 @@
     st = status -sb
     di = diff
     dic = diff --cached
+    au = add -u
     cm = commit -v
     cma = !git cm --amend
     pu = push -u --follow-tags
@@ -93,6 +94,12 @@
     # patched commit with a file review and untracked sanity check first
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "!!! - Warning: Untracked files - !!! - press any key to confirm" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
+    # wip commit, to be used in combination with post-checkout auto pop
+    wip = commit -am "wip"
+    # named stashes
+    sshow = "!f() { git stash show stash^{/$*} -p; }; f"
+    sapply = "!f() { git stash apply stash^{/$*}; }; f"
+    srevert = "!f() { git sshow \"$@\" | git apply --reverse; }; f"
     # remove all whitespace changes
     rw=!sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git checkout "${@:-.}" && git reset'
     bc = "!r() { git checkout -b $1 && git commit -p; }; r"

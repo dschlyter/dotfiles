@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
-set -euo pipefail
+set -eu
 IFS=$'\n'
 
 last_commits="$(git log --oneline --format='%ai/%an' "$@")"

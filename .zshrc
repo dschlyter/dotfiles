@@ -57,10 +57,11 @@ alias rc='source ~/.zshrc'
 alias zl="vim $HOME/.zshrc_local; rc"
 
 ## Global aliases
+# note: alias R breaks fasd
 alias -g G='| grep -i'
 alias -g L='| less'
 alias -g H='| head'
-alias -g R='| reverse'
+alias -g REV='| reverse'
 alias -g MAP='| xargs --no-run-if-empty -n 1'
 alias -g MAPI='| xargs --no-run-if-empty -n 1 -i'
 alias -g C1='| cl 1'
@@ -104,6 +105,16 @@ function save-hist {
     else
         echo "Name required as first arg"
     fi
+}
+
+# poor mans watch, but with access to shell functions
+function shell-watch {
+    while true; do
+        output="$(date)\n$(eval "$@")"
+        clear
+        echo "$output"
+        sleep 2
+    done
 }
 
 function eachdir {
