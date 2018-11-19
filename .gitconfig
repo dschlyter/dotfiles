@@ -94,8 +94,8 @@
     # patched commit with a file review and untracked sanity check first
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "!!! - Warning: Untracked files - !!! - press any key to confirm" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
-    # wip commit, to be used in combination with post-checkout auto pop
-    wip = commit -am "wip"
+    # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip"
+    wip = "!r() { git add -A; git commit -m 'wip-stash'; }; r"
     # named stashes
     sshow = "!f() { git stash show stash^{/$*} -p; }; f"
     sapply = "!f() { git stash apply stash^{/$*}; }; f"
@@ -145,7 +145,7 @@
     u = !git fw && git brc
     # fast forward branch without checking them out
     up = !sh -c 'git lazy-fe $1 && git merge-base --is-ancestor $1 origin/$1 && ! git same $1 origin/$1 && git branch -f $1 origin/$1' -
-    urb = !sh -c 'git up $1 && git rebase --autostash $1' -
+    urb = "!r() { git up $1; git rebase --autostash $1; }; r"
     mup = !git up master
     mur = !git urb master
     ur = "!r() { git urb $(git branch-exists develop && echo develop || echo master); }; r"
@@ -156,7 +156,7 @@
 
     # branch management
     bra = branch -a --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
-    braf = "!r() { git bra --color | fzf --ansi | awk '{print $5}' | sed 's,origin/,,' | xargs git co ; }; r"
+    braf = "!r() { git bra --color | fzf --ansi -e | awk '{print $5}' | sed 's,origin/,,' | xargs git co ; }; r"
     # branch cleanup
     # delete or rename branch, both locally and remotely
     brd = "!r() { git branch -d $1; git push origin --delete $1; }; r"

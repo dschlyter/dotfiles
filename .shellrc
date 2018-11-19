@@ -22,6 +22,7 @@ _add_to_path() {
 }
 
 _add_to_path "$HOME/bin"
+_add_to_path "$HOME/commands"
 _add_to_path "$HOME/code/bin"
 _add_to_path "$HOME/local/bin"
 _add_to_path "$HOME/code/jenkins-seed/bin"

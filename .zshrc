@@ -70,7 +70,51 @@ alias -g DL='"$HOME/downloads/$(ls -1 -tr $HOME/downloads | tail -n 1)"'
 
 # Functions
 
+# quickly save the previous command
+function save {
+    if [[ -n "$1" ]]; then
+        local last_command="$(fc -l -nIL -1 -1 2> /dev/null)"
+        _quicksave_command "$1" "$last_command"
+    else
+        echo "Name required as first arg"
+        echo "Current commands:"
+        ls $HOME/commands
+    fi
+}
+
+function unsave {
+    rm "$HOME/commands/$1"
+}
+
+# quickly save a set of the previous commands
+function save-hist {
+    if [[ -n "$1" ]]; then
+        _quicksave_command "$1" "$(history -10 | sed -E 's/[ 0-9*]+//' | fzf -m)"
+    else
+        echo "Name required as first arg"
+    fi
+}
+
+function _quicksave_command {
+    mkdir -p "$HOME/commands"
+    filename="$HOME/commands/$1"
+    if [[ ! -f "$filename" ]]; then
+        shift
+        echo "#!/bin/zsh
+
+        set -e
+
+        " | sed -E 's/^ +//' > "$filename"
+        echo "$@" >> "$filename"
+        chmod +x "$filename"
+    else
+        echo "Command already exists, delete with unsave $1"
+        return 1
+    fi
+}
+
 # quickly redefine local functions in editor
+# for real scripts it is probably better with vim =command
 function redef {
     test -n "$1" || return 1
     where "$1" > /tmp/redef
@@ -85,27 +129,6 @@ function redef {
     fi
 }
 
-# quickly save the previous command
-function save {
-    if [[ -n "$1" ]]; then
-        local last_command="$(fc -l -nIL -1 -1 2> /dev/null)"
-        eval "$1() { $last_command; }"
-    else
-        echo "Name required as first arg"
-    fi
-}
-
-# quickly save a set of the previous commands
-function save-hist {
-    if [[ -n "$1" ]]; then
-        tmp_file="/tmp/save-hist"
-        history -10 | sed 's/[ 0-9]+//' > "$tmp_file"
-        "$EDITOR" "$tmp_file"
-        eval "$1() { $(cat $tmp_file); }"
-    else
-        echo "Name required as first arg"
-    fi
-}
 
 # poor mans watch, but with access to shell functions
 function shell-watch {

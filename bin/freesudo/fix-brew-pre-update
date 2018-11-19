@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+if [[ "$(/usr/bin/uname)" != "Darwin" ]]; then
+    echo "Not running on mac"
+    exit 1
+fi
+
+echo "Fixing brew permissions before update..."
+sudo chown -R "${USER}" /usr/local/*

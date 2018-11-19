@@ -97,11 +97,12 @@ BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
 function bup() {
     (umask 002;
     # because multi-user brew is so broken
-    grab /usr/local
+    # make sure scripts from dotfiles/bin/freesudo are installed
+    sudo /opt/sudo/fix-brew-pre-update || return
+
     brew update && brew upgrade && date "+%s" > $BREW_UPDATE_FILE)
-    echo "Restporing permissions for brew"
-    fix-brew
-    # Add users with: sudo dseditgroup -o edit -a $USER -t user brew
+
+    sudo /opt/sudo/fix-brew-post-update
 }
 
 local NOW="$(date +%s)"
@@ -110,14 +111,6 @@ local DIFF_DAYS=$((($NOW - $LAST_UPDATE) / (3600 * 24)))
 if [ $DIFF_DAYS -gt 7 ]; then
     echo "Homebrew has not been upgraded in $DIFF_DAYS days. Run upgrade with 'bup'"
 fi
-
-function fix-brew() {
-    sudo chmod -R ug+rwx /usr/local/*
-    sudo chgrp -R brew /usr/local/*
-
-    # sudo chgrp -R brew /Library/Caches/Homebrew
-    # sudo chmod -R g+rwx /Library/Caches/Homebrew
-}
 
 #
 # Other settings
