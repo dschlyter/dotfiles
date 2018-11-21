@@ -5,6 +5,7 @@
 .DS_Store
 .gitconfig_local
 .gitautofetch
+.gitblacklist
 
 # intellj
 .idea

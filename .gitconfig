@@ -66,8 +66,10 @@
     com = checkout master
     cp = cherry-pick
 
-    # entry point for custom scripts (nicer than defining them inline here)
+    # entry point for custom scripts (for things that are too large to define inline here)
     contribs = "!$HOME/.git-scripts/entry contribs"
+
+    # diff with selection
     df = "!r() { git status --porcelain | awk '{print $2}' | fzf | xargs git diff; }; r"
     dg = "!r() { git status --porcelain | awk '{print $2}' | grep -i \"$1\" | xargs git diff; }; r"
 
@@ -96,6 +98,8 @@
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip"
     wip = "!r() { git add -A; git commit -m 'wip-stash'; }; r"
+    # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
+    blacklist = "!r() { echo \"$@\" > .gitblacklist }; r"
     # named stashes
     sshow = "!f() { git stash show stash^{/$*} -p; }; f"
     sapply = "!f() { git stash apply stash^{/$*}; }; f"
@@ -150,7 +154,6 @@
     mur = !git urb master
     ur = "!r() { git urb $(git branch-exists develop && echo develop || echo master); }; r"
     # lazy fetch, for having fetch in commands that may be chained together, without fetching multiple times
-    # # lazy fetch, for having fetch in commands that may be chained together, without fetching multiple times
     last-fetch = "!r() { echo $(( $(date +%s) - $(${GNU_PREFIX}stat -c %Y .git/FETCH_HEAD) )); }; r"
     lazy-fe = "!r() { test $(git last-fetch) -gt 20 && git fe || true; }; r"
 
