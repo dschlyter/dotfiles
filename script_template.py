@@ -2,10 +2,8 @@
 
 import argparse
 import subprocess
-import sys
 import re
 import json
-from pprint import pprint
 from tempfile import TemporaryFile
 
 description='TODO describe script'

@@ -56,8 +56,8 @@
     pu = push -u --follow-tags
     pufl = push --force-with-lease
     br = branch
-    rb = rebase
     par = pull --rebase --autostash
+    rb = rebase
     rba = rebase --autostash
     rbc = rebase --continue
     co = checkout
@@ -67,6 +67,7 @@
     cp = cherry-pick
 
     # entry point for custom scripts (for things that are too large to define inline here)
+    # list contibutors with number of commits
     contribs = "!$HOME/.git-scripts/entry contribs"
 
     # diff with selection
@@ -76,19 +77,16 @@
     # log and display
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
+    # lg shows all branches
+    lg = !git lh --all
     lh = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ai) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
     ls = !git lh --stat
-    # lg shows all branches
     ln = !git lh --no-merges
-    lg = !git lh --all
     ll = !git lg -n 9999
     lhl = !git lh -n 9999
     # log including all branchless (rebased, amended, dropped) commits
     la = !git lg $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
     mine = "!r() { git lg --author='David Schlyter'; }; r"
-    # everything i have done the last month. there is an echo and inverse grep empty lines to make sure newlines are properly inserted
-    allmine = "!r() { find . -name .git -exec sh -c \"cd {}; git log --author='David Schlyter' --since='2 month' --date=iso --pretty=format:'%cd {} %s'; echo \" ';' | grep -v '^$' | sort; }; r"
-    logall = "!r() { find . -name .git -exec sh -c \"cd {}; git log --since='2 month' --date=iso --pretty=format:'%cd %an {} %s'; echo \" ';' | grep -v '^$' | sort; }; r"
     # show the first commit from log that matches sha-prefix, eg. git sc 72F
     sc = "!r() { git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show; }; r"
 
@@ -190,6 +188,11 @@
     dup = !git up develop
     dur = !git urb develop
     durp = !git dir && git pufl
+
+    # multi-repo stuff
+    # everything i have done the last month. there is an echo and inverse grep empty lines to make sure newlines are properly inserted
+    allmine = "!r() { find . -name .git -exec sh -c \"cd {}; git log --author='David Schlyter' --since='2 month' --date=iso --pretty=format:'%cd {} %s'; echo \" ';' | grep -v '^$' | sort; }; r"
+    logall = "!r() { find . -name .git -exec sh -c \"cd {}; git log --since='2 month' --date=iso --pretty=format:'%cd %an {} %s'; echo \" ';' | grep -v '^$' | sort; }; r"
 
     cleanout = !git clean -Xdf && git gc
     yolo = !git add -A && git commit -m \"$(curl -s whatthecommit.com/index.txt)\" && git push

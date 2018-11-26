@@ -34,6 +34,7 @@ unmap('t', /inbox.google.com/);
 unmap('c', /inbox.google.com/);
 unmap('g', /mail.google.com/);
 unmap('c', /mail.google.com/);
+unmap('r', /mail.google.com/);
 unmap('.', /jira./);
 unmap('i', /jira./);
 
