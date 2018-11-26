@@ -26,6 +26,7 @@ node_modules
 
 # python
 .envrc
+__pycache__
 
 # other
 git-of-theseus-data

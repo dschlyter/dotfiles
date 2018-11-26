@@ -14,6 +14,7 @@ export PAGER="less"
 # start on Mondays when using gcal
 export GCAL="-s1"
 export LS_COLORS
+export PYTHONPATH="$PYTHONPATH:$HOME/.dotfiles/bin/python"
 
 _add_to_path() {
     if [[ ! "$PATH" == *$1* ]]; then
@@ -345,23 +346,18 @@ fixenc() {
     iconv -f ISO-8859-1 -t UTF-8 "$1.orig" > "$1"
 }
 
-ss() {
+_script_template() {
     if [ -z "$1" ]; then
         echo "Usage $0 myScript.sh"
         return 1
     fi
 
-    cp -i ~/.dotfiles/script_template.sh "$1" && $EDITOR "$1"
+    cp -i ~"/.dotfiles/$1" "$2" && $EDITOR "$2"
 }
 
-pys() {
-    if [ -z "$1" ]; then
-        echo "Usage $0 myScript"
-        return 1
-    fi
-
-    cp -i ~/.dotfiles/script_template.py "$1" && $EDITOR "$1"
-}
+alias ss="_script_template script_template.sh"
+alias pys="_script_template script_template.py"
+alias pyc="_script_template script_cli_template.py"
 
 grab() {
     sudo chown -R "${USER}" "${@:-.}"

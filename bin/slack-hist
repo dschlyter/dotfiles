@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+
+# Print slack history from an exported slack archive
+from datetime import datetime
+import json
+import sys
+from glob import glob
+
+
+def main():
+    channel = sys.argv[1]
+
+    users = {}
+    with open("users.json") as file:
+        user_json = json.load(file)
+        for u in user_json:
+            users[u['id']] = u['name']
+
+    files = sorted(glob(f"{channel}/*.json"))
+    print(files)
+    for fn in files:
+        with open(fn) as file:
+            events = json.load(file)
+            print_file(users, events)
+
+
+def print_file(users, events):
+    for event in events:
+        if event.get('type') == 'message':
+            author = users.get(event.get('user', "unknown"))
+            print(get_ts(event), f"[{author}]", get_text(event, users))
+        else:
+            print(f"<{event.get('type')} event>")
+
+
+def get_ts(event):
+    ts = int(round(float(event.get('ts', 0))))
+    return datetime.fromtimestamp(ts).isoformat()
+
+
+def get_text(event, users):
+    text = event.get('text', 'None')
+    if "@" in text:
+        for key, name in users.items():
+            text = text.replace(f"<@{key}>", f"@{name}")
+
+    return text
+
+
+
+main()

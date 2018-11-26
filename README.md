@@ -19,3 +19,8 @@ Run `./osx.sh` for some sane default configs.
 
 * To use iterm2-settings, open iterm preferences and select load config from file and select com.googlecode.iterm2.plist in the dotfiles dir.
 * To export config, open iterm preferences and press save config to file.
+
+Python scripts
+--------------
+
+For development in intellij/pycharm go to Project settings > SDK and add bin/python to the pythonpath.
