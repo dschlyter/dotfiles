@@ -3,10 +3,12 @@ import re
 import json
 from tempfile import TemporaryFile
 
+_AUTO = None
+
 
 # high level fire and forget execution
-def run(command, shell=False, can_fail=False, output=False):
-    parsed = parse_command(command, shell)
+def run(command, shell=_AUTO, can_fail=False, output=False):
+    parsed = _parse_command(command, shell)
     if not output:
         try:
             return subprocess.check_output(parsed).strip().decode('ascii')
@@ -24,26 +26,26 @@ def run(command, shell=False, can_fail=False, output=False):
 
 # more low level interface returning return value, stdout and stderr
 # modified from https://stackoverflow.com/questions/30937829
-def execute(command, shell=False):
+def execute(command, shell=_AUTO):
     with TemporaryFile() as t:
         try:
-            parsed = parse_command(command, shell)
+            parsed = _parse_command(command, shell)
             out = subprocess.check_output(parsed, stderr=t).strip()
             t.seek(0)
-            return {"ret": 0, "stdout": out, "stderr": t.read().strip()}
+            return 0, out, t.read().strip()
         except subprocess.CalledProcessError as e:
             t.seek(0)
-            return {"ret": e.returncode, "stdout": None, "stderr": t.read().strip()}
+            return e.returncode, None, t.read().strip()
 
 
-def parse_command(command, shell):
-    command_list = parse_into_arguments(command, shell)
-    return map(lambda arg: arg.encode('ascii', 'replace'), command_list)
+def _parse_command(command, shell):
+    command_list = _parse_into_arguments(command, shell)
+    return list(map(lambda arg: arg.encode('ascii', 'replace'), command_list))
 
 
-def parse_into_arguments(command, shell):
+def _parse_into_arguments(command, shell):
     if isinstance(command, str):
-        if re.search("['\"|><]", command):
+        if shell is _AUTO and re.search("['\"|><]", command):
             shell = True
         if shell:
             return ["bash", "-c", command]
@@ -54,12 +56,12 @@ def parse_into_arguments(command, shell):
         raise Exception("Unsupported type issued to command")
 
 
-def load_conf(path, default_value={}):
+def load_conf(path, default_value=None):
     try:
         with open(path, 'r') as data_file:
             return json.load(data_file)
-    except:
-        return default_value
+    except (FileNotFoundError, json.JSONDecodeError):
+        return default_value if default_value is not None else {}
 
 
 def save_conf(path, data):
