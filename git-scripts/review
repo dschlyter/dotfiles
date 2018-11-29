@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Set up a branch in review state
+# This assumes reviewing will be done in Intellij and does a few tricks to make the branch changes into uncommited changes on a branch. Intellij tooling works pretty well for reviewing (potentially large) changes with full IDE access.
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -eu
+IFS=$'\n'
+
+test -z "$(git status --porcelain)" || (echo "Uncommited changes"; exit 1)
+
+git fetch
+git br -f review $(git braf)
+git co review
+git merge origin/master -m "tmp merge"
+
+# reset to master to make changes into uncommited changes
+git reset origin/master
+
+# add all new files as "intend to commit" to fix intellij highlight
+git add -N .

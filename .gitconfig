@@ -69,6 +69,8 @@
     # entry point for custom scripts (for things that are too large to define inline here)
     # list contibutors with number of commits
     contribs = "!$HOME/.git-scripts/entry contribs"
+    # checkout branch and prepare for review
+    review = "!$HOME/.git-scripts/entry review"
 
     # diff with selection
     df = "!r() { git status --porcelain | awk '{print $2}' | fzf | xargs git diff; }; r"
@@ -157,7 +159,8 @@
 
     # branch management
     bra = branch -a --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
-    braf = "!r() { git bra --color | fzf --ansi -e | awk '{print $5}' | sed 's,origin/,,' | xargs git co ; }; r"
+    braf = "!r() { git bra --color | fzf --ansi -e | awk '{print $5}' ; }; r"
+    cof = "!r() { git braf | sed 's,origin/,,' | xargs git co ; }; r"
     # branch cleanup
     # delete or rename branch, both locally and remotely
     brd = "!r() { git branch -d $1; git push origin --delete $1; }; r"
