@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+
+# This script reverts all-whitespace changes. With all whitespace including both spaces and newlines.
+# Canonical use case is to revert format of json-files
+
+# future work, make sure that patches with multiple +++/--- segments also gets reset
+# (i.e. whitespace and non-whitespace close together)
+
+import os
+import re
+import pydash
+
+from dotfiles import run
+
+
+def main():
+    diff = run("git diff")
+    lines = diff.split("\n")
+    whitespace_lines = find_space_changes(lines)
+    if whitespace_lines:
+        tmp_file = 'wsreset.tmp'
+        with open(tmp_file, mode="w") as file:
+            for line in whitespace_lines:
+                file.write(line + "\n")
+        run(f"git apply --reverse {tmp_file}")
+        os.remove(tmp_file)
+    else:
+        print("No whitespace changes found")
+
+
+def find_space_changes(lines):
+    ret = []
+    # drop the first part (header)
+    file_diff_list = partition(lines, lambda line: line.startswith("diff "))
+    for file_diff in file_diff_list:
+        [header, *patches] = partition(file_diff, lambda line: line.startswith("@@"))
+        patch_lines_to_keep = []
+        for patch in patches:
+            if whitespace_patch(patch):
+                patch_lines_to_keep += patch
+        if patch_lines_to_keep:
+            ret += header + patch_lines_to_keep
+
+    return ret
+
+
+def whitespace_patch(patch_lines):
+    def reduce_change(lines, start_char):
+        return pydash.chain(lines) \
+            .filter(lambda line: line.startswith(start_char)) \
+            .map(lambda line: line[1:]) \
+            .map(lambda line: re.sub(r"\s", "", line)) \
+            .reduce(lambda joined, s: joined+s, "") \
+            .value()
+
+    added = reduce_change(patch_lines, "+")
+    removed = reduce_change(patch_lines, "-")
+
+    if added == removed:
+        return True
+    else:
+        return False
+
+
+def partition(lines, separator_fn):
+    segments = []
+    for line in lines:
+        if not segments or separator_fn(line):
+            segments.append([])
+        segments[-1].append(line)
+    return segments
+
+
+if __name__ == '__main__':
+    main()

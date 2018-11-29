@@ -71,6 +71,7 @@
     contribs = "!$HOME/.git-scripts/entry contribs"
     # checkout branch and prepare for review
     review = "!$HOME/.git-scripts/entry review"
+    wsreset = "!$HOME/.git-scripts/entry wsreset"
 
     # diff with selection
     df = "!r() { git status --porcelain | awk '{print $2}' | fzf | xargs git diff; }; r"

@@ -7,12 +7,14 @@ _AUTO = None
 
 
 # high level fire and forget execution
-def run(command, shell=_AUTO, can_fail=False, output=False):
+def run(command, *args, shell=_AUTO, can_fail=False, print_stdout=False):
+    if args:
+        command = [command, *args]
     parsed = _parse_command(command, shell)
-    if not output:
+    if not print_stdout:
         try:
-            return subprocess.check_output(parsed).strip().decode('ascii')
-        except subprocess.CalledProcessError as e:
+            return subprocess.check_output(parsed).strip().decode('utf-8')
+        except subprocess.CalledProcessError:
             if can_fail:
                 return None
             else:
@@ -26,7 +28,9 @@ def run(command, shell=_AUTO, can_fail=False, output=False):
 
 # more low level interface returning return value, stdout and stderr
 # modified from https://stackoverflow.com/questions/30937829
-def execute(command, shell=_AUTO):
+def execute(command, *args, shell=_AUTO):
+    if args:
+        command = [command, *args]
     with TemporaryFile() as t:
         try:
             parsed = _parse_command(command, shell)
@@ -40,7 +44,7 @@ def execute(command, shell=_AUTO):
 
 def _parse_command(command, shell):
     command_list = _parse_into_arguments(command, shell)
-    return list(map(lambda arg: arg.encode('ascii', 'replace'), command_list))
+    return list(map(lambda arg: arg.encode('utf-8', 'replace'), command_list))
 
 
 def _parse_into_arguments(command, shell):
