@@ -380,6 +380,7 @@ setopt correct                  # spelling correction
 # Use colors for autocompletion lists
 LS_COLORS="di=01;34:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:su=37;41:sg=30;43:tw=30;42:ow=34;42:st=37;44:ex=01;32";
 zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+profiling_log "completition settings loaded"
 
 # custom completion
 for d in ~/.zsh/completion ~/.zsh_completion; do
@@ -388,15 +389,22 @@ for d in ~/.zsh/completion ~/.zsh_completion; do
         autoload -U "$d"/*(:t)
     fi
 done
+profiling_log "custom completition loaded"
 
 autoload -Uz compinit
 
+comp_flags=()
 if [[ "$(uname -s)" == "Darwin" ]]; then
     # skip single-user security checks to allow for multi user homebrew
-    compinit -u
-else
-    compinit
+    comp_flags+="-u"
 fi
+if [[ -z ${ZSH_SKIP_COMP_RELOAD} ]]; then
+    comp_flags+="-C"
+else
+    # skip loading comp again, since this is very slow for some reason
+    ZSH_SKIP_COMP_RELOAD=1
+fi
+compinit $comp_flags
 profiling_log "completition loaded"
 
 # fasd should be setup after compinit
@@ -447,13 +455,15 @@ setopt histignorespace          # commands starting with space are not remembere
 setopt histignorealldups        # removes duplicate commands, even if non-sequential, useful for percol search
 
 export REPORTTIME=10 # print stats for commands running longer than 10 secs
+profiling_log "settings loaded"
 
 # Overriding configs goes in .zshrc_local
 source_if_exists ~/.zshrc_local
+profiling_log "local conf loaded"
 source_if_exists ~/.zshrc_cygwin
 source_if_exists ~/.zshrc_mac
+profiling_log "platform conf loaded"
 
-profiling_log "local conf loaded"
 profiling_log "done!"
 
 test $profiling_level -gt 1 && zprof || true
