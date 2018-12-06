@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+echo "$@"
+
+if echo "$(git diff --cached)" | grep -q "NO-COMMIT"; then
+    echo "Forbidden content (NO-COMMIT) found in commit"
+    exit 1
+fi

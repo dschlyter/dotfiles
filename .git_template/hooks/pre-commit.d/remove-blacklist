@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+if [[ ! -f .gitblacklist ]]; then
+    exit 0
+fi
+
+git reset $(cat .gitblacklist)

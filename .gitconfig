@@ -50,6 +50,7 @@
     st = status -sb
     di = diff
     dic = diff --cached
+    diw = diff --color-words='[^[:space:]]|([[:alnum:]]|UTF_8_GUARD)+'
     au = add -u
     cm = commit -v
     cma = !git cm --amend

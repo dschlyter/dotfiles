@@ -30,6 +30,7 @@ __pycache__
 
 # other
 git-of-theseus-data
+/no-git
 
 # local dotfiles gitignore
 .vim/spell/en.utf-8.add.spl
