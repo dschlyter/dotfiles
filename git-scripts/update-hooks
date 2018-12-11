@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Update hooks with latest from dotfiles
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+for f in "$HOME"/.dotfiles/.git_template/hooks/*; do
+    cp -r "$f" .git/hooks
+done

@@ -73,6 +73,7 @@
     # checkout branch and prepare for review
     review = "!$HOME/.git-scripts/entry review"
     wsreset = "!$HOME/.git-scripts/entry wsreset"
+    update-hooks = "!$HOME/.git-scripts/entry update-hooks"
 
     # diff with selection
     df = "!r() { git status --porcelain | awk '{print $2}' | fzf | xargs git diff; }; r"
@@ -99,7 +100,7 @@
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "!!! - Warning: Untracked files - !!! - press any key to confirm" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip"
-    wip = "!r() { git add -A; git commit -m 'wip-stash'; }; r"
+    wip = "!r() { git add -A; git commit --no-verify -m 'wip-stash'; }; r"
     # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
     blacklist = "!r() { echo \"$@\" > .gitblacklist }; r"
     # named stashes

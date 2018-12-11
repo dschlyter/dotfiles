@@ -1,10 +1,12 @@
 #!/bin/bash
 
+# .gitblacklist is similar to .gitignore, but can track files that are checked into git and get updates from upstream. You just cannot check in changes.
+
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t'
 
-if [[ ! -f .gitblacklist ]]; then
+if [[ ! -s .gitblacklist ]]; then
     exit 0
 fi
 
