@@ -7,6 +7,11 @@
 set -eu
 IFS=$'\n'
 
+if [[ "${1:-}" == "done" ]]; then
+    git on review && git reset --hard && git checkout master && git br -D review
+    exit 0
+fi
+
 test -z "$(git status --porcelain)" || (echo "Uncommited changes"; exit 1)
 
 git fetch

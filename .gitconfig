@@ -93,7 +93,7 @@
     la = !git lg $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
     mine = "!r() { git lg --author='David Schlyter'; }; r"
     # show the first commit from log that matches sha-prefix, eg. git sc 72F
-    sc = "!r() { git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show; }; r"
+    sc = "!git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show"
 
     # commit
     # patched commit with a file review and untracked sanity check first
@@ -159,6 +159,7 @@
     # lazy fetch, for having fetch in commands that may be chained together, without fetching multiple times
     last-fetch = "!r() { echo $(( $(date +%s) - $(${GNU_PREFIX}stat -c %Y .git/FETCH_HEAD) )); }; r"
     lazy-fe = "!r() { test $(git last-fetch) -gt 20 && git fe || true; }; r"
+    lazy-pu = "!r() { br=$(git curr-br) && git same \"$br\" origin/\"$br\" 2> /dev/null 20 || git pu || true; }; r"
 
     # branch management
     bra = branch -a --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
