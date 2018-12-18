@@ -123,4 +123,7 @@ hs.hotkey.bind(modifierComplicated, '-', hotkeys.volumeUp)
 -- hotkeys on complicated
 hs.hotkey.bind(modifierComplicated, 'r', hs.reload)
 
+-- local overrides, not checked into git
+require "init-local"
+
 hs.alert.show("Hammerspoon config loaded")

@@ -1,0 +1,39 @@
+# generic
+.*.swp
+.svn
+.hg
+.DS_Store
+.gitconfig_local
+.gitautofetch
+.gitblacklist
+
+# intellj
+.idea
+*.iml
+
+# java
+.gradle
+.gradletasknamecache
+
+# c
+*.o
+a.out
+CMakeFiles
+cmake*
+
+# js
+node_modules
+
+# python
+.envrc
+__pycache__
+
+# other
+git-of-theseus-data
+/no-git
+
+# local dotfiles gitignore
+.vim/spell/en.utf-8.add.spl
+
+# custom for specific projects
+scripts/dev

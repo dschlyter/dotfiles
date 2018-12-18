@@ -37,6 +37,10 @@ function export.focusChrome()
     l.focusNextWindow("Google Chrome")
 end
 
+function export.focusFirefox()
+    l.focusNextWindow("Firefox")
+end
+
 function export.focusTerminal()
     l.focusNextWindow("iTerm2", "iTerm")
 end
@@ -54,7 +58,7 @@ function export.focusSlack()
 end
 
 function export.focusOtherApp()
-    l.focusNot({"Google Chrome", "iTerm2", "IntelliJ IDEA", "Spotify"})
+    l.focusNot({"Google Chrome", "Firefox", "iTerm2", "IntelliJ IDEA", "Spotify", "Slack"})
 end
 
 -- reimplements focusWindowX with less buggy and more powerful functionality

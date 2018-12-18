@@ -16,6 +16,12 @@ link() {
 
     if [ -L "$SOURCE" ]; then
         echo "file $FILE already linked"
+        OLD_TARGET="$(readlink -- "$SOURCE")"
+        if [[ "$OLD_TARGET" != "$TARGET" ]]; then
+            echo "!!! updating link $TARGET ($OLD_TARGET => $TARGET)"
+            rm "$SOURCE"
+            ln -s "$TARGET" "$SOURCE"
+        fi
     elif [ -e "$SOURCE" ]; then
         echo "!!! ERROR file $FILE exists but is not a link"
     else
@@ -49,7 +55,7 @@ link .kubectl_aliases
 link .fasd.sh # autojump
 link .vimrc
 link .gitconfig
-link .gitignore
+link .gitignore_global .gitignore
 link .git_template
 link git-scripts .git-scripts
 link .agignore
@@ -66,6 +72,8 @@ case "$(uname -s)" in
         echo "Detected Mac OSX"
         link .zshrc_mac
         link .hammerspoon
+        # make sure the local file exists since it will be loaded
+        touch .hammerspoon/init-local.lua
 
         INTELLIJ_PREFS="$(echo "/Users/$USER/Library/Preferences/IntelliJIdea"* | xargs -n 1 echo | tail -n 1)"
         if [ -d "$INTELLIJ_PREFS" ]; then

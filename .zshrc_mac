@@ -93,16 +93,24 @@ function brew() {
 }
 
 # brew convinience function
-BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
+if [[ -n "$MULTIUSER_BREW" ]]; then
+    BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
+else
+    BREW_UPDATE_FILE=$HOME/.config/.brew_lastupdate
+fi
 function bup() {
-    (umask 002;
-    # because multi-user brew is so broken
-    # make sure scripts from dotfiles/bin/freesudo are installed
-    sudo /opt/sudo/fix-brew-pre-update || return
+    if [[ -n "$MULTIUSER_BREW" ]]; then
+        # because multi-user brew is so broken
+        # make sure scripts from dotfiles/bin/freesudo are installed
+        sudo /opt/sudo/fix-brew-pre-update || return
+    fi
 
+    (umask 002;
     brew update && brew upgrade && date "+%s" > $BREW_UPDATE_FILE)
 
-    sudo /opt/sudo/fix-brew-post-update
+    if [[ -n "$MULTIUSER_BREW" ]]; then
+        sudo /opt/sudo/fix-brew-post-update
+    fi
 }
 
 local NOW="$(date +%s)"
