@@ -69,15 +69,19 @@
 
     # entry point for custom scripts (for things that are too large to define inline here)
     # list contibutors with number of commits
-    contribs = "!$HOME/.git-scripts/entry contribs"
+    contribs = !$HOME/.git-scripts/entry contribs
     # checkout branch and prepare for review
-    review = "!$HOME/.git-scripts/entry review"
-    wsreset = "!$HOME/.git-scripts/entry wsreset"
-    update-hooks = "!$HOME/.git-scripts/entry update-hooks"
+    review = !$HOME/.git-scripts/entry review
+    wsreset = !$HOME/.git-scripts/entry wsreset
+    update-hooks = !$HOME/.git-scripts/entry update-hooks
+
+    # notes:
+    # add "#" to the end to prevent alias from consuming input, useful with $1 args
+    # " needs escaping, ' does not
 
     # diff with selection
-    df = "!r() { git status --porcelain | awk '{print $2}' | fzf | xargs git diff; }; r"
-    dg = "!r() { git status --porcelain | awk '{print $2}' | grep -i \"$1\" | xargs git diff; }; r"
+    df = !git status --porcelain | awk '{print $2}' | fzf | xargs git diff "#"
+    dg = !git status --porcelain | awk '{print $2}' | grep -i \"$1\" | xargs git diff "#"
 
     # log and display
     # nicely formatted log, default to 15 entries but another -n may override that
@@ -91,99 +95,94 @@
     lhl = !git lh -n 9999
     # log including all branchless (rebased, amended, dropped) commits
     la = !git lg $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
-    mine = "!r() { git lg --author='David Schlyter'; }; r"
+    mine = !git lg --author='David Schlyter'
     # show the first commit from log that matches sha-prefix, eg. git sc 72F
-    sc = "!git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show"
+    sc = !git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show "#"
 
     # commit
     # patched commit with a file review and untracked sanity check first
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "!!! - Warning: Untracked files - !!! - press any key to confirm" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip"
-    wip = "!r() { git add -A; git commit --no-verify -m 'wip-stash'; }; r"
+    wip = !git add -A";" git commit --no-verify -m 'wip-stash'
     # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
-    blacklist = "!r() { echo \"$@\" > .gitblacklist }; r"
+    blacklist = !echo \"$@\" >> .gitblacklist "#"
     # named stashes
-    sshow = "!f() { git stash show stash^{/$*} -p; }; f"
-    sapply = "!f() { git stash apply stash^{/$*}; }; f"
-    srevert = "!f() { git sshow \"$@\" | git apply --reverse; }; f"
+    sshow = !git stash show stash^{/$*} -p
+    sapply = !git stash apply stash^{/$*}
+    srevert = !git sshow \"$@\" | git apply --reverse
     # remove all whitespace changes
     rw=!sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git checkout "${@:-.}" && git reset'
-    bc = "!r() { git checkout -b $1 && git commit -p; }; r"
+    bc = !git checkout -b \"$1\" && git commit -p
 
     # amend and rebase
     # amend without changing git commit message
     amend = commit --amend --reuse-message=HEAD
     pa = !git amend -p
     # --amend to a previous commit below HEAD
-    fixup = !sh -c '(git diff-files --quiet || (echo "Unstaged changes, please commit or stash with --keep-index" && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -
-    fup = !sh -c 'git fixup "$(git select)"'
-    select = "!r() { git log --pretty --oneline --decorate --color | fzf --ansi | awk '{print ""$""1}'; }; r"
-    cps = "!r() { git cherry-pick $(git select); }; r"
+    fixup = !(git diff-files --quiet || (echo 'Unstaged changes, please commit or stash with --keep-index' && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1 "#"
+    fup = !git fixup \"$(git select)\"
+    select = !git log --pretty --oneline --decorate --color | fzf --ansi | awk '{print ""$""1}'
+    cps = !git cherry-pick $(git select)
     # checkout/reset back n commits
-    con = "!r() { COUNT=$1; shift; git co HEAD~$COUNT $@; }; r"
-    rsn = "!r() { COUNT=$1; shift; git reset HEAD~$COUNT $@; }; r"
+    rsn = !COUNT=$1";" shift";" git reset HEAD~$COUNT \"$@\" "#"
     rsm = branch -f master origin/master
     # rebase the last n commits
-    rbn = "!r() { git rebase -i HEAD~$1; }; r"
+    rbn = !git rebase -i HEAD~$1 "#"
     # rebase on mainline
-
-    # pushing
-    # fast forward another branch and push both that and current (ie. double push develop+master)
-    f2p = "!r() { BRANCH=\"$(git symbolic-ref --short -q HEAD)\"; git co $1 && git merge --ff-only \"$BRANCH\" && git push origin \"$1\" \"$BRANCH\"; }; r"
 
     # pulling changes more productively
     # fetch, prune removed remote branches and shortlog fetched changes
     fe = !sh -c 'PRE=${1:-$(git rev-parse origin/master)} && git fetch --tags --prune && git lh $PRE..$(git rev-parse origin/master) || true' -
     # utils for branch comparisons
     curr-br = rev-parse --abbrev-ref HEAD
-    branch-exists = "!r() { git rev-parse $1 > /dev/null 2>&1; }; r"
-    on = "!r() { test \"$(git curr-br 2> /dev/null)\" == \"$1\"; }; r"
-    behind = "!r() { git merge-base --is-ancestor HEAD $1; }; r"
-    same = "!r() { test $(git rev-parse $1) == $(git rev-parse $2); }; r"
+    branch-exists = !git rev-parse $1 > /dev/null 2>&1 "#"
+    on = !test \"$(git curr-br 2> /dev/null)\" == \"$1\" "#"
+    behind = !git merge-base --is-ancestor HEAD "$1" "#"
+    same = !test $(git rev-parse $1) == $(git rev-parse $2) "#"
     # get remote updates even with local uncommited changes (but abort on conflicts)
     ff = !sh -c 'git lazy-fe && git merge --ff-only'
     fr = !sh -c 'git lazy-fe && git rb --autostash'
     # forward to develop or master if current branch is merged
-    fwd = "!r() { git behind origin/develop && ! git on develop && git dup && git co develop; }; r"
-    fwm = "!r() { git behind origin/master && ! git on master && git mup && git co master; }; r"
-    fw = "!r() { git fe; git ff 2> /dev/null; if git branch-exists develop; then git fwd; else git fwm; fi || true; }; r"
+    fwd = !git behind origin/develop && ! git on develop && git dup && git co develop
+    fwm = !git behind origin/master && ! git on master && git mup && git co master
+    fw = !git fe; git ff 2> /dev/null; if git branch-exists develop; then git fwd; else git fwm; fi || true
     # combined update all the things command
     u = !git fw && git brc
     # fast forward branch without checking them out
-    up = !sh -c 'git lazy-fe $1 && git merge-base --is-ancestor $1 origin/$1 && ! git same $1 origin/$1 && git branch -f $1 origin/$1' -
-    urb = "!r() { git up $1; git rebase --autostash $1; }; r"
+    up = !git lazy-fe $1 && git merge-base --is-ancestor $1 origin/$1 && ! git same $1 origin/$1 && git branch -f $1 origin/$1 "#"
+    urb = !git up $1; git rebase --autostash $1 "#"
     mup = !git up master
     mur = !git urb master
-    ur = "!r() { git urb $(git branch-exists develop && echo develop || echo master); }; r"
+    ur = !git urb $(git branch-exists develop && echo develop || echo master)
     # lazy fetch, for having fetch in commands that may be chained together, without fetching multiple times
-    last-fetch = "!r() { echo $(( $(date +%s) - $(${GNU_PREFIX}stat -c %Y .git/FETCH_HEAD) )); }; r"
-    lazy-fe = "!r() { test $(git last-fetch) -gt 20 && git fe || true; }; r"
-    lazy-pu = "!r() { br=$(git curr-br) && git same \"$br\" origin/\"$br\" 2> /dev/null 20 || git pu || true; }; r"
+    last-fetch = !echo $(( $(date +%s) - $(${GNU_PREFIX}stat -c %Y .git/FETCH_HEAD) )) "#"
+    lazy-fe = !test $(git last-fetch) -gt 20 && git fe || true
+    lazy-pu = !br=$(git curr-br) && git same \"$br\" origin/\"$br\" 2> /dev/null || git pu || true
 
     # branch management
     bra = branch -a --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
-    braf = "!r() { git bra --color | fzf --ansi -e | awk '{print $5}' ; }; r"
-    cof = "!r() { git braf | sed 's,origin/,,' | xargs git co ; }; r"
+    braf = !git bra --color | fzf --ansi -e | awk '{print $5}' "#"
+    cof = !git braf | sed 's,origin/,,' | xargs git co "#"
     # branch cleanup
     # delete or rename branch, both locally and remotely
-    brd = "!r() { git branch -d $1; git push origin --delete $1; }; r"
-    brm = !"r() { old_name=$(git curr-br) && git br -m $1 && git push origin :$old_name $1 && git su; }; r"
+    brd = !git branch -d $1";" git push origin --delete $1 "#"
+    brm = !old_name=$(git curr-br) && git br -m $1 && git push origin :$old_name $1 && git su "#"
     # branch cleanup
-    brc = !sh -c 'git branch --merged | grep -v "\\*" | grep -v "master" | grep -v "develop" | xargs -n 1 git branch -d' - # git branch -d'
+    brc = !git branch --merged | grep -v \\* | grep -v master | grep -v develop | xargs -n 1 git branch -d
     # quick alias for setting upstream
-    su = !sh -c 'git branch -u "origin/$(git curr-br)"'
+    su = !git branch -u origin/$(git curr-br)
     # when you forget to create a feature branch and push on main
-    rbr = !"r() { branch=\"$(git symbolic-ref --short HEAD)\" && git branch -m \"$1\" && git branch \"$branch\" \"origin/$branch\"; }; r"
+    rbr = !branch=\"$(git symbolic-ref --short HEAD)\" && git branch -m \"$1\" && git branch \"$branch\" \"origin/$branch\" "#"
 
     # tag management
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
-    tv = "!f() { git tag -m \"Version $1\" $1; }; f"
-    tagd = "!r() { git tag -d $1; git push origin --delete $1; }; r"
+    tv = !git tag -m \"Version $1\" \"$1\" "#"
+    tagd = !git tag -d $1";" git push origin --delete $1 "#"
 
     # github
-    github-url = !echo "https://github.com/$(git config --get remote.origin.url | sed -e 's/.*://' -e 's/[.]git$//')"
-    pr = !git same origin/$(git curr-br) $(git curr-br) || git pu && open "$(git github-url)/compare/$(git curr-br)?expand=1"
+    github-url = !echo \"https://github.com/$(git config --get remote.origin.url | sed -e 's/.*://' -e 's/[.]git$//')\"
+    pr = !git same origin/$(git curr-br) $(git curr-br) || git pu && open \"$(git github-url)/compare/$(git curr-br)?expand=1\"
 
     # gitflow stuff (for those unfortunate enough to use gitflow)
     mmd = !git co develop && git merge --ff-only && git co master && git merge --ff-only && git merge develop
@@ -195,11 +194,13 @@
     dup = !git up develop
     dur = !git urb develop
     durp = !git dir && git pufl
+    # fast forward another branch and push both that and current (ie. double push develop+master)
+    f2p = !BRANCH=\"$(git symbolic-ref --short -q HEAD)\"";" git co $1 && git merge --ff-only \"$BRANCH\" && git push origin \"$1\" \"$BRANCH\" "#"
 
     # multi-repo stuff
     # everything i have done the last month. there is an echo and inverse grep empty lines to make sure newlines are properly inserted
-    allmine = "!r() { find . -name .git -exec sh -c \"cd {}; git log --author='David Schlyter' --since='2 month' --date=iso --pretty=format:'%cd {} %s'; echo \" ';' | grep -v '^$' | sort; }; r"
-    logall = "!r() { find . -name .git -exec sh -c \"cd {}; git log --since='2 month' --date=iso --pretty=format:'%cd %an {} %s'; echo \" ';' | grep -v '^$' | sort; }; r"
+    allmine = "!find . -name .git -exec sh -c \"cd {}; git log --author='David Schlyter' --since='2 month' --date=iso --pretty=format:'%cd {} %s'; echo \" ';' | grep -v '^$' | sort"
+    logall = "!find . -name .git -exec sh -c \"cd {}; git log --since='2 month' --date=iso --pretty=format:'%cd %an {} %s'; echo \" ';' | grep -v '^$' | sort"
 
     cleanout = !git clean -Xdf && git gc
     yolo = !git add -A && git commit -m \"$(curl -s whatthecommit.com/index.txt)\" && git push
