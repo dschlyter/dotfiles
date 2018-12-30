@@ -16,6 +16,7 @@ windowPresetTable["Spotify"] = "secondary"
 windowPresetTable["IntelliJ IDEA"] = "main"
 windowPresetTable["Eclipse"] = "main"
 windowPresetTable["Google Chrome"] = "secondary"
+windowPresetTable["Slack"] = "secondary"
 
 function export.positionWindowsByPreset()
     local windows = hs.window.visibleWindows()

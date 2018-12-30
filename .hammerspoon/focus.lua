@@ -206,4 +206,19 @@ function l.focusNext()
     end
 end
 
+local focusFile = "/var/tmp/hammerspoon-focus-log"
+
+hs.window.filter.default:subscribe(hs.window.filter.windowFocused, function (w, appName)
+    log.d(appName)
+    local f = io.open(focusFile, "a")
+
+    if f then
+        f:write(os.date("%Y-%m-%d %T ") .. appName .. "\n")
+        f:close()
+    else
+        hs.alert.show("Error saving timestamp, write permission error?")
+    end
+end)
+
+
 return export

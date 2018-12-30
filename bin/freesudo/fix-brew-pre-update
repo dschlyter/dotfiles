@@ -10,4 +10,4 @@ if [[ "$(/usr/bin/uname)" != "Darwin" ]]; then
 fi
 
 echo "Fixing brew permissions before update..."
-sudo chown -R "${USER}" /usr/local/*
+sudo chown -R "${SUDO_USER}" /usr/local/*
