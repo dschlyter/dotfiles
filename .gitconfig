@@ -102,8 +102,9 @@
     # commit
     # patched commit with a file review and untracked sanity check first
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "!!! - Warning: Untracked files - !!! - press any key to confirm" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
+    ai = !git status --porcelain | colrm 1 3 | fzf -m | xargs git add
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
-    # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip"
+    # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip-stash"
     wip = !git add -A";" git commit --no-verify -m 'wip-stash'
     # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
     blacklist = !echo \"$@\" >> .gitblacklist "#"
@@ -125,11 +126,14 @@
     select = !git log --pretty --oneline --decorate --color | fzf --ansi | awk '{print ""$""1}'
     cps = !git cherry-pick $(git select)
     # checkout/reset back n commits
-    rsn = !COUNT=$1";" shift";" git reset HEAD~$COUNT \"$@\" "#"
-    rsm = branch -f master origin/master
+    rsn = !COUNT=${1:-1}";" shift";" git reset HEAD~$COUNT \"$@\" "#"
+    # soft reset, useful to retract (un-amend) things and then recommit
+    rss = reset --soft HEAD~1
+    recommit = commit --reuse-message=HEAD@{1}
+    retract = !git reset && git rss && git reset -p && git recommit
     # rebase the last n commits
     rbn = !git rebase -i HEAD~$1 "#"
-    # rebase on mainline
+    rsm = branch -f master origin/master
 
     # pulling changes more productively
     # fetch, prune removed remote branches and shortlog fetched changes
