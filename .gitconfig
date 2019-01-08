@@ -165,7 +165,8 @@
     lazy-pu = !br=$(git curr-br) && git same \"$br\" origin/\"$br\" 2> /dev/null || git pu || true
 
     # branch management
-    bra = branch -a --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
+    brl = branch --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
+    bra = !git brl -a
     braf = !git bra --color | fzf --ansi -e | awk '{print $5}' "#"
     cof = !git braf | sed 's,origin/,,' | xargs git co "#"
     # branch cleanup
