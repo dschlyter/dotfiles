@@ -89,25 +89,31 @@ function unsave {
 # quickly save a set of the previous commands
 function save-hist {
     if [[ -n "$1" ]]; then
-        _quicksave_command "$1" "$(history -10 | sed -E 's/[ 0-9*]+//' | fzf -m)"
+        _quicksave_empty "$1" || return 1
+        _quicksave_command "$1" "$(history -10 | sed -E 's/[ 0-9*]+//' | fzf -m --tac)"
     else
         echo "Name required as first arg"
     fi
 }
 
 function _quicksave_command {
+    _quicksave_empty "$1" || return 1
     mkdir -p "$HOME/commands"
     filename="$HOME/commands/$1"
-    if [[ ! -f "$filename" ]]; then
-        shift
-        echo "#!/bin/zsh
 
-        set -e
+    shift
+    echo "#!/bin/zsh
 
-        " | sed -E 's/^ +//' > "$filename"
-        echo "$@" >> "$filename"
-        chmod +x "$filename"
-    else
+    set -e
+
+    " | sed -E 's/^ +//' > "$filename"
+    echo "$@" >> "$filename"
+    chmod +x "$filename"
+}
+
+_quicksave_empty() {
+    filename="$HOME/commands/$1"
+    if [[ -f "$filename" ]]; then
         echo "Command already exists, delete with unsave $1"
         return 1
     fi

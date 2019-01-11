@@ -148,14 +148,14 @@
     ff = !sh -c 'git lazy-fe && git merge --ff-only'
     fr = !sh -c 'git lazy-fe && git rb --autostash'
     # forward to develop or master if current branch is merged
-    fwd = !git behind origin/develop && ! git on develop && git dup && git co develop
-    fwm = !git behind origin/master && ! git on master && git mup && git co master
-    fw = !git fe; git ff 2> /dev/null; if git branch-exists develop; then git fwd; else git fwm; fi || true
+    fwd = !git behind origin/develop && if git on develop";" then git merge";" else git dup";" git co develop";" fi
+    fwm = !git behind origin/master && if git on master";" then git merge";" else git mup";" git co master";" fi
+    fw = !git fe";" git ff 2> /dev/null";" if git branch-exists develop";" then git fwd";" else git fwm";" fi || true
     # combined update all the things command
     u = !git fw && git brc
     # fast forward branch without checking them out
     up = !git lazy-fe $1 && git merge-base --is-ancestor $1 origin/$1 && ! git same $1 origin/$1 && git branch -f $1 origin/$1 "#"
-    urb = !git up $1; git rebase --autostash $1 "#"
+    urb = !git up $1";" git rebase --autostash $1 "#"
     mup = !git up master
     mur = !git urb master
     ur = !git urb $(git branch-exists develop && echo develop || echo master)

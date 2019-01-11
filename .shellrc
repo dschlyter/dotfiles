@@ -261,6 +261,9 @@ gf() {
     git ls-files | grep "$@"
 }
 
+# filter file list from git ignored files
+alias no_ignored='git check-ignore --verbose -n --stdin | grep "::" | colrm 1 8'
+
 md() {
     mkdir -p "$1"
     cd "$1" || return
