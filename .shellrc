@@ -257,6 +257,13 @@ ff() {
     find . | grep "$@"
 }
 
+fp () {
+    case "$1" in
+        /*) printf '%s\n' "$1";;
+        *) printf '%s\n' "$PWD/$1";;
+    esac
+}
+
 gf() {
     git ls-files | grep "$@"
 }

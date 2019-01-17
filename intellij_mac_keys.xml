@@ -200,6 +200,9 @@
   <action id="SwitchUp">
     <keyboard-shortcut first-keystroke="ctrl alt up" />
   </action>
+  <action id="Terminal.OpenInTerminal">
+    <keyboard-shortcut first-keystroke="ctrl meta 2" />
+  </action>
   <action id="ToggleBookmark7" />
   <action id="ToggleBookmark8" />
   <action id="ToggleBookmark9" />

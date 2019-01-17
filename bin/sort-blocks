@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+
+import click
+import re
+
+from dotfiles import run
+
+
+@click.command()
+@click.pass_context
+@click.argument("block_regex")
+@click.argument("file_path")
+@click.option('--skip', '-s', is_flag=True, help='Do not sort first block')
+def main(ctx, block_regex, file_path, skip):
+    """
+    Sorts blocks of content in a file, with blocks separated by a user-supplied regex. The regex only matches the start of the string (use .* prefix to override)
+    """
+    blocks = [[]]
+    with open(file_path, 'r') as f:
+        for line in f:
+            if re.match(block_regex, line) and len(blocks[-1]) > 0:
+                blocks.append([])
+            blocks[-1].append(line)
+
+    if skip:
+        blocks = blocks[0] + sorted(blocks[1:])
+    else:
+        blocks = sorted(blocks)
+    for block in blocks:
+        for line in block:
+            print(line, end="")
+
+
+if __name__ == '__main__':
+    main()
