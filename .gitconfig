@@ -134,6 +134,8 @@
     # rebase the last n commits
     rbn = !git rebase -i HEAD~$1 "#"
     rsm = branch -f master origin/master
+    # remove no commit content
+    rsnc = !git reset $(git dic --name-only -G NOCOMMIT)
 
     # pulling changes more productively
     # fetch, prune removed remote branches and shortlog fetched changes
