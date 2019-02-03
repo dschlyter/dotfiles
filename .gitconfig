@@ -120,11 +120,15 @@
     # amend without changing git commit message
     amend = commit --amend --reuse-message=HEAD
     pa = !git amend -p
-    # --amend to a previous commit below HEAD
+    # --amend but to a previous commit below HEAD
     fixup = !(git diff-files --quiet || (echo 'Unstaged changes, please commit or stash with --keep-index' && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1 "#"
     fup = !git fixup \"$(git select)\"
+    # automatically fixup the last commit where added files where changed
+    fup-auto = !git fixup $(git log -n 1 --pretty=format:%H -- $(git diff --cached --name-only))
     select = !git log --pretty --oneline --decorate --color | fzf --ansi | awk '{print ""$""1}'
     cps = !git cherry-pick $(git select)
+    amend-date = !GIT_COMMITTER_DATE=\"$1\" git commit --amend --date=\"$1\" "#"
+
     # checkout/reset back n commits
     rsn = !COUNT=${1:-1}";" shift";" git reset HEAD~$COUNT \"$@\" "#"
     # soft reset, useful to retract (un-amend) things and then recommit
