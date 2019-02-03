@@ -104,6 +104,12 @@ case "$(uname -s)" in
         ;;
 esac
 
+if ! [[ -f $HOME/.gitconfig_local ]]; then
+    # Configuring git user name
+    cp .gitconfig_local $HOME/.gitconfig_local
+    $EDITOR $HOME/.gitconfig_local
+fi
+
 if [ "$SHELL" == "/bin/zsh" ]; then
     echo "zsh is the current active shell"
 elif [ -f /bin/zsh ]; then
