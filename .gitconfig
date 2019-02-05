@@ -168,6 +168,8 @@
     lazy-pu = !br=$(git curr-br) && git same \"$br\" origin/\"$br\" 2> /dev/null || git pu || true
 
     # branch management
+    # try merge and print conflicts if merge fails
+    merge-dry = !git merge --no-commit "$1" || git diff ";" git merge --abort "#"
     brl = branch --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
     bra = !git brl -a
     braf = !git bra --color | fzf --ansi -e | awk '{print $5}' "#"
