@@ -2,6 +2,8 @@
 
 # Run cron scripts with logging, success callback and error callback
 
+# Pro tip: PATH=... on top of file to make cron behave like your shell
+import json
 import os
 
 import sys
@@ -18,7 +20,16 @@ from python.dotfiles import run, execute, load_conf
 LOG_DIR = os.environ['HOME']+'/.logs/cron-run/'
 CONF = os.environ['HOME']+'/.config/cron-run.json'
 
+
 def main():
+    try:
+        run_and_report()
+    except Exception as ex:
+        job_name = sys.argv[1] if len(sys.argv) > 1 else 'unknown'
+        report_error(job_name, "cron-run internal error " + str(ex))
+
+
+def run_and_report():
     job_name = sys.argv[1]
     cmd = " ".join(sys.argv[2:])
     code, stdout, stderr = execute(cmd)
@@ -55,12 +66,16 @@ def healthcheck(job_name):
         print("Unable to load conf, cannot trigger healthcheck")
 
 
-def report_error(job_name, stderr):
+def report_error(job_name, error_msg):
     conf = load_conf(CONF, {})
     slack_url = conf.get('slack')
     if slack_url:
-        run('curl -X POST --data-urlencode \'payload={{"text": "curl-run {} failed :/ Error: {}", "icon_emoji": ":ghost:"}}\' {}'
-            .format(job_name, stderr.replace("'", "").replace('"', ''), slack_url))
+        json_data = {
+            'username': 'cron-run',
+            'icon_emoji': ':ghost:',
+            'text': '{} failed :/ Error: {}'.format(job_name, error_msg),
+        }
+        run('curl -X POST --data-urlencode \'payload={}\' {}'.format(json.dumps(json_data), slack_url))
         print("Error hook poked")
     else:
         print("Unable to load conf, cannot trigger error hook")
