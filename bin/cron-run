@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+
+# Run cron scripts with logging, success callback and error callback
+
+import os
+
+import sys
+from datetime import datetime
+
+# hacky way to get a relative load
+from urllib.parse import urljoin
+
+scriptPath = os.path.realpath(os.path.dirname(sys.argv[0]))
+os.chdir(scriptPath)
+
+from python.dotfiles import run, execute, load_conf
+
+LOG_DIR = os.environ['HOME']+'/.logs/cron-run/'
+CONF = os.environ['HOME']+'/.config/cron-run.json'
+
+def main():
+    job_name = sys.argv[1]
+    cmd = " ".join(sys.argv[2:])
+    code, stdout, stderr = execute(cmd)
+
+    stdout = (stdout or b'').decode('utf-8')
+    stderr = (stderr or b'').decode('utf-8')
+    print(stdout)
+    print(stderr)
+
+    if not os.path.exists(LOG_DIR):
+        os.makedirs(LOG_DIR)
+
+    with open("{}/{}.log".format(LOG_DIR, job_name), 'a') as file:
+        file.write("\n\n")
+        file.write(datetime.now().isoformat()+"\n")
+        file.write("stdout:")
+        file.write(stdout)
+        file.write("stderr:")
+        file.write(stderr)
+
+    if code == 0:
+        healthcheck(job_name)
+    else:
+        report_error(job_name, stderr)
+
+
+def healthcheck(job_name):
+    conf = load_conf(CONF, {})
+    url = conf.get('healthcheck')
+    if url:
+        run('curl -X POST {} -F message="cron-run success"'.format(urljoin(url, job_name)))
+        print("Healthcheck poked")
+    else:
+        print("Unable to load conf, cannot trigger healthcheck")
+
+
+def report_error(job_name, stderr):
+    conf = load_conf(CONF, {})
+    slack_url = conf.get('slack')
+    if slack_url:
+        run('curl -X POST --data-urlencode \'payload={{"text": "curl-run {} failed :/ Error: {}", "icon_emoji": ":ghost:"}}\' {}'
+            .format(job_name, stderr.replace("'", "").replace('"', ''), slack_url))
+        print("Error hook poked")
+    else:
+        print("Unable to load conf, cannot trigger error hook")
+
+
+if __name__ == '__main__':
+    main()
