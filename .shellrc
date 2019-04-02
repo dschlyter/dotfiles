@@ -11,6 +11,7 @@
 export EDITOR="vim"
 export VISUAL="vim"
 export PAGER="less"
+DOT="$HOME/.dotfiles"
 # start on Mondays when using gcal
 export GCAL="-s1"
 export LS_COLORS

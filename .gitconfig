@@ -99,10 +99,12 @@
     # commit
     # patched commit with a file review and untracked sanity check first
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "!!! - Warning: Untracked files - !!! - press any key to confirm" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
-    ai = !git status --porcelain | colrm 1 3 | fzf -m | xargs git add
+    ai = !git status --porcelain | grep -E '^.[^ ]' | colrm 1 3 | fzf -m | xargs git add
+    ri = !git status --porcelain | grep -E '^[^ ]' |  colrm 1 3 | fzf -m | xargs git reset
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip-stash"
-    wip = !git add -A";" git commit --no-verify -m 'wip-stash'
+    wip = !git add -A";" git wipa
+    wipa = !git commit --no-verify -m 'wip-stash'
     # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
     blacklist = !echo \"$@\" >> .gitblacklist "#"
     # named stashes
@@ -136,7 +138,7 @@
     rbn = !git rebase -i HEAD~$1 "#"
     rsm = branch -f master origin/master
     # remove no commit content
-    rsnc = !git reset $(git dic --name-only -G NOCOMMIT)
+    nocommit-reset = !git reset $(git dic --name-only -G NOCOMMIT)
 
     # pulling changes more productively
     # fetch, prune removed remote branches and shortlog fetched changes

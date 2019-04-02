@@ -11,8 +11,12 @@ let mapleader = "ö"
 nnoremap <leader>R :source $HOME/.vimrc<cr>
 nnoremap <leader>n :noh<cr>
 nnoremap <leader>w :StripWhitespace<cr>
-" paste from system clipboard (copy with Y)
-nnoremap <leader>p "+p
+
+" copypasta from system clipboard (copy with Y)
+nmap <leader>y :.w !pbcopy<CR><CR>
+vmap <leader>y :w !pbcopy<CR><CR>
+nmap <leader>p :set paste<CR>:r !pbpaste<CR>:set nopaste<CR>
+
 " copy into macro slot
 nnoremap <leader>q _v$h"qy
 nnoremap <leader>2 :set shiftwidth=2<cr>
@@ -160,9 +164,6 @@ inoremap <C-l> <C-o>:bn<CR>
 
 " Don't copy the contents of an overwritten selection.
 vnoremap p "_dP
-
-" Copy to system clipboard
-vnoremap Y "+y
 
 " Make shift-tab work in reverse of tab in insert mode
 inoremap <S-Tab> <C-o><<
@@ -489,7 +490,12 @@ endif
 "  :20  :  up to 20 lines of command-line history will be remembered
 "  %    :  saves and restores the buffer list
 "  n... :  where to save the viminfo files
-set viminfo='10,\"100,:20,%,n~/.viminfo
+if !has('nvim')
+  set viminfo='10,\"100,:20,%,n~/.viminfo
+else
+  " nvim has a different file format, save it in another place
+  set viminfo='10,\"100,:20,%,n~/.config/nvim/viminfo
+end
 
 " modelines seldom used and possible security risk
 set modelines=0
