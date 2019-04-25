@@ -105,6 +105,12 @@ function bup() {
         sudo /opt/sudo/fix-brew-pre-update || return
     fi
 
+    if [[ "$BUP_GRAB" == 1 ]]; then
+        grab /usr/local/etc
+        grab /usr/local/bin
+        grab /usr/local/sbin
+    fi
+
     (umask 002;
     brew update && brew upgrade && date "+%s" > $BREW_UPDATE_FILE)
 
@@ -125,7 +131,6 @@ fi
 #
 
 export NNN_COPIER="copier"
-
 
 # set tty for gpg
 export GPG_TTY=$(tty)

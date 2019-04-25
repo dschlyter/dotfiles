@@ -167,7 +167,7 @@
     # lazy fetch, for having fetch in commands that may be chained together, without fetching multiple times
     last-fetch = !echo $(( $(date +%s) - $(${GNU_PREFIX}stat -c %Y .git/FETCH_HEAD) )) "#"
     lazy-fe = !test $(git last-fetch) -gt 20 && git fe || true
-    lazy-pu = !br=$(git curr-br) && git same \"$br\" origin/\"$br\" 2> /dev/null || git pu || true
+    lazy-pu = !br=$(git curr-br) && git same \"$br\" origin/\"$br\" 2> /dev/null || git pu
 
     # branch management
     # try merge and print conflicts if merge fails

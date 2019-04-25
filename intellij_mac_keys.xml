@@ -206,4 +206,7 @@
   <action id="ToggleBookmark7" />
   <action id="ToggleBookmark8" />
   <action id="ToggleBookmark9" />
+  <action id="Tool_External Tools_pipeline jump">
+    <keyboard-shortcut first-keystroke="shift meta j" />
+  </action>
 </keymap>

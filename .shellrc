@@ -88,6 +88,7 @@ alias mi="mvn clean install"
 alias mia="mvn -Dmaven.test.failure.ignore=true --fail-at-end clean install"
 alias gpl="gradle publishToMavenLocal"
 alias x="session ./run.sh"
+alias rw='rlwrap'
 
 alias speedtest='time wget --output-document=/dev/null http://speedtest.tele2.net/100MB.zip'
 
@@ -181,6 +182,11 @@ ckl() {
 
 vimd() {
     rm "$HOME/tmp/$1.swp"
+    vim "$1"
+}
+
+vimp() {
+    mkdir -p "$(dirname "$1")"
     vim "$1"
 }
 

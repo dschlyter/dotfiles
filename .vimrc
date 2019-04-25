@@ -15,6 +15,7 @@ nnoremap <leader>w :StripWhitespace<cr>
 " copypasta from system clipboard (copy with Y)
 nmap <leader>y :.w !pbcopy<CR><CR>
 vmap <leader>y :w !pbcopy<CR><CR>
+nmap <leader>y :.w !pbcopy<CR><CR>
 nmap <leader>p :set paste<CR>:r !pbpaste<CR>:set nopaste<CR>
 
 " copy into macro slot

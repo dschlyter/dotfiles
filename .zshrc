@@ -68,6 +68,7 @@ alias -g C1='| cl 1'
 alias -g GS='$(git select)'
 alias -g FS='$(fd --type f | fzf --multi)'
 alias -g DL='"$HOME/downloads/$(ls -1 -tr $HOME/downloads | tail -n 1)"'
+alias -g LAST='$(ls -tr | tail -n 1)'
 
 # Functions
 
