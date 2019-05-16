@@ -51,9 +51,6 @@ unmap('sps')
 unmap('spc')
 unmap('sfr')
 
-// New key for toggle surfingkeys
-map('K', '<Alt-s>');
-
 // Disable surfingkeys for a second (allows for escaping application shortcuts)
 mapkey('-', 'Escape', function() {
     toggleBlacklistSilent();
