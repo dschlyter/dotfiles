@@ -439,7 +439,7 @@ HISTFILE=~/.zsh_history
 HISTSIZE=10000
 SAVEHIST=10000
 setopt INC_APPEND_HISTORY       # append history incrementally as commands are entered
-setopt sharehistory             # update history from other shells shile running
+# setopt sharehistory             # update history from other shells shile running
 
 ## mostly from ofb.net zshtricks
 

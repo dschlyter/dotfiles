@@ -63,6 +63,7 @@
     cop = checkout -p
     com = checkout master
     cp = cherry-pick
+    sa = stash --include-untracked
 
     # entry point for custom scripts (for things that are too large to define inline here)
     # list contibutors with number of commits
@@ -186,6 +187,7 @@
     su = !git branch -u origin/$(git curr-br)
     # when you forget to create a feature branch and push on main
     rbr = !branch=\"$(git symbolic-ref --short HEAD)\" && git branch -m \"$1\" && git branch \"$branch\" \"origin/$branch\" "#"
+    tmp = !git branch -f tmp && git checkout tmp
 
     # tag management
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
