@@ -52,6 +52,7 @@
     cm = commit -v
     cma = !git cm --amend
     pu = push -u --follow-tags
+    pupu = !git pull && git push
     pufl = push --force-with-lease
     br = branch
     par = pull --rebase --autostash
