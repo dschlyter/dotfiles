@@ -89,6 +89,7 @@ alias mia="mvn -Dmaven.test.failure.ignore=true --fail-at-end clean install"
 alias gpl="gradle publishToMavenLocal"
 alias x="session ./run.sh"
 alias rw='rlwrap'
+alias nd='ncdu'
 
 alias speedtest='time wget --output-document=/dev/null http://speedtest.tele2.net/100MB.zip'
 

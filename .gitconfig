@@ -189,6 +189,8 @@
     # when you forget to create a feature branch and push on main
     rbr = !branch=\"$(git symbolic-ref --short HEAD)\" && git branch -m \"$1\" && git branch \"$branch\" \"origin/$branch\" "#"
     tmp = !git branch -f tmp && git checkout tmp
+    # quickly just add everything to a branch
+    qb = !git checkout -b "$(echo $* | tr ' ' '-')" && git add . && git commit -am \"$*\" "#"
 
     # tag management
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
