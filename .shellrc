@@ -32,6 +32,7 @@ _add_to_path "/opt/sudo"
 
 add_to_path() {
     echo "_add_to_path '$(realpath $1)'" >> ~/.shellrc_local
+    _add_to_path "$(realpath $1)"
 }
 
 path() {

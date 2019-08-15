@@ -57,6 +57,10 @@ function export.focusSlack()
     l.focusNextWindow("Slack")
 end
 
+function export.focusVsCode()
+    l.focusNextWindow("Visual Studio Code")
+end
+
 function export.focusOtherApp()
     l.focusNot({"Google Chrome", "Firefox", "iTerm2", "IntelliJ IDEA", "Spotify", "Slack"})
 end

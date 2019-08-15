@@ -1,7 +1,7 @@
 -- Modified version of http://larryhynes.net/2015/04/a-minor-update-to-my-hammerspoon-config.html
 
 -- Reload config on write
--- (put this first to make sure it works even on errors when loading
+-- (put this first to make sure it works even on errors when loading)
 function reloadConfig(files)
     hs.reload()
 end
@@ -48,12 +48,10 @@ hs.hotkey.bind(modifierFocus, 'd', focus.focusIntellij)
 hs.hotkey.bind(modifierFocus, 's', focus.focusSpotify)
 hs.hotkey.bind(modifierFocus, 'x', focus.focusSlack)
 hs.hotkey.bind(modifierFocus, 'w', focus.focusOtherApp)
+hs.hotkey.bind(modifierFocus, 'v', focus.focusVsCode)
 
 hs.hotkey.bind(modifierFocus, 'g', chooser.finderSearch)
 hs.hotkey.bind(modifierFocus, 'q', chooser.quickCommands)
-hs.hotkey.bind(modifierFocus, 'v', chooser.pasteAppClip)
-
-hs.hotkey.bind(modifierFocus, 'm', move.sendToBack)
 
 hs.hotkey.bind(modifierFocus, 'u', chain.focusNextInChain)
 hs.hotkey.bind(modifierFocus, 'i', chain.switchChain)
@@ -70,6 +68,8 @@ hs.hotkey.bind({'alt'}, 'n', keyentry.pressDown)
 hs.hotkey.bind(modifierPrimary, 'k', move.fullscreen)
 hs.hotkey.bind(modifierPrimary, 'h', move.left)
 hs.hotkey.bind(modifierPrimary, 'l', move.right)
+
+hs.hotkey.bind(modifierPrimary, 'm', move.sendToBack)
 
 hs.hotkey.bind(modifierPrimary, '1', move.screen1)
 hs.hotkey.bind(modifierPrimary, '2', move.screen2)
@@ -90,10 +90,11 @@ hs.hotkey.bind(modifierPrimary, 'u', chain.includeInChain)
 hs.hotkey.bind(modifierPrimary, 'i', chain.createChain)
 
 hs.hotkey.bind(modifierPrimary, 'c', chooser.copyAppClip)
+hs.hotkey.bind(modifierPrimary, 'v', chooser.pasteAppClip)
 
 -- hs.hotkey.bind(modifierPrimary, 'c', chooser.harpoList)
-hs.hotkey.bind(modifierPrimary, 'v', chooser.harpoPaste)
-hs.hotkey.bind(modifierPrimary, 'b', chooser.harpoPasteUser)
+-- hs.hotkey.bind(modifierPrimary, 'v', chooser.harpoPaste)
+-- hs.hotkey.bind(modifierPrimary, 'b', chooser.harpoPasteUser)
 
 hs.hotkey.bind(modifierPrimary, 'a', saveapps.restore)
 hs.hotkey.bind(modifierPrimary, 'z', saveapps.save)
