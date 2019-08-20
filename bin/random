@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+import random
+import sys
+
+def main():
+    a = sys.argv[1:]
+    if not a:
+        print("Usage random 42, or random alt1 alt2 alt2")
+    elif len(a) == 1:
+        print(random.randrange(int(a[0])))
+    else:
+        i = random.randrange(len(a))
+        print(a[i])
+
+if __name__ == '__main__':
+    main()
