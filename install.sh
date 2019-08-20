@@ -42,6 +42,25 @@ bak_nonlink() {
     fi
 }
 
+link_settings() {
+    local settings_root="$1"
+    local settings_subdir="$2"
+    local settings_file="$3"
+    local dotfiles_file="${4:-$settings_file}"
+
+    echo $settings_root
+
+    local target="$settings_root/$settings_subdir/$settings_file"
+
+    if [ -d "$settings_root" ]; then
+        mkdir -p "${settings_root}/${settings_subdir}"
+        bak_nonlink "$target"
+        link "$dotfiles_file" "$target"
+    else
+        echo "$target  preferences not found, skipping link."
+    fi
+}
+
 link . .dotfiles
 link bin
 
@@ -75,17 +94,10 @@ case "$(uname -s)" in
         # make sure the local file exists since it will be loaded
         touch .hammerspoon/init-local.lua
 
-        INTELLIJ_PREFS="$(echo "/Users/$USER/Library/Preferences/IntelliJIdea"* | xargs -n 1 echo | tail -n 1)"
-        if [ -d "$INTELLIJ_PREFS" ]; then
-            mkdir -p "$INTELLIJ_PREFS/keymaps"
-            INTELLIJ_KEYMAP="intellij_mac_keys.xml"
-            TARGET="$INTELLIJ_PREFS/keymaps/$INTELLIJ_KEYMAP"
-            bak_nonlink "$TARGET"
-            link "$INTELLIJ_KEYMAP" "$TARGET"
-        else
-            echo "$INTELLIJ_PREFS"
-            echo "IntelliJ preferences not found, skipping."
-        fi
+        intellij_prefs="$(echo "/Users/$USER/Library/Preferences/IntelliJIdea"* | xargs -n 1 echo | tail -n 1)"
+        link_settings "$intellij_prefs" "keymaps" "intellij_mac_keys.xml"
+
+        link_settings "/Users/$USER/Library/Application Support/Code/" "User" "keybindings.json" "vscode_keybindings.json"
         ;;
 
     CYGWIN*|MINGW32*|MSYS*)

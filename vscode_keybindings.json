@@ -1,0 +1,16 @@
+// Place your key bindings in this file to override the defaultsauto[]
+[
+    {
+        "key": "cmd+n",
+        "command": "explorer.newFile"
+    },
+    {
+        "key": "cmd+n",
+        "command": "-workbench.action.files.newUntitledFile"
+    },
+    {
+        "key": "ctrl+cmd+l",
+        "command": "gitlens.toggleFileBlame",
+        "when": "editorTextFocus && config.gitlens.keymap == 'chorded' && gitlens:activeFileStatus =~ /blameable/"
+    }
+]
