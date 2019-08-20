@@ -219,8 +219,30 @@ _set_prompt() {
     PROMPT="$VENV$CURR_DIR$GIT_PROMPT$EXIT_CODE_PROMPT$PROMPT_CHAR "
 }
 
+_slow_fs() {
+    cmd="${GNU_PREFIX}stat"
+    if where $cmd > /dev/null; then
+        curr_fs="$($cmd --file-system --format=%T .)"
+        skip_fs=(osxfuse)
+        if (($skip_fs[(I)$curr_fs])); then
+            return 0
+        else
+            return 1
+        fi
+    else
+        echo "$cmd not found"
+        return 1
+    fi
+}
+
 _update_git_info() {
     GIT_PROMPT=""
+
+    if _slow_fs; then
+        GIT_PROMPT="[mount]"
+        _set_prompt
+        return
+    fi
 
     git rev-parse --is-inside-work-tree &> /dev/null
     if [ $? -eq 0 ]; then

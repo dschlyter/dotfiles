@@ -12,5 +12,17 @@
         "key": "ctrl+cmd+l",
         "command": "gitlens.toggleFileBlame",
         "when": "editorTextFocus && config.gitlens.keymap == 'chorded' && gitlens:activeFileStatus =~ /blameable/"
+    },
+    {
+        "key": "shift+cmd+2",
+        "command": "workbench.action.terminal.focus"
+    },
+    {
+        "key": "ctrl+cmd+k",
+        "command": "workbench.action.nextEditor"
+    },
+    {
+        "key": "ctrl+cmd+j",
+        "command": "workbench.action.previousEditor"
     }
 ]
