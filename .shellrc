@@ -279,6 +279,10 @@ gf() {
     git ls-files | grep "$@"
 }
 
+ep() {
+    echo "$(pwd)/$*"
+}
+
 # filter file list from git ignored files
 alias no_ignored='git check-ignore --verbose -n --stdin | grep "::" | colrm 1 8'
 

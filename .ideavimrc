@@ -16,6 +16,7 @@ nnoremap gp :action MethodUp<CR>
 
 " enable the surround plugin added in 0.46
 set surround
+set multiple-cursors
 
 "
 " customizations from real vimrc

@@ -88,10 +88,11 @@
     # lg shows all branches
     lg = !git lh --all
     lh = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ai) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
-    ls = !git lh --stat
+    lst = !git lh --stat
     ln = !git lh --no-merges
     ll = !git lg -n 9999
     lhl = !git lh -n 9999
+    lS = log --color --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ai) %C(bold blue)<%an>%Creset' --abbrev-commit -S
     # log including all branchless (rebased, amended, dropped) commits
     la = !git lg $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
     mine = !git lg --author='David Schlyter'
