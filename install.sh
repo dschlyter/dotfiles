@@ -119,7 +119,7 @@ esac
 if ! [[ -f $HOME/.gitconfig_local ]]; then
     # Configuring git user name
     cp .gitconfig_local $HOME/.gitconfig_local
-    $EDITOR $HOME/.gitconfig_local
+    ${EDITOR:-vi} $HOME/.gitconfig_local
 fi
 
 if [ "$SHELL" == "/bin/zsh" ]; then
