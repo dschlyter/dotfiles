@@ -189,7 +189,8 @@
     su = !git branch -u origin/$(git curr-br)
     # when you forget to create a feature branch and push on main
     rbr = !branch=\"$(git symbolic-ref --short HEAD)\" && git branch -m \"$1\" && git branch \"$branch\" \"origin/$branch\" "#"
-    tmp = !git branch -f tmp && git checkout tmp
+    cbf = !git branch -f \"$1\" && git checkout \"$1\" "#"
+    tmp = !git cbf tmp
     # quickly just add everything to a branch
     qb = !git checkout -b "$(echo $* | tr ' ' '-')" && git add . && git commit -am \"$*\" "#"
 
