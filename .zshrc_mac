@@ -40,6 +40,10 @@ function jf() {
     echo "$DIR" | pbcopy
 }
 
+function jform() {
+    pbpaste | jq . | pbcopy
+}
+
 function handlemail() {
     cat /var/mail/$USER
     sudo rm /var/mail/$USER
