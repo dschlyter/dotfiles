@@ -58,11 +58,11 @@
     par = pull --rebase --autostash
     rb = rebase
     rba = rebase --autostash
-    rbc = rebase --continue
     co = checkout
     cb = checkout -b
     cop = checkout -p
     com = checkout master
+    comm = checkout master --merge
     cp = cherry-pick
     sa = stash --include-untracked
 
@@ -102,8 +102,10 @@
     # commit
     # patched commit with a file review and untracked sanity check first
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "!!! - Warning: Untracked files - !!! - press any key to confirm" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
-    ai = !git status --porcelain | grep -E '^.[^ ]' | colrm 1 3 | fzf -m | xargs git add
-    ri = !git status --porcelain | grep -E '^[^ ]' |  colrm 1 3 | fzf -m | xargs git reset
+    ai = !git status --porcelain | grep -E '^.[^ ]' | fzf -m --tac | colrm 1 3 | xargs git add
+    ri = !git status --porcelain | grep -E '^[^ ?]' | fzf -m --tac | colrm 1 3 | xargs git reset
+    vask-unstaged = !git stash --keep-untracked && git stash drop
+    add-again = !git status --porcelain | grep -E '^[^ ?][^ ]' | colrm 1 3 | xargs git add
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip-stash"
     wip = !git add -A";" git wipa
@@ -115,7 +117,7 @@
     sapply = !git stash apply stash^{/$*}
     srevert = !git sshow \"$@\" | git apply --reverse
     # remove all whitespace changes
-    rw=!sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git checkout "${@:-.}" && git reset'
+    rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git checkout "${@:-.}" && git reset'
     bc = !git checkout -b \"$1\" && git commit -p
 
     # amend and rebase
@@ -130,6 +132,8 @@
     select = !git log --pretty --oneline --decorate --color | fzf --ansi | awk '{print ""$""1}'
     cps = !git cherry-pick $(git select)
     amend-date = !GIT_COMMITTER_DATE=\"$1\" git commit --amend --date=\"$1\" "#"
+    # continue rebase with sanity check and auto add
+    rbc = !ag \"<<<<\" || git add -u && git rebase --continue
 
     # checkout/reset back n commits
     rsn = !COUNT=${1:-1}";" shift";" git reset HEAD~$COUNT \"$@\" "#"
@@ -194,6 +198,8 @@
     # quickly just add everything to a branch
     qb = !git checkout -b "$(echo $* | tr ' ' '-')" && git add . && git commit -am \"$*\" "#"
 
+    alias = !git config alias.\"$1\"
+
     # tag management
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
     tv = !git tag -m \"Version $1\" \"$1\" "#"
@@ -202,6 +208,7 @@
     # github
     github-url = !echo \"https://github.com/$(git config --get remote.origin.url | sed -e 's/.*://' -e 's/[.]git$//')\"
     pr = !git same origin/$(git curr-br) $(git curr-br) || git pu && open \"$(git github-url)/compare/$(git curr-br)?expand=1\"
+    pr-winner = !git log --oneline --since='1 week' --pretty=format:'%an: %s' | grep 'Merge pull request' | sed 's/:.*//' | sort | uniq -c | sort -nr
 
     # gitflow stuff (for those unfortunate enough to use gitflow)
     mmd = !git co develop && git merge --ff-only && git co master && git merge --ff-only && git merge develop

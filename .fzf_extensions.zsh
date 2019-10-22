@@ -21,6 +21,10 @@ vc() {
   files=$(find . | fzf -0 -m) && $EDITOR ${(@f)files}
 }
 
+ic() {
+  files=$(find . | fzf -0 -m) && open -a "IntelliJ IDEA" ${(@f)files}
+}
+
 # this is awesome :D - inject recently used files from fasd onto CLI filtering with fzf search
 # this code is mostly copied and tweaked from .fzf/shell/completion.zsh for Ctrl-T
 __fasdsel() {

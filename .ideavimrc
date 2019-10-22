@@ -18,6 +18,9 @@ nnoremap gp :action MethodUp<CR>
 set surround
 set multiple-cursors
 
+" enable the ideajoin plugin
+set ideajoin
+
 "
 " customizations from real vimrc
 "
