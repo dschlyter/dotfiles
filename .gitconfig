@@ -95,7 +95,7 @@
     lS = log --color --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ai) %C(bold blue)<%an>%Creset' --abbrev-commit -S
     # log including all branchless (rebased, amended, dropped) commits
     la = !git lg $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
-    mine = !git lg --author='David Schlyter'
+    mine = !git ll --since='2 weeks ago' --author='David Schlyter' --author-date-order
     # show the first commit from log that matches sha-prefix, eg. git sc 72F
     sc = !git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show "#"
 
@@ -104,7 +104,7 @@
     pc = !bash -c 'git status && ( [[ ! "$(git ls-files --others --exclude-standard)" ]] || ( echo "!!! - Warning: Untracked files - !!! - press any key to confirm" && read -n 1 )) && [[ "$(git ls-files --modified)" ]] && git cm -p $1' -
     ai = !git status --porcelain | grep -E '^.[^ ]' | fzf -m --tac | colrm 1 3 | xargs git add
     ri = !git status --porcelain | grep -E '^[^ ?]' | fzf -m --tac | colrm 1 3 | xargs git reset
-    vask-unstaged = !git stash --keep-untracked && git stash drop
+    vask-unstaged = !git stash --keep-index && git stash drop
     add-again = !git status --porcelain | grep -E '^[^ ?][^ ]' | colrm 1 3 | xargs git add
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip-stash"
