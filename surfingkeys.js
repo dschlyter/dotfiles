@@ -37,6 +37,8 @@ unmap('c', /mail.google.com/);
 unmap('r', /mail.google.com/);
 unmap('.', /jira./);
 unmap('i', /jira./);
+unmap('n', /favro.com/);
+unmap('c', /favro.com/);
 
 // These are too common as app shortcuts, and not used much
 unmap('j');
