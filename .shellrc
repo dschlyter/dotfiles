@@ -70,6 +70,7 @@ alias plz='sudo $(fc -ln -1)'
 alias se='sudoedit'
 alias vims='vim -S .vimsession'
 alias i='unset HISTFILE'
+alias name='tmux rename-window'
 
 alias groot='cd "./$(git rev-parse --show-cdup)"'
 alias grootp='git rev-parse --show-cdup'
