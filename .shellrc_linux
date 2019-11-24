@@ -1,1 +1,11 @@
-alias aptu="sudo apt update && sudo apt upgrade && sudo apt-get autoremove --purge && sudo apt-get clean"
+if has pacman; then
+    alias sps="sudo pacman -Sy"
+    alias spu="sudo pacman -Syu"
+    alias pss="pacman -Ss"
+fi
+
+if has apt; then
+    alias aptu="sudo apt update && sudo apt upgrade && sudo apt-get autoremove --purge && sudo apt-get clean"
+fi
+
+has exo-open && alias open="exo-open"

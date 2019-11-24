@@ -114,6 +114,9 @@ my_ip() {
 gdiff() {
     git diff "$@"
 }
+has() {
+    hash "$1" 2> /dev/null
+}
 
 # Override defaults
 
@@ -152,9 +155,10 @@ vpn() {
     sshuttle -r "$REMOTE" --dns 0.0.0.0/0
 }
 
-addkey() {
+addkeys() {
     # you can pass flags like -p 4711  or -i custom-key
-    ssh "$@" bash -c "mkdir -p .ssh; tee -a .ssh/authorized_keys" < ~/.ssh/id_ed25519.pub
+    cat ~/.ssh/id_ed25519.pub ~/.ssh/id_krypton.pub |
+        ssh "$@" bash -c "mkdir -p .ssh; tee -a .ssh/authorized_keys"
 }
 
 p() {

@@ -48,7 +48,6 @@
       <property name="&lt;Super&gt;g" type="string" value="xfce4-popup-whiskermenu"/>
       <property name="&lt;Super&gt;space" type="string" value="/home/david/.dotfiles/xwm/jumpapp -w -C xfce4-terminal"/>
       <property name="&lt;Super&gt;s" type="string" value="/home/david/.dotfiles/xwm/jumpapp -m -C spotify"/>
-      <property name="&lt;Super&gt;b" type="string" value="/home/david/.dotfiles/xwm/jumpapp -m -R bitwarden"/>
     </property>
   </property>
   <property name="xfwm4" type="empty">

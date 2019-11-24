@@ -36,9 +36,9 @@ bak_nonlink() {
         SOURCE="$HOME/$SOURCE"
     fi
 
-    if [[ -f "$SOURCE" && ! -L "$SOURCE" ]]; then
-        echo "backing up non-linked file $SOURCE"
-        mv "$SOURCE" "${SOURCE}.bak"
+    if [[ -e "$SOURCE" && ! -L "$SOURCE" ]]; then
+        echo "backing up non-linked $SOURCE"
+        mv "$SOURCE" "${SOURCE}.dotfiles-bak"
     fi
 }
 
@@ -109,6 +109,19 @@ case "$(uname -s)" in
     Linux)
         echo "Detected Linux"
         link .shellrc_linux
+        # Linking individual files does not work so we hack around by linking the directory
+        # This could be extracted to link_dir function if reuse is needed
+        # Irrelevant files are ignored with .gitignore
+        xfce_conf=.config/xfce4/xfconf/xfce-perchannel-xml
+        if [[ -e "$HOME/$xfce_conf" ]]; then
+            if [[ ! -L "$HOME/$xfce_conf" ]]; then
+                (cp -n "$HOME/$xfce_conf/"* "$DOTFILES/$xfce_conf" || true)
+                bak_nonlink $xfce_conf
+                link $xfce_conf
+            else
+                echo "Xfce conf already linked"
+            fi
+        fi
         ;;
 
     *)

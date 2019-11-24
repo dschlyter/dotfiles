@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Default start command for terminals
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+# tmux a || tmux || zsh
+tmux || zsh
