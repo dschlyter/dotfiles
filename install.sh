@@ -170,14 +170,24 @@ else
 fi
 
 if [[ "$*" == *"--vundle"* ]]; then
-    echo "Installing vim vundle plugins"
     if ! [ -d ~/.vim/bundle/vundle ]; then
+        echo "Installing vim vundle plugins"
         git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
     fi
     vim +PluginInstall +qall
-    echo "Plugins installed!"
+    echo "Vundle plugins installed!"
 else
     echo "Not installing vim vundle plugins, run with --vundle to enable"
+fi
+
+if [[ "$*" == *"--tpm"* ]]; then
+    if ! [ -d ~/.tmux/plugins/tpm ]; then
+        echo "Installing tmux tpm plugins"
+        git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+    fi
+    echo "Tpm plugins installed!"
+else
+    echo "Not installing tmux tpm plugins, run with --tpm to enable"
 fi
 
 cron_add() {
