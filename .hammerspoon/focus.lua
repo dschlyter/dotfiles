@@ -50,11 +50,11 @@ function export.focusIntellij()
 end
 
 function export.focusSpotify()
-    l.focusNextWindow("Spotify")
+    l.focusNextWindow("Spotify", "Spotify", true)
 end
 
 function export.focusSlack()
-    l.focusNextWindow("Slack")
+    l.focusNextWindow("Slack", "Slack", true)
 end
 
 function export.focusVsCode()
@@ -162,7 +162,7 @@ function l.orderedWindowsOnScreen(screen)
 end
 
 -- focus apps
-function l.focusNextWindow(appName, launchName)
+function l.focusNextWindow(appName, launchName, toggle)
     if not launchName then
         launchName = appName
     end
@@ -172,7 +172,11 @@ function l.focusNextWindow(appName, launchName)
         if #windows > 1 then
             windows[2]:focus()
         else
-            l.focusNext()
+            if toggle then
+                windows[1]:sendToBack()
+            else
+                l.focusNext()
+            end
         end
     elseif #windows > 0 then
         windows[1]:focus()
