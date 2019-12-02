@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Move the current window to the next monitor.
+# Move the current window to monitor number N.
 #
 # Also works only on one X screen (which is the most common case).
 #
@@ -12,15 +12,18 @@
 # the first command does not respect panel/decoration offsets and the second
 # will sometimes give a "-0-0" geometry. This is why we resort to "xwininfo".
 
-screen_width=$(xdpyinfo | awk '/dimensions:/ { print $2; exit }' | cut -d"x" -f1)
-screen_height=$(xdpyinfo | awk '/dimensions:/ { print $2; exit }' | cut -d"x" -f2)
-display_width=$(xdotool getdisplaygeometry | cut -d" " -f1)
-display_height=$(xdotool getdisplaygeometry | cut -d" " -f2)
+set -e
+
+target_monitor="$1"
+
+# TODO get from conf or read from command: xrandr | grep ' connected'
+monitor_widths=(1920 2560 1920)
+
 window_id=$(xdotool getactivewindow)
 
 # Remember if it was maximized.
-window_horz_maxed=$(xprop -id "$window_id" _NET_WM_STATE | grep '_NET_WM_STATE_MAXIMIZED_HORZ')
-window_vert_maxed=$(xprop -id "$window_id" _NET_WM_STATE | grep '_NET_WM_STATE_MAXIMIZED_VERT')
+window_horz_maxed=$(xprop -id "$window_id" _NET_WM_STATE | grep '_NET_WM_STATE_MAXIMIZED_HORZ' || true)
+window_vert_maxed=$(xprop -id "$window_id" _NET_WM_STATE | grep '_NET_WM_STATE_MAXIMIZED_VERT' || true)
 
 # Un-maximize current window so that we can move it
 wmctrl -ir "$window_id" -b remove,maximized_vert,maximized_horz
@@ -35,35 +38,36 @@ y_offset=$(xwininfo -id "$window_id" | awk '/Relative upper-left Y:/ { print $4 
 x=$(( x - x_offset))
 y=$(( y - y_offset))
 
-# Compute new X position
-new_x=$((x + display_width))
-# Compute new Y position
-new_y=$((y + display_height))
-
-# If we would move off the right-most monitor, we set it to the left one.
-# We also respect the window's width here: moving a window off more than half its width won't happen.
-width=$(xdotool getwindowgeometry "$window_id" | awk '/Geometry:/ { print $2 }'|cut -d"x" -f1)
-if [ "$(( new_x + width / 2))" -gt "$screen_width" ]; then
-    new_x=$((new_x - screen_width))
+# First calculate the X-position of the window on the current monitor (not needed when maximized)
+if [ -n  "${window_horz_maxed}" ]; then
+    # The x position can be messed up when un-maximizing and fall into another monitor, thus just set x to 0
+    x_on_monitor=0
+else
+    # Calculate the x position locally on the current monitor
+    x_on_monitor=$x
+    for w in ${monitor_widths[@]}; do
+        echo $w
+        if [[ $x_on_monitor -gt $w ]]; then
+            x_on_monitor=$((x_on_monitor - w))
+        fi
+    done
 fi
 
-height=$(xdotool getwindowgeometry "$window_id" | awk '/Geometry:/ { print $2 }'|cut -d"x" -f2)
-if [ "$((new_y + height / 2))" -gt "$screen_height" ]; then
-    new_y=$((new_y - screen_height))
-fi
+# Then calculate the base offset from the target window
+monitor_count=${#monitor_widths[@]}
+monitor_start_x=0
+for i in $(seq $monitor_count); do
+    if [[ $i -lt $target_monitor ]]; then
+        monitor_start_x=$((monitor_start_x + monitor_widths[i-1]))
+        echo "Monitor x $monitor_start"
+    fi
+done
+echo "start x $monitor_start_x"
 
-# Don't move off the left side.
-if [ "$new_x" -lt 0 ]; then
-    new_x=0
-fi
-
-# Don't move off the bottom
-if [ "$new_y" -lt 0 ]; then
-    new_y=0
-fi
+new_x=$((monitor_start_x + x_on_monitor))
 
 # Move the window
-xdotool windowmove "$window_id" "$new_x" "$new_y"
+xdotool windowmove "$window_id" "$new_x" "$y"
 
 # Maximize window again, if it was before
 if [ -n "${window_horz_maxed}" ] && [ -n "${window_vert_maxed}" ]; then
@@ -73,4 +77,3 @@ elif [ -n  "${window_horz_maxed}" ]; then
 elif [ -n  "${window_vert_maxed}" ]; then
     wmctrl -ir "$window_id" -b add,maximized_vert
 fi
-

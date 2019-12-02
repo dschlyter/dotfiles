@@ -43,7 +43,6 @@
       <property name="Print" type="string" value="xfce4-screenshooter -fd 1"/>
       <property name="&lt;Shift&gt;Print" type="string" value="xfce4-screenshooter -wd 1"/>
       <property name="&lt;Primary&gt;&lt;Shift&gt;Print" type="string" value="xfce4-screenshooter -r"/>
-      <property name="&lt;Primary&gt;&lt;Super&gt;o" type="string" value="/home/david/.dotfiles/xwm/next_window.sh"/>
       <property name="&lt;Super&gt;g" type="string" value="xfce4-popup-whiskermenu"/>
       <property name="&lt;Super&gt;d" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C idea"/>
       <property name="&lt;Super&gt;s" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C -m spotify"/>
@@ -52,10 +51,14 @@
       <property name="&lt;Primary&gt;&lt;Super&gt;minus" type="string" value="playerctl next"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;period" type="string" value="playerctl play-pause"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;comma" type="string" value="playerctl previous"/>
-      <property name="&lt;Shift&gt;&lt;Alt&gt;parenleft" type="string" value="bash -c &apos;sleep 0.1; xdotool keydown shift key 34 keyup shift&apos;"/>
-      <property name="&lt;Alt&gt;9" type="string" value="bash -c &apos;sleep 0.1; xdotool key 35&apos;"/>
-      <property name="&lt;Alt&gt;8" type="string" value="bash -c &apos;sleep 0.1; xdotool key 34&apos;"/>
-      <property name="&lt;Shift&gt;&lt;Alt&gt;parenright" type="string" value="bash -c &apos;sleep 0.1; xdotool keydown shift key 35 keyup shift&apos;"/>
+      <property name="&lt;Super&gt;v" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C code"/>
+      <property name="&lt;Super&gt;8" type="string" value="bash -c &apos;sleep 0.1; xdotool key 34&apos;"/>
+      <property name="&lt;Super&gt;9" type="string" value="bash -c &apos;sleep 0.1; xdotool key 35&apos;"/>
+      <property name="&lt;Shift&gt;&lt;Super&gt;parenleft" type="string" value="bash -c &apos;sleep 0.1; xdotool keydown shift key 34 keyup shift&apos;"/>
+      <property name="&lt;Shift&gt;&lt;Super&gt;parenright" type="string" value="bash -c &apos;sleep 0.1; xdotool keydown shift key 35 keyup shift&apos;"/>
+      <property name="&lt;Primary&gt;&lt;Super&gt;7" type="string" value="/home/david/.dotfiles/xwm/to_monitor 1"/>
+      <property name="&lt;Primary&gt;&lt;Super&gt;8" type="string" value="/home/david/.dotfiles/xwm/to_monitor 2"/>
+      <property name="&lt;Primary&gt;&lt;Super&gt;9" type="string" value="/home/david/.dotfiles/xwm/to_monitor 3"/>
     </property>
   </property>
   <property name="xfwm4" type="empty">

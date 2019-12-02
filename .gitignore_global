@@ -29,6 +29,7 @@ node_modules
 # python
 .envrc
 __pycache__
+venv
 
 # other
 git-of-theseus-data
