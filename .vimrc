@@ -182,6 +182,13 @@ nnoremap S /<C-r>"<cr>.
 " break undo in sensible places
 inoremap <CR>  <C-G>u<CR>
 
+" save and load fold automatically
+augroup remember_folds
+  autocmd!
+  autocmd BufWinLeave * mkview
+  autocmd BufWinEnter * silent! loadview
+augroup END
+
 " cute hacks
 " ==========
 
