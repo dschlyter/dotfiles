@@ -189,6 +189,20 @@ augroup remember_folds
   autocmd BufWinEnter * silent! loadview
 augroup END
 
+" when file is edited outside vim, and no changes are unsaved, reload the file
+set autoread
+" check for modications when gaining focus or ending movement
+autocmd FocusGained,BufEnter,CursorHold,CursorHoldI * :checktime
+" timer for check updated
+if ! exists("g:CheckUpdateStarted")
+    let g:CheckUpdateStarted=1
+    call timer_start(1,'CheckUpdate')
+endif
+function! CheckUpdate(timer)
+    silent! checktime
+    call timer_start(30000,'CheckUpdate')
+endfunction
+
 " cute hacks
 " ==========
 
