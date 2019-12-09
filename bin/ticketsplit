@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Splits a PDF with one ticket per page into one PDF file for each ticket.
+# Each file will be assigned to a person based on input args.
+
+# Install poppler to get pdfseparate - https://superuser.com/a/997424/371093
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+usage() {
+    echo "Usage: $0 pdf-file name1 name2 name3 .."
+}
+
+if [[ ! "${1:-}" ]]; then
+    usage
+    exit
+fi
+
+dir="$1-split"
+mkdir "$dir"
+
+pdfseparate "$1" "$dir/%d_ticket.pdf"
+
+i=1
+while True; do
+    shift
+
+    if [[ ! "${1:-}" ]]; then
+        break
+    fi
+
+    name="$1"
+    mv "$dir/${i}_ticket.pdf" "$dir/${name}_ticket.pdf"
+    i=$((i+1))
+done
