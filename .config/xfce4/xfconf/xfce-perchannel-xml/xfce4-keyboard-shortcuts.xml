@@ -59,6 +59,10 @@
       <property name="&lt;Primary&gt;&lt;Super&gt;8" type="string" value="/home/david/.dotfiles/xwm/to_monitor 2"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;9" type="string" value="/home/david/.dotfiles/xwm/to_monitor 3"/>
       <property name="&lt;Super&gt;s" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C -R -m spotify"/>
+      <property name="&lt;Primary&gt;&lt;Super&gt;1" type="string" value="/home/david/.dotfiles/xwm/to_workspace 0"/>
+      <property name="&lt;Primary&gt;&lt;Super&gt;2" type="string" value="/home/david/.dotfiles/xwm/to_workspace 1"/>
+      <property name="&lt;Primary&gt;&lt;Super&gt;3" type="string" value="/home/david/.dotfiles/xwm/to_workspace 2"/>
+      <property name="&lt;Primary&gt;&lt;Super&gt;4" type="string" value="/home/david/.dotfiles/xwm/to_workspace 3"/>
     </property>
   </property>
   <property name="xfwm4" type="empty">
