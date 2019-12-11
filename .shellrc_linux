@@ -3,3 +3,5 @@ if has apt; then
 fi
 
 has exo-open && alias open="exo-open"
+
+alias wr="sudo winboot && xfce4-session-logout --reboot"

@@ -114,6 +114,7 @@ my_ip() {
 gdiff() {
     git diff "$@"
 }
+
 has() {
     hash "$1" 2> /dev/null
 }
@@ -134,6 +135,8 @@ date() {
         $BINARY -Is
     fi
 }
+
+# More helpers
 
 sst() {
     ssh -t "$@" tmux
@@ -186,6 +189,11 @@ ckl() {
 
     cp "$DOC" "$DOC_COPY"
     vim "$DOC_COPY"
+}
+
+ib() {
+    echo "$@" >> "$HOME/docs/inbox.txt"
+
 }
 
 vimd() {
@@ -399,26 +407,6 @@ venv() {
 grab() {
     sudo chown -R "${USER}" "${@:-.}"
 }
-
-# allows one or multiple files to be "tagged"
-# then used in other commands like: j otherdir; mv $=TAG .
-tag() {
-    if [[ "$*" == "" ]]; then
-        echo "$TAG"
-        return
-    fi
-
-    BASE=""
-    if [[ "$1" == "-a" ]]; then
-        BASE="$TAG\n"
-        shift
-    fi
-    export TAG="$BASE$(realpath "$@")"
-}
-
-# a bit convoluted to work both in zsh and bash
-alias cpt='echo "$TAG" | xargs -L 1 -i cp {} .'
-alias mvt='echo "$TAG" | xargs -L 1 -i mv {} .'
 
 alias agh="ag --hidden"
 

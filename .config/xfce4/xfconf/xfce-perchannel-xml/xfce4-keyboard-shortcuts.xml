@@ -45,7 +45,6 @@
       <property name="&lt;Primary&gt;&lt;Shift&gt;Print" type="string" value="xfce4-screenshooter -r"/>
       <property name="&lt;Super&gt;g" type="string" value="xfce4-popup-whiskermenu"/>
       <property name="&lt;Super&gt;d" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C idea"/>
-      <property name="&lt;Super&gt;s" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C -m spotify"/>
       <property name="&lt;Super&gt;f" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C -w firefox"/>
       <property name="&lt;Super&gt;space" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C -w xfce4-terminal"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;minus" type="string" value="playerctl next"/>
@@ -59,6 +58,7 @@
       <property name="&lt;Primary&gt;&lt;Super&gt;7" type="string" value="/home/david/.dotfiles/xwm/to_monitor 1"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;8" type="string" value="/home/david/.dotfiles/xwm/to_monitor 2"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;9" type="string" value="/home/david/.dotfiles/xwm/to_monitor 3"/>
+      <property name="&lt;Super&gt;s" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C -R -m spotify"/>
     </property>
   </property>
   <property name="xfwm4" type="empty">
