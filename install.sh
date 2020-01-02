@@ -181,6 +181,8 @@ else
 fi
 
 if [[ "$*" == *"--tpm"* ]]; then
+    which cmake || (echo "Cmake required for tpm cpu plugin"; exit 1)
+
     if ! [ -d ~/.tmux/plugins/tpm ]; then
         echo "Installing tmux tpm plugins"
         git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm

@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+# Life is short
+
+from datetime import datetime
+
+life_time = 90
+birth = datetime(1987, 10, 25)
+death = datetime(birth.year+life_time, birth.month, birth.day)
+now = datetime.now()
+
+for week in range(1, 53):
+    line = ""
+    for year in range(birth.year, death.year+1):
+        d = datetime.strptime(f"{year}-W{week}-1", "%Y-W%W-%w")
+        if d < birth or d > death:
+            line += " "
+        elif d < now:
+            line += "#"
+        else:
+            line += "."
+
+    print(line)

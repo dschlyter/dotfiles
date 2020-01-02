@@ -40,7 +40,7 @@ if which zgen > /dev/null; then
     if ! zgen saved || [[ "$plugin_def" -nt "$HOME/.zgen/init.zsh" ]]; then
         # fix compaudit warnings
         export ZGEN_COMPINIT_FLAGS="-u"
-        echo "zplug conf change detected, reinitializing"
+        echo "zgen conf change detected, reinitializing"
         source "$plugin_def"
     fi
 fi
@@ -61,10 +61,12 @@ alias zl="vim $HOME/.zshrc_local; rc"
 alias -g G='| grep -i'
 alias -g L='| less'
 alias -g H='| head'
+alias -g H1='| head -n 1'
 alias -g REV='| reverse'
 alias -g MAP='| xargs --no-run-if-empty -n 1'
 alias -g MAPI='| xargs --no-run-if-empty -n 1 -i'
 alias -g C1='| cl 1'
+alias -g JQ='| jq .'
 alias -g GS='$(git select)'
 alias -g FS='$(fd --type f | fzf --multi)'
 alias -g DL='"$(echo $HOME/?ownloads)/$(ls -1 -tr $HOME/?ownloads | tail -n 1)"'
