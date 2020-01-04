@@ -57,7 +57,7 @@ link_settings() {
         bak_nonlink "$target"
         link "$dotfiles_file" "$target"
     else
-        echo "$target  preferences not found, skipping link."
+        echo "$target preferences not found, skipping link."
     fi
 }
 
@@ -122,6 +122,10 @@ case "$(uname -s)" in
                 echo "Xfce conf already linked"
             fi
         fi
+
+        intellij_prefs="$(echo "$HOME/.IntelliJIdea"* | xargs -n 1 echo | tail -n 1)"
+        link_settings "$intellij_prefs" "config/keymaps" "intellij_linux_keys.xml"
+
         ;;
 
     *)

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+# Fix nvidia screen setup after sleep
+
+metamode="DP-0: nvidia-auto-select +1920+0 {ForceCompositionPipeline=On}, USB-C-0: nvidia-auto-select +4480+120 {ForceCompositionPipeline=On}, DP-2: nvidia-auto-select +0+120 {ForceCompositionPipeline=On}"
+
+nvidia-settings --assign CurrentMetaMode="$metamode"
+# TODO tweak this to make it better
+# sleep 5
+# nvidia-settings --assign CurrentMetaMode="$metamode"
