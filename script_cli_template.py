@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
+import subprocess
 import click
-
-from dotfiles import run
 
 
 @click.group(help="TODO write help")
@@ -25,8 +24,16 @@ def command(ctx, file):
     if ctx.obj['dry_run']:
         print("dry run")
     else:
-        out = run(f"ls -la {file}", shell=True)
+        out = sh_read(f"ls -la {file}")
         print(out)
+
+
+def sh(command):
+    subprocess.check_call(command, shell=True)
+
+
+def sh_read(command):
+    return subprocess.check_output(command, shell=True)
 
 
 if __name__ == '__main__':

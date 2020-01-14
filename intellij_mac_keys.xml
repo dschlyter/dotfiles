@@ -165,7 +165,6 @@
     <keyboard-shortcut first-keystroke="ctrl meta o" />
   </action>
   <action id="RenameElement">
-    <keyboard-shortcut first-keystroke="shift f6" />
     <keyboard-shortcut first-keystroke="meta alt r" />
   </action>
   <action id="RerunTests">

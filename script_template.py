@@ -2,11 +2,19 @@
 
 # TODO describe script
 
-from dotfiles import run
+import subprocess
 
 
 def main():
-    print(run("ls -la"))
+    sh("ls -la")
+
+
+def sh(command):
+    subprocess.check_call(command, shell=True)
+
+
+def sh_read(command):
+    return subprocess.check_output(command, shell=True)
 
 
 if __name__ == '__main__':

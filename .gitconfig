@@ -105,6 +105,8 @@
     ai = !git status --porcelain | grep -E '^.[^ ]' | fzf -m --tac | colrm 1 3 | xargs git add
     ri = !git status --porcelain | grep -E '^[^ ?]' | fzf -m --tac | colrm 1 3 | xargs git reset
     vask-unstaged = !git stash --keep-index && git stash drop
+    # stage all unstaged, and unstage all staged (note: partially staged becomes fully staged)
+    invert = !UNSTAGED=$(git status --porcelain | grep -E '^.[^ ]' | colrm 1 3) && git reset > /dev/null && git add $UNSTAGED
     add-again = !git status --porcelain | grep -E '^[^ ?][^ ]' | colrm 1 3 | xargs git add
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip-stash"
@@ -141,6 +143,7 @@
     rss = reset --soft HEAD~1
     recommit = commit --reuse-message=HEAD@{1}
     retract = !git reset && git rss && git reset -p && git recommit
+    retract-files = !git reset && git rss && git add . && git ri && git recommit
     # rebase the last n commits
     rbn = !git rebase -i HEAD~$1 "#"
     rsm = branch -f master origin/master
@@ -191,8 +194,10 @@
     brc = !git branch --merged | grep -v \\* | grep -v master | grep -v develop | xargs -n 1 git branch -d
     # quick alias for setting upstream
     su = !git branch -u origin/$(git curr-br)
-    # when you forget to create a feature branch and push on main
+    # when you forget to create a feature branch and commit on main
     rbr = !branch=\"$(git symbolic-ref --short HEAD)\" && git branch -m \"$1\" && git branch \"$branch\" \"origin/$branch\" "#"
+    # move the added files to a new branch from master, save unstaged as a WIP commit. for when you start new work on the wrong branch.
+    nbr = !git invert && git wipa && git checkout master --merge && git checkout -b
     cbf = !git branch -f \"$1\" && git checkout \"$1\" "#"
     tmp = !git cbf tmp
     # quickly just add everything to a branch
