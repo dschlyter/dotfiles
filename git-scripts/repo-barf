@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+usage() {
+    echo Usage: $0 src_subdir destination_repo
+    echo
+    echo Exports a subdirectory into a fresh repository. Maintaining the history within.
+    echo This requires 'filter-repo' to be installed. https://github.com/newren/git-filter-repo
+}
+
+if [[ -z "${2:-}" ]]; then
+    usage
+    exit 1
+fi
+
+set -x
+
+src_arg="$1"
+dest_arg="$2"
+
+if [[ -e "$dest_arg" ]]; then
+    echo "Destination already exists. Overwrite not allowed."
+    exit 1
+fi
+
+full_src="$(realpath $src_arg)"
+dest_repo="$(realpath $dest_arg)"
+
+cd "$full_src"
+src_repo="$(git rev-parse --show-toplevel)"
+repo_subdir="${full_src/$src_repo}"
+repo_subdir=${repo_subdir#/}
+
+if [[ -z "$repo_subdir" ]]; then
+    echo "src_subdir must be a subdir of a git repository"
+    exit 1
+fi
+
+git clone "$src_repo" "$dest_repo"
+
+cd "$dest_repo"
+
+# filter-repo does not recognize this as a fresh clone, use --force to override
+git filter-repo --force --path "$repo_subdir"
+
+# do the file moving after the filtering, since otherwise we might get file conflicts
+git filter-repo --path-rename "$repo_subdir/:"
+

@@ -74,6 +74,10 @@
     wsreset = !$HOME/.git-scripts/entry wsreset
     update-hooks = !$HOME/.git-scripts/entry update-hooks
 
+    filter-repo = !$HOME/.git-scripts/filter-repo
+    repo-barf = !$HOME/.git-scripts/entry repo-barf
+    repo-slurp = !$HOME/.git-scripts/entry repo-slurp
+
     # notes:
     # add "#" to the end to prevent alias from consuming input, useful with $1 args
     # " needs escaping, ' does not

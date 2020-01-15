@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+
+usage() {
+    echo Usage: $0 src_repo destination_subdir [branch]
+    echo
+    echo Imports a repo and adds it as a subdirectory of the current repo.
+    echo This requires 'filter-repo' to be installed. https://github.com/newren/git-filter-repo
+    echo
+    echo "Most importantly rewrites history so that per-file blame works, and also the repo can be barfed again (and hashes will be identical)."
+}
+
+if [[ -z "${2:-}" ]]; then
+    usage
+    exit 1
+fi
+
+set -x
+
+src_repo="$1"
+dest_subdir="$2"
+
+if [[ -n "$(git rev-parse --show-cdup)" ]]; then
+    echo "This should be executed in the root of the target git repo"
+fi
+
+if [[ -e "$dest_subdir" ]]; then
+    echo "Destination subdir already exists. Overwrite not allowed."
+    exit 1
+fi
+
+dest_repo="$(pwd)"
+src_repo_name="$(basename $src_repo)"
+
+tmp_repo="$(mktemp -d)"
+trap "{ rm -rf $tmp_repo; }" EXIT
+git clone "$src_repo" "$tmp_repo"
+cd "$tmp_repo"
+
+# This path-rename makes sure per-file history is retained
+git filter-repo --path-rename ":$dest_subdir/"
+
+# Import into target repository
+cd "$dest_repo"
+git fetch "$tmp_repo"
+git merge --allow-unrelated-histories -m "Import repository $src_repo_name" FETCH_HEAD
