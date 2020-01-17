@@ -390,7 +390,7 @@ _script_template() {
         return 1
     fi
 
-    cp -i ~"/.dotfiles/$1" "$2" && $EDITOR "$2"
+    cp -i ~"/.dotfiles/$1" "$2" && chmod +x "$2" && $EDITOR "$2"
 }
 
 alias ss="_script_template script_template.sh"
