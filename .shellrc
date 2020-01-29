@@ -93,6 +93,7 @@ alias x="session ./run.sh"
 alias rw='rlwrap'
 alias nd='ncdu'
 alias p3='rlwrap python3'
+alias vssh='ssh -C /Users/david.schlyter/.ssh/config_nokrypton'
 
 alias speedtest='time wget --output-document=/dev/null http://speedtest.tele2.net/100MB.zip'
 
