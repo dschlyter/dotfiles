@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+message="$*"
+
+if hash hostname 2> /dev/null; then
+    hostname="$(hostname)"
+fi
+
+if hash notify-send 2> /dev/null; then
+   notify-send "$message"
+fi
+
+slack_hook="$HOME/.slack_hook"
+if [[ -f "$slack_hook" ]]; then
+    curl -X POST -H 'Content-type: application/json' \
+      --data "{\"username\": \"$hostname\", \"text\":\"$message\"}" "$(cat "$slack_hook")"
+fi

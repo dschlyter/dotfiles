@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+# 5 19 * * * PATH="$HOME/.dotfiles/bin:$PATH" git-bak "$HOME/code" "$HOME/Dropbox/code" &> /home/david/log/git-bak
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+
+def usage():
+    print("""
+git-bak code-dir backup-dir
+moves all git content from dir to backup-dir (for example dropbox)
+    """.strip())
+
+
+def main():
+    if len(sys.argv) < 3:
+        usage()
+        sys.exit(0)
+
+    try:
+        src_root = os.path.join(os.getcwd(), sys.argv[1])
+        target_root = os.path.join(os.getcwd(), sys.argv[2])
+
+        os.chdir(src_root)
+
+        repos = sh_read("find . -maxdepth 3 -type d -name .git").strip().split("\n")
+        for git_dir in repos:
+            repo_dir = Path(git_dir).parent
+            src = os.path.join(src_root, repo_dir)
+            target = os.path.join(target_root, repo_dir)
+            backup_git(src, target)
+    except Exception as e:
+        alert(str(e))
+        raise e
+
+    # TODO tmp remove this
+    alert("git bak success")
+
+
+def backup_git(src, target):
+    print("Backing up", src, target)
+    if not os.path.exists(target):
+        print(f"Creating directory {target}")
+        os.makedirs(target)
+        os.chdir(target)
+        sh("git init")
+    else:
+        os.chdir(target)
+
+    subprocess.check_call(["git", "pull", src])
+
+
+def sh(command):
+    subprocess.check_call(command, shell=True)
+
+
+def sh_read(command):
+    return subprocess.check_output(command, shell=True).decode('utf-8')
+
+
+def alert(message):
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    alert_script = os.path.join(script_dir, "alert")
+    subprocess.check_call([alert_script, message])
+
+
+if __name__ == '__main__':
+    main()
