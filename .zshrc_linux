@@ -1,0 +1,5 @@
+alias o='xdg-open'
+alias -g CB='| xclip -selection clipboard'
+alias cb='xclip -out -selection clipboard'
+
+alias docker='sudo docker'

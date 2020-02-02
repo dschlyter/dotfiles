@@ -63,6 +63,8 @@
       <property name="&lt;Primary&gt;&lt;Super&gt;2" type="string" value="/home/david/.dotfiles/xwm/to_workspace 1"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;3" type="string" value="/home/david/.dotfiles/xwm/to_workspace 2"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;4" type="string" value="/home/david/.dotfiles/xwm/to_workspace 3"/>
+      <property name="&lt;Super&gt;t" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C thunar"/>
+      <property name="&lt;Alt&gt;&lt;Super&gt;n" type="string" value="/home/david/code/dotfiles/xwm/nfix"/>
     </property>
   </property>
   <property name="xfwm4" type="empty">

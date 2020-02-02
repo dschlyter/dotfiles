@@ -494,6 +494,7 @@ source_if_exists ~/.zshrc_local
 profiling_log "local conf loaded"
 source_if_exists ~/.zshrc_cygwin
 source_if_exists ~/.zshrc_mac
+source_if_exists ~/.zshrc_linux
 profiling_log "platform conf loaded"
 
 profiling_log "done!"

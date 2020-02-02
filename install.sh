@@ -108,6 +108,7 @@ case "$(uname -s)" in
 
     Linux)
         echo "Detected Linux"
+        link .zshrc_linux
         link .shellrc_linux
         # Linking individual files does not work so we hack around by linking the directory
         # This could be extracted to link_dir function if reuse is needed

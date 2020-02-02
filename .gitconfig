@@ -256,3 +256,5 @@
     keepbackups = false
     prompt = false
     trustexitcode = false
+[rebase]
+	autoStash = true

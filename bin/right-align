@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+
+# Tabs or spaces? None!
+
+import sys
+
+def main():
+    code_file = sys.argv[1]
+    lines = []
+    with open(code_file) as f:
+        for line in f:
+            line = line.strip()
+            padding = max(0, 120 - len(line))
+            lines.append(" "*padding + line + "\n")
+
+    with open(code_file, mode='w') as f:
+        f.writelines(lines)
+
+if __name__ == '__main__':
+    main()
