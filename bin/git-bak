@@ -36,9 +36,6 @@ def main():
         alert(str(e))
         raise e
 
-    # TODO tmp remove this
-    alert("git bak success")
-
 
 def backup_git(src, target):
     print("Backing up", src, target)
