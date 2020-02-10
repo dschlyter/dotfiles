@@ -70,7 +70,7 @@ alias -g JQ='| jq .'
 alias -g GS='$(git select)'
 alias -g FS='$(fd --type f | fzf --multi)'
 alias -g DL='"$(echo $HOME/?ownloads)/$(ls -1 -tr $HOME/?ownloads | tail -n 1)"'
-alias -g LAST='$(ls -tr | tail -n 1)'
+alias -g LAST='"$(ls -tr | tail -n 1)"'
 
 # Functions
 
