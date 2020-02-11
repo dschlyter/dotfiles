@@ -1158,7 +1158,7 @@
 			<key>Idle Code</key>
 			<integer>0</integer>
 			<key>Initial Text</key>
-			<string>iterm-tmux &amp;&amp; exit</string>
+			<string>term-tmux &amp;&amp; exit</string>
 			<key>Jobs to Ignore</key>
 			<array>
 				<string>rlogin</string>
@@ -3775,7 +3775,7 @@
 			<key>Idle Code</key>
 			<integer>0</integer>
 			<key>Initial Text</key>
-			<string>iterm-tmux &amp;&amp; exit</string>
+			<string>term-tmux &amp;&amp; exit</string>
 			<key>Jobs to Ignore</key>
 			<array>
 				<string>rlogin</string>
