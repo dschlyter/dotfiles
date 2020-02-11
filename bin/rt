@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Move files to trash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+if [[ -z "${1:-}" ]]; then
+    echo "Usage: rt file1 [file2] [dir] [...]"
+    echo "Moves all listed files to a thrash dir"
+    exit 0
+fi
+
+trash_dir="$HOME/trash"
+mkdir -p "$trash_dir"
+
+for file in "$@"; do
+    if [[ ! -e "$file" ]]; then
+        echo "No such file: $file"
+        exit 1
+    fi
+done
+
+for file in "$@"; do
+    name="$(basename $file)"
+    unique_name="$name"
+    suffix=1
+
+    while [[ -e "$trash_dir/$unique_name" ]]; do
+        suffix=$((suffix + 1))
+        unique_name="${name}_$suffix"
+    done
+
+    mv "$file" "$trash_dir/$unique_name"
+done

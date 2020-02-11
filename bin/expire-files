@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+
+# Tracks files that are moved into a directory. When the file has existed for more than X days it is removed.
+# This should run every day as a cron job for each directory.
+
+import json
+import os
+import sys
+import time
+
+
+EXPIRY_FILE = "_expiry_info.json"
+
+
+def main(argv):
+    if len(sys.argv) < 3:
+        print("Usage expire-files directory expiry-time-in-days")
+        sys.exit(0)
+    
+    directory = os.path.abspath(os.path.join(os.getcwd(), argv[1]))
+    expiry_time_days = int(argv[2])
+
+    now = time.time()
+    expiry_limit = now - (expiry_time_days * 24 * 3600)
+
+    prev_file_info = get_file_info(directory)
+    next_file_info = {}
+
+    for root, subdirs, files in os.walk(directory):
+        for file in files:
+            path = os.path.join(root, file)
+
+            if path == os.path.join(directory, EXPIRY_FILE):
+                continue
+
+            created_time = track(next_file_info, prev_file_info, path, now)
+
+            if created_time < expiry_limit:
+                print(f"Removing file {path}")
+                os.remove(path)
+
+        if root != directory:
+            created_time = track(next_file_info, prev_file_info, root, now)
+
+            # Known issue: This will only delete the bottom level of directories on each run, when they are nested.
+            # Over time a empty directory tree well be "peeled off" and disappear
+            if not subdirs and not files and created_time < expiry_limit:
+                print(f"Removing dir {root}")
+                os.rmdir(root)
+
+    save_file_info(directory, next_file_info)
+
+
+def track(next_file_info, prev_file_info, path, now):
+    if path in prev_file_info:
+        next_file_info[path] = prev_file_info[path]
+    else:
+        print(f"Found untracked path {path}")
+        next_file_info[path] = now
+
+    return next_file_info[path]
+
+
+def get_file_info(directory):
+    info_file = os.path.join(directory, EXPIRY_FILE)
+    if not os.path.exists(info_file):
+        return {}
+    with open(info_file) as fp:
+        return json.load(fp)
+
+
+def save_file_info(directory, data):
+    with open(os.path.join(directory, EXPIRY_FILE), mode='w') as fp:
+        return json.dump(data, fp)
+
+
+if __name__ == '__main__':
+    main(sys.argv)
