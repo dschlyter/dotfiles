@@ -54,15 +54,20 @@ def backup_git(src, target):
     subprocess.check_call(["git", "pull", src])
 
     target_remote = get_remote()
-    if src_remote and not target_remote:
-        print("Setting remote to "+src_remote)
-        subprocess.check_call(["git", "remote", "add", "origin", src_remote])
+    if src_remote:
+        if not target_remote:
+            print("Adding remote "+src_remote)
+            subprocess.check_call(["git", "remote", "add", "origin", src_remote])
+        elif src_remote != target_remote:
+            print("Setting remote to "+src_remote)
+            subprocess.check_call(["git", "remote", "set-url", "origin", src_remote])
 
 
 def get_remote():
     try:
         DEVNULL = open(os.devnull, 'wb')
-        return subprocess.check_output(["git", "remote", "get-url", "origin"], stderr=DEVNULL).decode("utf-8")
+        r = subprocess.check_output(["git", "remote", "get-url", "origin"], stderr=DEVNULL)
+        return r.decode("utf-8").strip()
     except Exception as e:
         return None
 
