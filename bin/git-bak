@@ -39,6 +39,10 @@ def main():
 
 def backup_git(src, target):
     print("Backing up", src, target)
+
+    os.chdir(src)
+    src_remote = get_remote()
+
     if not os.path.exists(target):
         print(f"Creating directory {target}")
         os.makedirs(target)
@@ -48,6 +52,19 @@ def backup_git(src, target):
         os.chdir(target)
 
     subprocess.check_call(["git", "pull", src])
+
+    target_remote = get_remote()
+    if src_remote and not target_remote:
+        print("Setting remote to "+src_remote)
+        subprocess.check_call(["git", "remote", "add", "origin", src_remote])
+
+
+def get_remote():
+    try:
+        DEVNULL = open(os.devnull, 'wb')
+        return subprocess.check_output(["git", "remote", "get-url", "origin"], stderr=DEVNULL).decode("utf-8")
+    except Exception as e:
+        return None
 
 
 def sh(command):

@@ -52,7 +52,6 @@
       <property name="&lt;Primary&gt;&lt;Super&gt;comma" type="string" value="playerctl previous"/>
       <property name="&lt;Super&gt;v" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C code"/>
       <property name="&lt;Super&gt;8" type="string" value="bash -c &apos;sleep 0.1; xdotool key 34&apos;"/>
-      <property name="&lt;Super&gt;9" type="string" value="bash -c &apos;sleep 0.1; xdotool key 35&apos;"/>
       <property name="&lt;Shift&gt;&lt;Super&gt;parenleft" type="string" value="bash -c &apos;sleep 0.1; xdotool keydown shift key 34 keyup shift&apos;"/>
       <property name="&lt;Shift&gt;&lt;Super&gt;parenright" type="string" value="bash -c &apos;sleep 0.1; xdotool keydown shift key 35 keyup shift&apos;"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;7" type="string" value="/home/david/.dotfiles/xwm/to_monitor 1"/>
@@ -65,6 +64,8 @@
       <property name="&lt;Primary&gt;&lt;Super&gt;4" type="string" value="/home/david/.dotfiles/xwm/to_workspace 3"/>
       <property name="&lt;Super&gt;t" type="string" value="/home/david/.dotfiles/xwm/jumpapp -C thunar"/>
       <property name="&lt;Alt&gt;&lt;Super&gt;n" type="string" value="/home/david/code/dotfiles/xwm/nfix"/>
+      <property name="&lt;Super&gt;9" type="string" value="bash -c &apos;sleep 0.1; xdotool key 35&apos;"/>
+      <property name="&lt;Super&gt;7" type="string" value="bash -c &apos;sleep 0.1; xdotool key 0x7c&apos;"/>
     </property>
   </property>
   <property name="xfwm4" type="empty">
