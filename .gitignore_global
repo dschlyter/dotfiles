@@ -14,6 +14,9 @@ nocommit_*
 .idea
 *.iml
 
+# vs code
+*.code-workspace
+
 # java
 .gradle
 .gradletasknamecache
