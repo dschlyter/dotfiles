@@ -45,6 +45,12 @@ function jform() {
     pbpaste | jq . | pbcopy
 }
 
+function nomov() {
+    for file in *.mov; do
+        ffmpeg -i "$file" "${file//.mov/.mp4}" && rm "$file"
+    done
+}
+
 function handlemail() {
     cat /var/mail/$USER
     sudo rm /var/mail/$USER
