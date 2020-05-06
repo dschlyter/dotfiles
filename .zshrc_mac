@@ -98,33 +98,41 @@ use_gnu find
 # Homebrew
 #
 
-# modify brew to make sure files written work for multiple users
+# modify brew to make it work for multiple users
+# everything is done with a single user, other users needs to 
 function brew() {
-    (umask 002;
-    /usr/local/bin/brew "$@")
+    if [[ "$1" == "search" ]]; then
+        /usr/local/bin/brew "$@"
+        return
+    fi
+
+    BREW_USER="$(_brew_main_user)"
+    if [[ "$BREW_USER" == "$(whoami)" ]]; then
+        /usr/local/bin/brew "$@"
+    else
+        sudo -EH -u "$BREW_USER" /usr/local/bin/brew "$@"
+    fi
+}
+
+function _brew_main_user() {
+    ls -ld /usr/local/Homebrew | cl 3
 }
 
 # brew convinience function
-if [[ -n "$MULTIUSER_BREW" ]]; then
-    BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
-else
-    BREW_UPDATE_FILE=$HOME/.config/.brew_lastupdate
-fi
-function bup() {
-    if [[ -n "$MULTIUSER_BREW" ]]; then
-        # because multi-user brew is so broken
-        # make sure scripts from dotfiles/bin/freesudo are installed
-        sudo /opt/sudo/fix-brew-pre-update || return
-    fi
 
+BREW_UPDATE_FILE=/usr/local/.brew_lastupdate
+
+function bup() {
+    # TODO some better chown might be needed here
     if [[ "$BUP_GRAB" == 1 ]]; then
         grab /usr/local/etc
         grab /usr/local/bin
         grab /usr/local/sbin
     fi
 
-    (umask 002;
-    brew update && brew upgrade && date "+%s" > $BREW_UPDATE_FILE)
+    brew update || return 1
+
+    date "+%s" > $BREW_UPDATE_FILE
 
     if [[ -n "$MULTIUSER_BREW" ]]; then
         sudo /opt/sudo/fix-brew-post-update

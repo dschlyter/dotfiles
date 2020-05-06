@@ -140,6 +140,10 @@ if ! [[ -f $HOME/.gitconfig_local ]]; then
     ${EDITOR:-vi} $HOME/.gitconfig_local
 fi
 
+# maintain the correct user for dotfiles
+git config user.name "David Schlyter"
+git config user.email "dschlyter@gmail.com"
+
 if [ "$SHELL" == "/bin/zsh" ]; then
     echo "zsh is the current active shell"
 elif [ -f /bin/zsh ]; then

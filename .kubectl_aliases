@@ -33,7 +33,7 @@ kps() {
 
 # like kp but for replication controllers
 # example: kr podname
-kr() {
+krc() {
     k get rc | grep $1 | awk '{print $1}'
 }
 

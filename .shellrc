@@ -82,7 +82,7 @@ alias mv='mv -i'
 alias cp='cp -i'
 alias tig='tig --all'
 
-alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc; rc"
+alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc ~/.zgen_plugins; rc"
 
 alias mt="mvn dependency:tree"
 alias mp="mvn clean package"
@@ -503,7 +503,7 @@ source_if_exists() {
     fi
 }
 
-if type kubectl &> /dev/null; then
+if has kubectl; then
     source_if_exists ~/.kubectl_aliases
 fi
 

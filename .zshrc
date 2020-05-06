@@ -218,7 +218,7 @@ _set_prompt() {
     local CURR_DIR="%F{47}%40<..<%~%<<%f"
     local PROMPT_CHAR="%F{168}%B%(!.#.>)%s%b"
     local EXIT_CODE_PROMPT="%F{221}%B%(?.. [%?] )%b%f"
-    PROMPT="$VENV$CURR_DIR$GIT_PROMPT$EXIT_CODE_PROMPT$PROMPT_CHAR "
+    PROMPT="$VENV$CURR_DIR$GIT_PROMPT$EXIT_CODE_PROMPT$PROMPT_CHAR %F{7}"
 }
 
 _slow_fs() {

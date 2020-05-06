@@ -214,6 +214,8 @@ function l.focusNext()
     end
 end
 
+--[[
+
 local focusFile = "/var/tmp/hammerspoon-focus-log"
 
 hs.window.filter.default:subscribe(hs.window.filter.windowFocused, function (w, appName)
@@ -227,6 +229,7 @@ hs.window.filter.default:subscribe(hs.window.filter.windowFocused, function (w, 
         hs.alert.show("Error saving timestamp, write permission error?")
     end
 end)
+--]]
 
 
 return export

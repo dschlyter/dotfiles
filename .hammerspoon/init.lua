@@ -37,8 +37,8 @@ local modifierComplicated = {"alt", "ctrl", "cmd"}
 
 -- hotkeys on focus (alt)
 hs.hotkey.bind(modifierFocus, 'k', focus.up)
-hs.hotkey.bind(modifierFocus, 'j', focus.down)
-hs.hotkey.bind(modifierFocus, 'l', focus.left)
+-- hs.hotkey.bind(modifierFocus, 'j', focus.down)
+-- hs.hotkey.bind(modifierFocus, 'l', focus.left)
 hs.hotkey.bind(modifierFocus, 'h', focus.right)
 hs.hotkey.bind(modifierFocus, 'o', focus.recentOnSameScreen)
 
