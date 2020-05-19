@@ -1,0 +1,6 @@
+#!/bin/bash
+
+(sleep 3; /home/david/code/dotfiles/xwm/nfix &> $HOME/nfix_log) &
+
+# We also need to run the real xinitrc to actually boot the WM
+source /etc/xdg/xfce4/xinitrc

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e
+
+# Only one instance at a time
+[ "${FLOCKER}" != "$0" ] && exec env FLOCKER="$0" flock -en "$0" "$0" "$@" || true
+
+while true; do
+    event=$(inotifywait -e close_write "$HOME/.zsh_tmux/"*);
+    last_command=$(tail -n 1 ${event/ */})
+    echo "$last_command" >> "$HOME/.zsh_history"
+done

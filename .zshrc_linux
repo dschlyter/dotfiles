@@ -5,7 +5,7 @@ alias cb='xclip -out -selection clipboard'
 alias docker='sudo docker'
 
 # echo 'prefix = /home/david/.node' >> $HOME/.npmrc
-add_to_path "$HOME/.node/bin"
+_add_to_path "$HOME/.node/bin"
 export NODE_PATH="$HOME/.node/lib/node_modules:$NODE_PATH"
 
 export MANPATH="$HOME/.node/share/man:$MANPATH"

@@ -74,6 +74,19 @@ alias -g LAST='"$(ls -tr | tail -n 1)"'
 
 # Functions
 
+# Enable per-pane history in tmux
+function lh {
+    pane=$(tmux display-message -p '#S:#I:#P')
+    export HISTFILE="$HOME/.zsh_tmux/history_$pane"
+
+    # read any old history that has not been applied
+    fc -R
+
+    # start process to merge log unless already started
+    # note: this is a linux-only script for now
+    (nohup tmux-merge-log > /dev/null) &> /dev/null &
+}
+
 # quickly save the previous command
 function save {
     if [[ -n "$1" ]]; then
