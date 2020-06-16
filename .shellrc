@@ -409,6 +409,10 @@ venv() {
     direnv allow
 }
 
+pipi() {
+    pip install "$@" && pip freeze > requirements.txt
+}
+
 grab() {
     sudo chown -R "${USER}" "${@:-.}"
 }
