@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+# Most important usage:
+# restic backup dir1 dir2 ..
+# restic snapshots
+# restic ls latest
+# restic restore latest --include /dir1/blah --target path/to/restore
+
+# Keeping it trimmed, compare total size with latest size
+# restic stats --mode raw-data
+# restic stats --mode raw-data latest
+# restic forget --keepo-daily 7 --keep-monthly 5 --keep-yearly 3
+
+# export RESTIC_REPOSITORY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and RESTIC_PASSWORD in this file
+source "$HOME/.restic_conf"
+
+echo Running user command "$@"
+restic "$@"
