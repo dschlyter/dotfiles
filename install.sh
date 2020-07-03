@@ -134,7 +134,7 @@ case "$(uname -s)" in
         ;;
 esac
 
-if ! [[ -f $HOME/.gitconfig_local ]]; then
+if [[ ! -f $HOME/.gitconfig_local && -n "${PS1:-}" ]]; then
     # Configuring git user name
     cp .gitconfig_local $HOME/.gitconfig_local
     ${EDITOR:-vi} $HOME/.gitconfig_local
