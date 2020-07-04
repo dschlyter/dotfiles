@@ -87,6 +87,11 @@ function lh {
     (nohup tmux-merge-log > /dev/null) &> /dev/null &
 }
 
+function ssh-nokrypton {
+    cat "$HOME/.ssh/config" | sed 's/Host krypton.hosts [*]/Host krypton.hosts/' > "$HOME/.ssh/config_nokrypton"
+    ssh -F "$HOME/.ssh/config_nokrypton" "$@"
+}
+
 # quickly save the previous command
 function save {
     if [[ -n "$1" ]]; then

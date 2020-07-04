@@ -417,6 +417,11 @@ grab() {
     sudo chown -R "${USER}" "${@:-.}"
 }
 
+ungrab() {
+    sudo chown -R "root:root" "${@:-.}"
+    sudo chmod o-rwx "${@:-.}"
+}
+
 alias agh="ag --hidden"
 
 # jump directly to a line in a file in vim

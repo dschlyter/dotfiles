@@ -51,7 +51,7 @@ def backup_git(src, target):
     else:
         os.chdir(target)
 
-    subprocess.check_call(["git", "pull", src])
+    subprocess.check_call(["git", "pull", "--no-rebase", src, "master:master"])
 
     target_remote = get_remote()
     if src_remote:
