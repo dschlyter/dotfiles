@@ -482,6 +482,10 @@ timing() {
 alias d=docker
 alias dco=docker-compose
 
+devplay() {
+    docker run -it -v "$PWD:/opt/app" "$@" devplay
+}
+
 drun() {
     docker run -it --rm --name "$1" "$1"
 }

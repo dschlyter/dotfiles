@@ -243,7 +243,7 @@ _slow_fs() {
     cmd="${GNU_PREFIX}stat"
     if where $cmd > /dev/null; then
         curr_fs="$($cmd --file-system --format=%T .)"
-        skip_fs=(osxfuse)
+        skip_fs=(osxfuse, fuseblk)
         if (($skip_fs[(I)$curr_fs])); then
             return 0
         else
