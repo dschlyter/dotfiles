@@ -1,7 +1,7 @@
 Dotfiles
 ========
 
-Various dotfiles I use.
+Various dotfiles that are useful.
 
 Installation
 ------------
@@ -10,12 +10,16 @@ There is an installation script that sets (almost) everything up. It mostly just
 
     git clone https://github.com/dschlyter/dotfiles
     cd dotfiles
-    ./install.sh # use flag --vundle to setup vim plugins
+    ./install.sh
+
+You may add some flags to install more stuff, the script will tell you what they are.
 
 OS X
 ----
 
-Run `./osx.sh` for some sane default configs.
+Run `./osx_essential.sh` for some sane default configs.
+
+Run `./osx_window_mgr.sh` to set up some nice shortcuts. Read the script before running since some customization is needed.
 
 * To use iterm2-settings, open iterm preferences and select load config from file and select com.googlecode.iterm2.plist in the dotfiles dir.
 * To export config, open iterm preferences and press save config to file.

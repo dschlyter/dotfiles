@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Increase window resize speed for Cocoa applications
+defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
+
 # This breaks hold key to repeat
 defaults write -g ApplePressAndHoldEnabled -bool false
 
