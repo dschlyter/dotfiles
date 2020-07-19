@@ -118,6 +118,8 @@
     wipa = !git commit --no-verify -m 'wip-stash'
     # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
     blacklist = !echo \"$@\" >> .gitblacklist "#"
+    # import matched global ignores into repo .gitignore
+    import-ignore = !git status -sb --ignored | grep '^!!' | cut -d' ' -f 2- | xargs git check-ignore -v | grep $HOME/.gitignore | cut -d':' -f 3 | cut -f 1 | sort | uniq >> .gitignore
     # named stashes
     sshow = !git stash show stash^{/$*} -p
     sapply = !git stash apply stash^{/$*}

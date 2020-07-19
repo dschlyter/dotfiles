@@ -6,7 +6,9 @@ IFS=$'\n\t'
 
 # Fix nvidia screen setup after sleep
 
-metamode="DP-0: 2560x1440_165 +1920+0 {ForceCompositionPipeline=On}, USB-C-0: nvidia-auto-select +4480+120 {ForceCompositionPipeline=On}, DP-2: nvidia-auto-select +0+120 {ForceCompositionPipeline=On}"
+# Use nvidia-settings --query to get settings after configuring in UI
+# metamode="DP-0: 2560x1440_165 +1920+0 {ForceCompositionPipeline=On}, USB-C-0: nvidia-auto-select +4480+120 {ForceCompositionPipeline=On}, DP-2: nvidia-auto-select +0+120 {ForceCompositionPipeline=On}"
+metamode="DPY-6: nvidia-auto-select @1920x1200 +4480+120 {ViewPortIn=1920x1200, ViewPortOut=1920x1200+0+0, ForceCompositionPipeline=On}, DPY-3: nvidia-auto-select @1920x1200 +0+120 {ViewPortIn=1920x1200, ViewPortOut=1920x1200+0+0, ForceCompositionPipeline=On}, DPY-1: 2560x1440 @2560x1440 +1920+0 {ViewPortIn=2560x1440, ViewPortOut=2560x1440+0+0, ForceCompositionPipeline=On}"
 
 nvidia-settings --assign CurrentMetaMode="$metamode"
 
