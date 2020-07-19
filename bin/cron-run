@@ -7,7 +7,8 @@ import json
 import os
 import sys
 import subprocess
-from subprocess import Popen, PIPE, STDOUT
+import socket
+from subprocess import Popen, PIPE
 
 from datetime import datetime
 
@@ -32,33 +33,35 @@ def main():
 
 
 def run_and_report():
-    run_id = datetime.now().isoformat()
+    log = Log()
+    log.append(datetime.now().isoformat())
+
     job_name, next_run, cmd = parse(sys.argv)
+
+    log.append(cmd)
 
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE, close_fds=True)
     code = p.wait()
 
     stdout = p.stdout.read().decode('utf-8') if p.stdout else ""
     stderr = p.stderr.read().decode('utf-8') if p.stderr else ""
-    print(stdout)
-    print(stderr)
-    print("job returned", code)
+
+    log.append("stdout:")
+    log.append_all(stdout.split("\n"))
+    log.append("stderr:")
+    log.append_all(stderr.split("\n"))
+    log.append("job returned "+str(code))
 
     if not os.path.exists(LOG_DIR):
         os.makedirs(LOG_DIR)
 
-    log_data = [run_id, "stdout:"]
-    log_data += stdout.split("\n")
-    log_data.append("stderr:")
-    log_data += stderr.split("\n")
-
     with open("{}/{}.log".format(LOG_DIR, job_name), 'a') as file:
         file.write("\n\n")
-        file.write("\n".join(log_data))
+        file.write("\n".join(log.log_data))
 
     if code != 0:
         report_error(job_name, stderr)
-    report_status(job_name, run_id, "success" if code == 0 else "error", next_run, log_data)
+    report_status(job_name, "success" if code == 0 else "error", next_run, log.log_data)
 
 
 def parse(argv):
@@ -74,8 +77,8 @@ def parse(argv):
     return job_name, next_run, cmd
 
 
-def report_error(job_name, error_msg):
-    print("reporting error", error_msg)
+def report_error(job_name, error_msg, log):
+    log.append("reporting error "+str(error_msg))
     conf = load_conf(CONF, {})
     slack_url = conf.get('slack')
     if slack_url:
@@ -85,23 +88,23 @@ def report_error(job_name, error_msg):
             'text': '{} failed :/ Error: {}'.format(job_name, error_msg),
         })
         subprocess.check_call(['curl', '-X', 'POST', '--data-urlencode', 'payload='+json_data, slack_url])
-        print("Error hook poked")
+        log.append("Error hook poked")
     else:
-        print("Unable to load conf, cannot trigger error hook")
+        log.append("Unable to load conf, cannot trigger error hook")
 
 
-def report_status(job_name, run_id, status, next_run, logs):
+def report_status(job_name, status, next_run, logs):
     conf = load_conf(CONF, {})
     url = conf.get('healthcheck')
     if url:
-        report_url = os.path.join(url, job_name, run_id)
+        report_url = os.path.join(url, job_name)
         json_data = json.dumps({
-            'run_id': run_id,
             'status': status,
             'next': next_run,
+            'host': socket.gethostname(),
             'log': logs,
         })
-        subprocess.check_call(['curl', '-X', 'PUT', '-H', 'Content-Type: application/json', '--data', json_data, report_url])
+        subprocess.check_call(['curl', '-X', 'POST', '-H', 'Content-Type: application/json', '--data', json_data, report_url])
         print("Healthcheck service informed")
     else:
         print("Unable to load conf, cannot update healthcheck")
@@ -113,6 +116,19 @@ def load_conf(path, default_value=None):
             return json.load(data_file)
     except (FileNotFoundError, json.JSONDecodeError):
         return default_value if default_value is not None else {}
+
+
+class Log:
+    def __init__(self):
+        self.log_data = []
+
+    def append(self, line):
+        print(line)
+        self.log_data.append(line)
+
+    def append_all(self, lines):
+        for line in lines:
+            self.append(line)
 
 
 if __name__ == '__main__':
