@@ -2,22 +2,23 @@
 
 # Run cron scripts with logging, success callback and error callback
 
-# Pro tip: PATH=... on top of file to make cron behave like your shell
+# PRO TIP: PATH=... on top of crontab to make cron behave like your shell
+# PRO TIP: a default config is stored in the scripts repository
+
 import json
 import os
 import sys
 import subprocess
 import socket
+import io
+import time
 from subprocess import Popen, PIPE
-
+from pathlib import Path
 from datetime import datetime
 
-scriptPath = os.path.realpath(os.path.dirname(sys.argv[0]))
-os.chdir(scriptPath)
-
-LOG_DIR = os.environ['HOME']+'/.logs/cron-run/'
-# PRO TIP: a default config is stored in the scripts repository
-CONF = os.environ['HOME']+'/.config/cron-run.json'
+HOME = str(Path.home())
+LOG_DIR = HOME+'/.logs/cron-run/'
+CONF = HOME+'/.config/cron-run.json'
 
 
 def main():
@@ -29,38 +30,47 @@ def main():
         run_and_report()
     except Exception as ex:
         job_name = sys.argv[1] if len(sys.argv) > 1 else 'unknown'
-        report_error(job_name, "cron-run internal error " + str(ex))
+        report_error(job_name, "cron-run internal error " + str(ex), Log())
+        raise ex
 
 
 def run_and_report():
+    start = time.time()
     log = Log()
     log.append(datetime.now().isoformat())
 
     job_name, next_run, cmd = parse(sys.argv)
+    log.append(str(cmd))
 
-    log.append(cmd)
-
-    p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE, close_fds=True)
+    p = Popen(cmd, stdout=PIPE, stderr=subprocess.STDOUT, close_fds=True)
+    
+    # Stream output while running the command
+    # Run this command with python -u to get snappy output
+    stdout_b = b''
+    while True:
+        bytes = p.stdout.read(1)
+        if not bytes:
+            break
+        stdout_b += bytes
+        sys.stdout.buffer.write(bytes)
+    p.stdout.close()
     code = p.wait()
-
-    stdout = p.stdout.read().decode('utf-8') if p.stdout else ""
-    stderr = p.stderr.read().decode('utf-8') if p.stderr else ""
-
-    log.append("stdout:")
-    log.append_all(stdout.split("\n"))
-    log.append("stderr:")
-    log.append_all(stderr.split("\n"))
-    log.append("job returned "+str(code))
+    
+    stdout_rows = stdout_b.decode('utf-8', errors='replace').splitlines()
+    log.append_all(stdout_rows, output=False)
+    log.append(f"job returned {code}")
+    log.append(f"completed in {time.time() - start} seconds")
 
     if not os.path.exists(LOG_DIR):
         os.makedirs(LOG_DIR)
 
-    with open("{}/{}.log".format(LOG_DIR, job_name), 'a') as file:
+    with open("{}/{}.log".format(LOG_DIR, job_name), encoding='utf-8', mode='a') as file:
         file.write("\n\n")
         file.write("\n".join(log.log_data))
 
     if code != 0:
-        report_error(job_name, stderr)
+        report_error(job_name, "\n".join(log.log_data), log)
+        
     report_status(job_name, "success" if code == 0 else "error", next_run, log.log_data)
 
 
@@ -73,12 +83,14 @@ def parse(argv):
         next_run = int(argv[2])
         cmd_start = 3
 
-    cmd = " ".join(argv[cmd_start:])
+    cmd = argv[cmd_start:]
     return job_name, next_run, cmd
 
 
 def report_error(job_name, error_msg, log):
-    log.append("reporting error "+str(error_msg))
+    error_msg = error_msg[:1000]
+
+    log.append("reporting error to slack")
     conf = load_conf(CONF, {})
     slack_url = conf.get('slack')
     if slack_url:
@@ -104,7 +116,8 @@ def report_status(job_name, status, next_run, logs):
             'host': socket.gethostname(),
             'log': logs,
         })
-        subprocess.check_call(['curl', '-X', 'POST', '-H', 'Content-Type: application/json', '--data', json_data, report_url])
+        p = Popen(['curl', '-X', 'POST', '-H', 'Content-Type: application/json', '--data', '@-', report_url], stdin=PIPE)
+        p.communicate(input=json_data.encode('utf-8'))[0]
         print("Healthcheck service informed")
     else:
         print("Unable to load conf, cannot update healthcheck")
@@ -122,13 +135,14 @@ class Log:
     def __init__(self):
         self.log_data = []
 
-    def append(self, line):
-        print(line)
+    def append(self, line, output=True):
+        if output:
+            print(line)
         self.log_data.append(line)
 
-    def append_all(self, lines):
+    def append_all(self, lines, output=True):
         for line in lines:
-            self.append(line)
+            self.append(line, output=output)
 
 
 if __name__ == '__main__':
