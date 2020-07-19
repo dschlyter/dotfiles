@@ -20,3 +20,10 @@ source "$HOME/.restic_conf"
 
 echo Running user command "$@"
 restic "$@"
+
+if [[ "${1:-}" == "backup" ]]; then
+    echo
+    echo Printing backup repo stats for total and latest
+    restic stats --mode raw-data
+    restic stats --mode raw-data latest
+fi
