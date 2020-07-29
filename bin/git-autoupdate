@@ -6,7 +6,7 @@ IFS=$'\n\t'
 
 echo "Autoupdating git repos $(date)"
 
-GIT_AUTOUPDATE_REPOS="$HOME/code/dotfiles
+GIT_AUTOUPDATE_REPOS="$HOME/.dotfiles
 $HOME/code/scripts
 $HOME/code/server-setup
 $(cat $HOME/.git_autoupdate || true)"
@@ -33,6 +33,7 @@ for repo in $GIT_AUTOUPDATE_REPOS; do
         # all github repos used for auto-update are public, so this rewrite is good enough for now
         ORIGIN="$(git remote get-url origin | sed -E 's,git@github.com:(.*)[.]git,https://github.com/\1,')"
         git fetch "$ORIGIN"
+
         # semi hack warning, update origin/master from custom fetch
         cp .git/FETCH_HEAD .git/refs/remotes/origin/master
         git merge --ff-only) || true

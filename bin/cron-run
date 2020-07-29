@@ -10,7 +10,6 @@ import os
 import sys
 import subprocess
 import socket
-import io
 import time
 from subprocess import Popen, PIPE
 from pathlib import Path
@@ -43,7 +42,7 @@ def run_and_report():
     log.append(str(cmd))
 
     p = Popen(cmd, stdout=PIPE, stderr=subprocess.STDOUT, close_fds=True)
-    
+
     # Stream output while running the command
     # Run this command with python -u to get snappy output
     stdout_b = b''
@@ -55,22 +54,17 @@ def run_and_report():
         sys.stdout.buffer.write(bytes)
     p.stdout.close()
     code = p.wait()
-    
+
     stdout_rows = stdout_b.decode('utf-8', errors='replace').splitlines()
     log.append_all(stdout_rows, output=False)
     log.append(f"job returned {code}")
     log.append(f"completed in {time.time() - start} seconds")
 
-    if not os.path.exists(LOG_DIR):
-        os.makedirs(LOG_DIR)
-
-    with open("{}/{}.log".format(LOG_DIR, job_name), encoding='utf-8', mode='a') as file:
-        file.write("\n\n")
-        file.write("\n".join(log.log_data))
+    log_to_disk(job_name, log)
 
     if code != 0:
-        report_error(job_name, "\n".join(log.log_data), log)
-        
+        report_error(job_name, log.as_string(), log)
+
     report_status(job_name, "success" if code == 0 else "error", next_run, log.log_data)
 
 
@@ -85,6 +79,21 @@ def parse(argv):
 
     cmd = argv[cmd_start:]
     return job_name, next_run, cmd
+
+
+def log_to_disk(job_name, log):
+    if not os.path.exists(LOG_DIR):
+        os.makedirs(LOG_DIR)
+
+    log_file = "{}/{}.log".format(LOG_DIR, job_name)
+
+    # crude log rotation. rotate on 1 MB log file. one old copy will be kept
+    if os.path.exists(log_file) and os.path.getsize(log_file) > 1e6:
+        os.rename(log_file, log_file + ".old")
+
+    with open(log_file, encoding='utf-8', mode='a') as file:
+        file.write("\n\n")
+        file.write(log.as_string())
 
 
 def report_error(job_name, error_msg, log):
@@ -117,7 +126,7 @@ def report_status(job_name, status, next_run, logs):
             'log': logs,
         })
         p = Popen(['curl', '-X', 'POST', '-H', 'Content-Type: application/json', '--data', '@-', report_url], stdin=PIPE)
-        p.communicate(input=json_data.encode('utf-8'))[0]
+        p.communicate(input=json_data.encode('utf-8'))
         print("Healthcheck service informed")
     else:
         print("Unable to load conf, cannot update healthcheck")
@@ -143,6 +152,9 @@ class Log:
     def append_all(self, lines, output=True):
         for line in lines:
             self.append(line, output=output)
+
+    def as_string(self):
+        return "\n".join(self.log_data)
 
 
 if __name__ == '__main__':
