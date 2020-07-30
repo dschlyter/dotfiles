@@ -25,16 +25,30 @@ def main():
         target_root = os.path.join(os.getcwd(), sys.argv[2])
 
         os.chdir(src_root)
+        ignores = load_ignores(src_root)
 
         repos = sh_read("find . -maxdepth 3 -type d -name .git").strip().split("\n")
         for git_dir in repos:
             repo_dir = Path(git_dir).parent
+            if str(repo_dir) in ignores:
+                print("Skipping ignored repo", repo_dir)
+                continue
+
             src = os.path.join(src_root, repo_dir)
             target = os.path.join(target_root, repo_dir)
             backup_git(src, target)
     except Exception as e:
         alert(str(e))
         raise e
+
+
+def load_ignores(src_root):
+    ignore_file = os.path.join(src_root, ".gitbakignore")
+    if os.path.exists(ignore_file):
+        with open(ignore_file) as fp:
+            return set([line.strip() for line in fp])
+
+    return set()
 
 
 def backup_git(src, target):
