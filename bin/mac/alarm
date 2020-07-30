@@ -56,6 +56,9 @@ def main():
         print "script is awake", datetime.now()
         time.sleep(60)
 
+    print "Caffeinating to avoid sleep"
+    subprocess.Popen(["caffeinate", "-s", "-t", "300"])
+
     # sleep a bit, maybe helps with bugs??
     time.sleep(10)
     print "Starting spotify"
