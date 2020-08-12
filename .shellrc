@@ -31,7 +31,6 @@ _add_to_path "$HOME/code/jenkins-seed/bin"
 _add_to_path "/opt/sudo"
 
 add_to_path() {
-    set -x
     _add_to_path "$(realpath $1)"
 
     CMD="_add_to_path '$(realpath $1)'"

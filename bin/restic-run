@@ -8,22 +8,38 @@ IFS=$'\n\t'
 # restic backup dir1 dir2 ..
 # restic snapshots
 # restic ls latest
-# restic restore latest --include /dir1/blah --target path/to/restore
+# restic restore latest --include /dir1/blah --target path/to/restore/to
 
-# Keeping it trimmed, compare total size with latest size
+# Compare total size with latest size
 # restic stats --mode raw-data
 # restic stats --mode raw-data latest
-# restic forget --keepo-daily 7 --keep-monthly 5 --keep-yearly 3
+
+# Removing old data - you need to run prune to actually delete data
+# restic forget --keep-daily 7 --keep-monthly 5 --keep-yearly 3
+# resitc prune
+
+# Dealing with repo errors. Basically as of 2020-08 it is kinda borked. Recommended to restart on a new repo it breaks.
+# 1. Running rebuild-index breaks restore from snapshots that refer to missing packs https://github.com/restic/restic/issues/2334
+# 2. New backups will not re-upload missing/corrupted files, unless you both rebuild-index (dangerous) AND run a new backup with --force to upload "unchanged" files
 
 # export RESTIC_REPOSITORY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and RESTIC_PASSWORD in this file
 source "$HOME/.restic_conf"
 
-echo Running user command "$@"
-restic "$@"
+if [[ "${1:-}" == 'backup-run' ]]; then
+    shift
+    set -x
+    restic backup "$@"
 
-if [[ "${1:-}" == "backup" ]]; then
     echo
     echo Printing backup repo stats for total and latest
     restic stats --mode raw-data
     restic stats --mode raw-data latest
+
+    echo
+    echo Checking repo integrity and validating a random subset
+    partition="$((1 + $RANDOM % 100))"
+    restic check --read-data-subset "$partition/100"
+else
+    set -x
+    restic "$@"
 fi
