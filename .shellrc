@@ -486,12 +486,16 @@ devplay() {
 }
 
 drun() {
-    docker run -it --rm --name "$1" "$1"
+    docker run -it --init --rm --name "$1" "$1"
 }
 
 dsh() {
     CONTAINER="$(docker ps --filter name="$1" --format "{{.ID}}" | head -n 1)"
     docker exec -it "$CONTAINER" bash
+}
+
+drm() {
+    docker ps -a | drop 1 | fzf -m | cl 1 | xargs docker rm -f
 }
 
 # alias docker to docker-restricted if available, when running as sudo alias will be ignored
