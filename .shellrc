@@ -85,7 +85,7 @@ alias mv='mv -i'
 alias cp='cp -i'
 alias tig='tig --all'
 
-alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc ~/.zgen_plugins; rc"
+alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc ~/.zgen_plugins ~/.dotfiles/.*.zsh; rc"
 
 alias mt="mvn dependency:tree"
 alias mp="mvn clean package"

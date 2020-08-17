@@ -50,16 +50,29 @@ zle     -N   fzf-file-fasd-widget
 bindkey '^F' fzf-file-fasd-widget
 
 # grab stuff from previous command, like filenames from find/ag or ip-addresses from ipconfig
-# WARNING: this will re-run the last command, so be careful with destructive or long-running commands
 __last_command_sel() {
-    # rerun last command, split on whitespace and non-filename chars
-    # filter short words and repeated content
-    local last_command="$(fc -l -nIL -1 -1)"
-    # local cmd="$last_command | sed 's/[ :*=]/\n/g' | grep -E '.{10}' | awk '!seen[$0]++'"
-    local cmd="$last_command | sed 's/[ :*=]/\n/g' | grep -E '.{10}' | awk '!seen[\$0]++'"
+    if [[ -n "$TMUX" ]]; then
+      # use tmux buffer if available. skip the current line and newline from command
+      local buffer="$(tmux capture-pane -p | head -n -1)"
+    else
+      # fallback - rerun last command
+      # WARNING: this will re-run the last command, so be careful with destructive or long-running commands
+      local last_command="$(fc -l -nIL -1 -1)"
+      local buffer="$($last_command)"
+    fi
+
+    # select with fzf twice, first on line, then on columns in selected lines
+    # preserve the typed query between runs
+    local first_select="$(echo "$buffer" | fzf -m --tac --print-query $FZF_CTRL_G_OPTS)"
+    local query="$(echo "$first_select" | head -n 1)"
+    local selected_lines="$(echo "$first_select" | tail -n +2)"
+    if [[ -z "$selected_lines" ]]; then
+      return
+    fi
+    local selected_items="$(echo "$selected_lines" | tr " " "\n" | grep -v "^$" | fzf -q "$query" -m $FZF_CTRL_G_OPTS)"
 
     setopt localoptions pipefail 2> /dev/null
-    eval "$cmd | $(__fzfcmd) -m $FZF_CTRL_G_OPTS" | while read item; do
+    echo "$selected_items" | while read item; do
         echo -n "${(q)item} "
     done
     local ret=$?
