@@ -235,8 +235,8 @@ _set_prompt() {
     test -n "$VIRTUAL_ENV" && local VENV="(venv) "
     local CURR_DIR="%F{47}%40<..<%~%<<%f"
     local PROMPT_CHAR="%F{168}%B%(!.#.>)%s%b"
-    local EXIT_CODE_PROMPT="%F{221}%B%(?.. [%?] )%b%f"
-    PROMPT="$VENV$CURR_DIR$GIT_PROMPT$EXIT_CODE_PROMPT$PROMPT_CHAR %F{7}"
+    local EXIT_CODE_PROMPT="%F{221}%B%(?..%? )%b%f"
+    PROMPT="$VENV$CURR_DIR $GIT_PROMPT$EXIT_CODE_PROMPT$PROMPT_CHAR %F{7}"
 }
 
 _slow_fs() {
@@ -268,7 +268,6 @@ _update_git_info() {
     if [ $? -eq 0 ]; then
         local GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
         local GIT_STATUS=""
-        local STATUS_SPACE=""
 
         if [ $GIT_BRANCH = "HEAD" ]; then
             GIT_BRANCH=$(git rev-parse --short HEAD 2> /dev/null)
@@ -279,23 +278,21 @@ _update_git_info() {
 
             local GIT_AHEAD="$(git rev-list $GIT_REMOTE_BRANCH..HEAD 2> /dev/null | wc -l)"
             if [ "$GIT_AHEAD" -gt 0 ]; then
-                GIT_STATUS="%F{46}↑$GIT_AHEAD"
-                STATUS_SPACE=" "
+                GIT_STATUS="$GIT_STATUS%F{46}↑$GIT_AHEAD "
             fi
             local GIT_BEHIND="$(git rev-list HEAD..$GIT_REMOTE_BRANCH 2> /dev/null | wc -l)"
             if [ "$GIT_BEHIND" -gt 0 ]; then
-                GIT_STATUS="$GIT_STATUS$STATUS_SPACE%F{220}↓$GIT_BEHIND"
-                STATUS_SPACE=" "
+                GIT_STATUS="$GIT_STATUS%F{220}↓$GIT_BEHIND "
             fi
         fi
 
         if [ -n "$(git status --porcelain)" ]; then
-            GIT_STATUS="$GIT_STATUS${STATUS_SPACE}%F{197}δ" # requires git 1.7+
+            GIT_STATUS="$GIT_STATUS%F{197}δ " # requires git 1.7+
         fi
 
-        GIT_PROMPT="%F{69}%B@$GIT_BRANCH%f%b"
+        GIT_PROMPT="%F{69}%B$GIT_BRANCH%f%b "
         if [[ -n "$GIT_STATUS" ]]; then
-            GIT_PROMPT="$GIT_PROMPT%B%F{69}($GIT_STATUS%F{69})%f%b"
+            GIT_PROMPT="$GIT_PROMPT%B%F{69}$GIT_STATUS%F{69}%f%b"
         fi
     fi
     _set_prompt
