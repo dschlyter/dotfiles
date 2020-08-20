@@ -42,6 +42,19 @@ path() {
     echo "$PATH" | tr ":" "\n"
 }
 
+# like add to path but just with a single program as an alias
+sticky() {
+    cmd=$1
+
+    if [[ "$1" ]]; then
+        alias_name="${2:-$cmd}"
+        program="$(realpath "$1")"
+        echo "alias $alias_name=\"$program\"" >> "$HOME/.shellrc_local"
+    fi
+
+    source "$HOME/.shellrc_local"
+}
+
 # Aliases
 
 alias ll='ls -l'
