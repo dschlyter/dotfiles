@@ -9,43 +9,56 @@ import click
 
 
 @click.command()
-@click.option('--reverse', '-r', help='reverse a backup', is_flag=True, default=False)
+@click.option('--restore', '-r', help='restore a backup', is_flag=True, default=False)
 @click.option('--move', '-m', help='move instead of copy', is_flag=True, default=False)
 @click.argument('file')
-def main(reverse, file, move):
+def main(restore, file, move):
     """
     Creates (or restores) a backup of a file
     """
     if not os.path.exists(file):
         raise Exception(f"{file} does not exist")
 
-    if not reverse:
-        suffix = f"-bak-{date.today()}"
-        if bak(file, suffix, move):
-            return
+    def mv(src, dest):
+        if os.path.isdir(dest):
+            shutil.rmtree(dest)
 
-        cnt = 2
-        while cnt < 1000 and not bak(file, f"{suffix}-{cnt}", move):
-            cnt += 1
-    else:
-        name_without_bak = re.sub(r"-bak-[0-9-]+", "", file)
         if move:
-            os.rename(file, name_without_bak)
+            os.rename(src, dest)
         else:
-            shutil.copyfile(file, name_without_bak)
+            if os.path.isdir(src):
+                shutil.copytree(src, dest)
+            else:
+                shutil.copy2(src, dest)
+
+    if not restore:
+        suffix = f"-bak-{date.today()}"
+        if not bak(file, suffix, mv):
+            cnt = 2
+            while cnt < 1000 and not bak(file, f"{suffix}-{cnt}", mv):
+                cnt += 1
+    else:
+        name_without_bak = re.sub(r"-bak-\d\d\d\d-\d\d-\d\d(-\d+)?", "", file)
+        if file != name_without_bak:
+            mv(file, name_without_bak)
+        else:
+            raise Exception(f"{file} does not contain backup suffix and cannot be restored")
 
 
-def bak(file, suffix, move):
+def bak(file, suffix, mv):
     parts = file.split(".")
-    i = len(parts) - 2 if len(parts) >= 2 else 0
-    parts[i] += suffix
+
+    # myfile.txt -> myfile-bak-2020-01-02.txt
+    # myfile -> myfile-bak-2020-01-02
+    # .myfile -> .myfile-bak-2020-01-02
+    if len(parts) >= 2 and parts[-2] != "":
+        parts[-2] += suffix
+    else:
+        parts[-1] += suffix
 
     bak_file = ".".join(parts)
     if not os.path.exists(bak_file):
-        if move:
-            os.rename(file, bak_file)
-        else:
-            shutil.copyfile(file, bak_file)
+        mv(file, bak_file)
         return True
 
     return False
