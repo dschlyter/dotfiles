@@ -57,7 +57,7 @@ link_settings() {
         bak_nonlink "$target"
         link "$dotfiles_file" "$target"
     else
-        echo "$target preferences not found, skipping link."
+        echo "$settings_root dir not found, skipping $target."
     fi
 }
 
@@ -124,7 +124,7 @@ case "$(uname -s)" in
             fi
         fi
 
-        intellij_prefs="$(echo "$HOME/.IntelliJIdea"* | xargs -n 1 echo | tail -n 1)"
+        intellij_prefs="$(echo "$HOME/.config/JetBrains/IntelliJIdea"* | xargs -n 1 echo | tail -n 1)"
         link_settings "$intellij_prefs" "config/keymaps" "intellij_linux_keys.xml"
 
         ;;

@@ -15,7 +15,6 @@ DOT="$HOME/.dotfiles"
 # start on Mondays when using gcal
 export GCAL="-s1"
 export LS_COLORS
-export PYTHONPATH="$PYTHONPATH:$HOME/.dotfiles/bin/python"
 
 _add_to_path() {
     if [[ ! "$PATH" == *$1* ]]; then
