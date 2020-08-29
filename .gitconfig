@@ -41,6 +41,7 @@
     enabled = true
 [interactive]
     # remove need to press enter in interactive or add -p modes, requires library readkey to be installed
+    # on linux: sudo cpan Term::ReadKey
     singlekey = true
 [alias]
     # shorthands with good defaults
