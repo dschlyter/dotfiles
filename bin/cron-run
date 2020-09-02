@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# Run cron scripts with logging, success callback and error callback
-
 # PRO TIP: PATH=... on top of crontab to make cron behave like your shell
 # PRO TIP: a default config is stored in the scripts repository
 
@@ -11,37 +9,48 @@ import sys
 import subprocess
 import socket
 import time
+import argparse
 from subprocess import Popen, PIPE
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil import parser
 
 HOME = str(Path.home())
 LOG_DIR = HOME+'/.logs/cron-run/'
 CONF = HOME+'/.config/cron-run.json'
+CONF_TIME = HOME+'/.config/cron-run-times.json'
 
 
 def main():
-    if len(sys.argv) < 3:
-        print("Usage cron-run command-name [next-run-in-days] command ...")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Run user programs from cron, with logging, scheduling at most once per day/week and health callbacks.')
+    parser.add_argument('command_args', nargs='+', help='the command to run')
+    parser.add_argument('--name', dest='job_name', help='name of the job used for log file and healthcheck', required=True)
+    parser.add_argument('--health-slo', dest='health_slo', type=int, help='report health with slo of N days, if omitted health will not be reported')
+    parser.add_argument('--daily', dest='daily', action='store_const', const=True, help='run at most daily')
+    parser.add_argument('--weekly', dest='weekly', action='store_const', const=True, help='run at most weekly')
+
+    args = parser.parse_args()
+
+    if args.daily or args.weekly:
+        if not should_run(args.job_name, 7 if args.weekly else 1):
+            print("Not time to run")
+            return
 
     try:
-        run_and_report()
+        run_and_report(args)
     except Exception as ex:
-        job_name = sys.argv[1] if len(sys.argv) > 1 else 'unknown'
-        report_error(job_name, "cron-run internal error " + str(ex), Log())
+        report_error(args.job_name, "cron-run internal error " + str(ex), Log())
         raise ex
 
 
-def run_and_report():
+def run_and_report(args):
     start = time.time()
     log = Log()
     log.append(datetime.now().isoformat())
 
-    job_name, next_run, cmd = parse(sys.argv)
-    log.append(str(cmd))
+    log.append(f"Running {args}")
 
-    p = Popen(cmd, stdout=PIPE, stderr=subprocess.STDOUT, close_fds=True)
+    p = Popen(args.command_args, stdout=PIPE, stderr=subprocess.STDOUT, close_fds=True)
 
     # Stream output while running the command
     # Run this command with python -u to get snappy output
@@ -60,12 +69,15 @@ def run_and_report():
     log.append(f"job returned {code}")
     log.append(f"completed in {time.time() - start} seconds")
 
-    log_to_disk(job_name, log)
+    log_to_disk(args.job_name, log)
 
     if code != 0:
-        report_error(job_name, log.as_string(), log)
+        report_error(args.job_name, log.as_string(), log)
 
-    report_status(job_name, "success" if code == 0 else "error", next_run, log.log_data)
+    if args.health_slo:
+        report_status(args.job_name, "success" if code == 0 else "error", args.health_slo, log.log_data)
+    else:
+        log.append(f"Skipping health endpoint reporting")
 
 
 def parse(argv):
@@ -132,12 +144,30 @@ def report_status(job_name, status, next_run, logs):
         print("Unable to load conf, cannot update healthcheck")
 
 
+def should_run(job_name, run_interval_days):
+    now = datetime.now()
+    conf = load_conf(CONF_TIME, dict())
+    if job_name in conf:
+        last_run_time = parser.parse(conf[job_name])
+        if now < last_run_time + timedelta(days=run_interval_days):
+            return False
+
+    conf[job_name] = str(now)
+    save_conf(conf, CONF_TIME)
+    return True
+
+
 def load_conf(path, default_value=None):
     try:
         with open(path, 'r') as data_file:
             return json.load(data_file)
     except (FileNotFoundError, json.JSONDecodeError):
         return default_value if default_value is not None else {}
+
+
+def save_conf(data, path):
+    with open(path, 'w') as data_file:
+        json.dump(data, data_file)
 
 
 class Log:

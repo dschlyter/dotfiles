@@ -111,6 +111,7 @@ alias p3='rlwrap python3'
 alias vssh='ssh -C /Users/david.schlyter/.ssh/config_nokrypton'
 
 alias speedtest='time wget --output-document=/dev/null http://speedtest.tele2.net/100MB.zip'
+alias dk='todo @ikv :1'
 
 #
 # Utility functions
