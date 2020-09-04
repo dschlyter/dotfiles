@@ -13,7 +13,6 @@ import argparse
 from subprocess import Popen, PIPE
 from pathlib import Path
 from datetime import datetime, timedelta
-from dateutil import parser
 
 HOME = str(Path.home())
 LOG_DIR = HOME+'/.logs/cron-run/'
@@ -146,13 +145,14 @@ def report_status(job_name, status, next_run, logs):
 
 def should_run(job_name, run_interval_days):
     now = datetime.now()
+    date_format = '%Y-%m-%d %H:%M:%S.%f'
     conf = load_conf(CONF_TIME, dict())
     if job_name in conf:
-        last_run_time = parser.parse(conf[job_name])
+        last_run_time = datetime.strptime(conf[job_name], date_format)
         if now < last_run_time + timedelta(days=run_interval_days):
             return False
 
-    conf[job_name] = str(now)
+    conf[job_name] = now.strftime(date_format)
     save_conf(conf, CONF_TIME)
     return True
 
