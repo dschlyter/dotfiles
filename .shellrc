@@ -56,6 +56,14 @@ sticky() {
 
 # Aliases
 
+alias g="git"
+alias groot='cd "./$(git rev-parse --show-cdup)"'
+alias grootp='git rev-parse --show-cdup'
+
+alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc ~/.zgen_plugins ~/.dotfiles/.*.zsh; rc"
+alias name='tmux rename-window'
+alias i='unset HISTFILE'
+
 alias ll='ls -l'
 alias la='ls -a'
 alias lla='ls -la'
@@ -67,51 +75,34 @@ alias lv='ls -v'
 
 alias td='tree -d -L 3'
 
-alias g="git"
-alias st="git st"
-alias di="git diff"
-alias lg="git lg"
-alias add="git add"
-alias ai="git add -i"
-alias fe="git fe"
-alias rb="git rb"
-alias cm="git cm"
-alias pc="git pc"
-alias merge="git merge"
-alias pu="git pu"
-alias pb="git pu &"
-
 alias plz='sudo $(fc -ln -1)'
 alias se='sudoedit'
 alias vims='vim -S .vimsession'
-alias i='unset HISTFILE'
-alias name='tmux rename-window'
 
-alias groot='cd "./$(git rev-parse --show-cdup)"'
-alias grootp='git rev-parse --show-cdup'
 alias inet="ifconfig | grep -E '(^[a-z])|inet ' | grep -B 1 'inet '"
+alias speedtest='time wget --output-document=/dev/null http://speedtest.tele2.net/100MB.zip'
+
+alias x="session ./run.sh"
+alias rw='rlwrap'
+alias nd='ncdu'
+alias p3='rlwrap python3'
+
+alias dk='todo @ikv :1'
 
 ## Flags on by default
 alias locate='locate -i'
 alias mv='mv -i'
 alias cp='cp -i'
 alias tig='tig --all'
+alias ag='ag --hidden'
 
-alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc ~/.zgen_plugins ~/.dotfiles/.*.zsh; rc"
+# Less used aliases - candidates for removal
 
 alias mt="mvn dependency:tree"
 alias mp="mvn clean package"
 alias mi="mvn clean install"
 alias mia="mvn -Dmaven.test.failure.ignore=true --fail-at-end clean install"
 alias gpl="gradle publishToMavenLocal"
-alias x="session ./run.sh"
-alias rw='rlwrap'
-alias nd='ncdu'
-alias p3='rlwrap python3'
-alias vssh='ssh -C /Users/david.schlyter/.ssh/config_nokrypton'
-
-alias speedtest='time wget --output-document=/dev/null http://speedtest.tele2.net/100MB.zip'
-alias dk='todo @ikv :1'
 
 #
 # Utility functions

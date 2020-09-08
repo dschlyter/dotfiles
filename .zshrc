@@ -49,6 +49,8 @@ profiling_log "plugins loaded"
 
 # Aliases
 
+# NOTE: Most aliases should be in .shellrc
+
 ## Conveniences
 alias b='popd'
 alias h='harpo'
