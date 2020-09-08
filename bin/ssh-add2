@@ -1,0 +1,15 @@
+#!/usr/bin/expect
+
+# Run to add ssh-key with an existing password
+# ssh-add2 $HOME/.ssh/id_ed25519 "$(harpo get david/ssh-key-id_ed22519 password | tail -n 1)"
+
+set key_file [lindex $argv 0];
+set password [lindex $argv 1];
+
+spawn ssh-add $key_file
+
+expect "Enter passphrase for ${key_file}:"
+send $password
+send "\n"
+
+interact
