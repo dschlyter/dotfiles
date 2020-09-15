@@ -73,7 +73,7 @@ export GNU_PREFIX="g"
 
 # use updated coreutils and findutils from homebrew by default
 function use_gnu() {
-    type "g$1" > /dev/null && alias $1="g$1$2"
+    has "g$1" && alias $1="g$1$2"
 }
 
 use_gnu cp ' -i'
@@ -90,9 +90,9 @@ use_gnu head
 use_gnu tail
 use_gnu find
 
-# these are fixed by functions in .shellrc
-# use_gnu ls
-# use_gnu cp
+# ls is set up with some custom aliases, but unset it if we don't have gnu ls installed
+has gls || unset -f ls
+has stat || unset -f _slow_fs
 
 #
 # Homebrew

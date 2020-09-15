@@ -134,12 +134,6 @@ case "$(uname -s)" in
         ;;
 esac
 
-if [[ ! -f $HOME/.gitconfig_local && -n "${PS1:-}" ]]; then
-    # Configuring git user name
-    cp .gitconfig_local $HOME/.gitconfig_local
-    ${EDITOR:-vi} $HOME/.gitconfig_local
-fi
-
 # maintain the correct user for dotfiles
 git config user.name "David Schlyter"
 git config user.email "dschlyter@gmail.com"
@@ -210,4 +204,16 @@ if [[ "$*" == *"--cron"* ]]; then
     cron_add "0 10 * * * $HOME/bin/git-autoupdate >> /tmp/git-autoupdate-$USER.log 2>&1"
 else
     echo "Not installing autoupdate cron, run with --cron to enable"
+fi
+
+if [[ "$*" == *"--git"* ]]; then
+    if [[ ! -f $HOME/.gitconfig_local ]]; then
+        echo "Configuring git user name"
+        cp .gitconfig_local $HOME/.gitconfig_local
+        ${EDITOR:-vi} $HOME/.gitconfig_local
+    else
+        echo ".gitconfig_local already added"
+    fi
+else
+    echo "Not configuring git author info, run with --git to enable"
 fi

@@ -110,7 +110,9 @@ alias gpl="gradle publishToMavenLocal"
 
 export TIME_STYLE=long-iso # iso8601 for ls
 ls() {
-    ${GNU_PREFIX:-/bin/}ls -h --color=auto --group-directories-first "$@"
+    program="/bin/ls"
+    has gls && program="gls"
+    "$program" -h --color=auto --group-directories-first "$@"
 }
 
 # cross platform get ip https://stackoverflow.com/questions/13322485/how-to-get-the-primary-ip-address-of-the-local-machine-on-linux-and-os-x

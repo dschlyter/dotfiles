@@ -243,7 +243,14 @@ _set_prompt() {
 }
 
 _slow_fs() {
-    cmd="${GNU_PREFIX}stat"
+    cmd="stat"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        if has gstat; then
+            cmd="gstat"
+        else
+            return # skip the check, slow fs won't be detected
+        fi
+    fi
     if where $cmd > /dev/null; then
         curr_fs="$($cmd --file-system --format=%T .)"
         skip_fs=(osxfuse, fuseblk)
@@ -347,27 +354,6 @@ _git_autofetch() {
 if which direnv &> /dev/null; then
     eval "$(direnv hook zsh)"
 fi
-
-_match_alias() {
-    local last_command="$1"
-    while read alias_line; do
-        if [[ "$last_command" == "${alias_line/*=}"* ]]; then
-            echo "$alias_line"
-        fi
-    done
-}
-
-_alias_remind() {
-    local last_command="$(fc -l -nIL -1 -1 2> /dev/null)"
-    local found_aliases="$(alias | sed "s/'//g" | _match_alias "$last_command")"
-
-    if [ -n "$found_aliases" ]; then
-        echo "There is an alias for that:"
-        echo "$found_aliases"
-    fi
-}
-
-add-zsh-hook precmd _alias_remind
 
 profiling_log "functions loaded"
 
@@ -507,12 +493,12 @@ setopt histignorealldups        # removes duplicate commands, even if non-sequen
 export REPORTTIME=10 # print stats for commands running longer than 10 secs
 profiling_log "settings loaded"
 
-# Overriding configs goes in .zshrc_local
-source_if_exists ~/.zshrc_local
 profiling_log "local conf loaded"
 source_if_exists ~/.zshrc_cygwin
 source_if_exists ~/.zshrc_mac
 source_if_exists ~/.zshrc_linux
+# Overriding configs goes in .zshrc_local
+source_if_exists ~/.zshrc_local
 profiling_log "platform conf loaded"
 
 profiling_log "done!"
