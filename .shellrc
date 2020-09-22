@@ -16,9 +16,14 @@ DOT="$HOME/.dotfiles"
 export GCAL="-s1"
 export LS_COLORS
 
+# note: this is not needed with zsh since "typeset -U path" removes dups
 _add_to_path() {
     if [[ ! "$PATH" == *$1* ]]; then
-        export PATH="$PATH:$1"
+        if [[ "$2" == "first" ]]; then
+            export PATH="$1:$PATH"
+        else
+            export PATH="$PATH:$1"
+        fi
     fi
 }
 

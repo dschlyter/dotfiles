@@ -235,7 +235,7 @@ profiling_log "shellrc loaded"
 
 autoload -U colors && colors
 _set_prompt() {
-    test -n "$VIRTUAL_ENV" && local VENV="(venv) "
+    test -n "$VIRTUAL_ENV" && local VENV="(${VIRTUAL_ENV//*\//}) "
     local CURR_DIR="%F{47}%40<..<%~%<<%f"
     local PROMPT_CHAR="%F{168}%B%(!.#.>)%s%b"
     local EXIT_CODE_PROMPT="%F{221}%B%(?..%? )%b%f"
@@ -500,6 +500,9 @@ source_if_exists ~/.zshrc_linux
 # Overriding configs goes in .zshrc_local
 source_if_exists ~/.zshrc_local
 profiling_log "platform conf loaded"
+
+# remove any duplicate entries in path
+typeset -U path
 
 profiling_log "done!"
 
