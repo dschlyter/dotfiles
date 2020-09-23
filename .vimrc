@@ -279,7 +279,7 @@ endif
 
 " default to colorscheme, then let plugins override
 try
-    colorscheme peksim
+    colorscheme ir_black
 catch
     set background=dark
     " use default colors
@@ -319,11 +319,12 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
       let g:completor_python_binary = '/Library/Python/2.7/site-packages/jedi'
     endif
 
-    " add text objects for function arguments e.g. da, <,
-    Bundle 'PeterRincker/vim-argumentative'
-
-    " improve f and t commands
-    Bundle 'svermeulen/vim-extended-ft'
+    " syntax error highlights and descriptions
+    Bundle 'scrooloose/syntastic'
+    let g:syntastic_mode_map = { 'passive_filetypes': ['python'] } " python check is too slow
+    let g:syntastic_check_on_open=1
+    let g:syntastic_enable_signs=1
+    let g:syntastic_always_populate_loc_list = 1
 
     " highlight bad trailing whitespace
     Plugin 'ntpeters/vim-better-whitespace'
@@ -332,28 +333,12 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " use with <C-p>
     Bundle 'kien/ctrlp.vim'
 
-    " git / github commands, diff, blame, etc
-    Bundle 'tpope/vim-fugitive'
-
-    " visualize undo tree, and revert to previous states
-    Bundle 'sjl/gundo.vim'
-
-    " syntax error highlights and descriptions
-    Bundle 'scrooloose/syntastic'
-    let g:syntastic_mode_map = { 'passive_filetypes': ['python'] } " python check is too slow
-    let g:syntastic_check_on_open=1
-    let g:syntastic_enable_signs=1
-    let g:syntastic_always_populate_loc_list = 1
-
     " filetree visualization and selection
     Bundle 'scrooloose/nerdtree'
     noremap <C-n> :NERDTreeToggle<cr>
 
-    " search code with ag from vim
-    " ag.vim is deprecated, use ack.vim with ag as the search executable
-    Bundle 'mileszs/ack.vim'
-    let g:ackprg = 'ag --vimgrep --smart-case'
-    noremap <C-g> :Ack<space>
+    " visualize undo tree, and revert to previous states
+    Bundle 'sjl/gundo.vim'
 
     " colorscheme for vim
     Bundle 'nanotech/jellybeans.vim'
@@ -362,7 +347,6 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     try
         colorscheme jellybeans
     catch
-        set background=dark
         " use default colors
     endtry
 
@@ -398,13 +382,18 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
         let a:palette.visual.airline_z = visualColor
     endfunction
 
+    " search code with ag from vim
+    " ag.vim is deprecated, use ack.vim with ag as the search executable
+    Bundle 'mileszs/ack.vim'
+    let g:ackprg = 'ag --vimgrep --smart-case'
+    noremap <C-g> :Ack<space>
+
+    " git / github commands, diff, blame, etc
+    Bundle 'tpope/vim-fugitive'
+
     " show + - in the gutter for uncommited git change
     " jumo with [c ]c and operate on text object ic
     Bundle "airblade/vim-gitgutter"
-
-    " better session handling
-    Bundle 'tpope/vim-obsession'
-    command! Obs Obsession .vimsession
 
     " enable dsb, cs'" and ysiw<div> syntax for changing surrounding elements
     Bundle "tpope/vim-surround"
