@@ -92,7 +92,10 @@
     # lgh only shows HEAD and ancestor commits
     # lg shows all branches
     lg = !git lh --all
-    lh = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ai) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
+    lh1 = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ai) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
+    lh2 = log --color --graph --date='format:%Y-%m-%d %H:%M' --pretty=format:'%C(red)%h%C(reset) - %s%C(yellow)%d%C(reset) %C(green)%ad%C(reset) %C(bold blue)%an%C(reset)' --abbrev-commit -n 15
+    lh3 = log --color --graph --date='format:%Y-%m-%d %H:%M' --pretty=format:'%C(red)%h%C(reset) - %C(green)%ad%C(reset) %C(bold blue)%an%C(reset): %s%C(yellow)%d%C(reset)' --abbrev-commit -n 15
+    lh = log --color --graph --date='format:%Y-%m-%d %H:%M' --pretty=format:'%C(red)%h%C(reset) %C(green)%ad%C(reset): %s%C(reset)%C(yellow)%d%C(reset) - %C(bold blue)%an%C(reset)' --abbrev-commit -n 15
     lst = !git lh --stat
     ln = !git lh --no-merges
     ll = !git lg -n 9999
