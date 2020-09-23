@@ -57,7 +57,7 @@ alias h='harpo'
 alias sadd='echo Fetching from harpo...; ssh-add2 $HOME/.ssh/id_ed25519 "$(h get david/ssh-key-id_ed22519 password | tail -n 1)"'
 alias zshrc='vim ~/.zshrc; rc'
 alias rc='source ~/.zshrc'
-alias zl="vim $HOME/.zshrc_local; rc"
+alias zl="vim $HOME/.zshrc; rc"
 
 ## Global aliases
 # note: alias R breaks fasd
@@ -497,8 +497,6 @@ profiling_log "local conf loaded"
 source_if_exists ~/.zshrc_cygwin
 source_if_exists ~/.zshrc_mac
 source_if_exists ~/.zshrc_linux
-# Overriding configs goes in .zshrc_local
-source_if_exists ~/.zshrc_local
 profiling_log "platform conf loaded"
 
 # remove any duplicate entries in path

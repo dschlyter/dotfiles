@@ -38,7 +38,7 @@ add_to_path() {
     _add_to_path "$(realpath $1)"
 
     CMD="_add_to_path '$(realpath $1)'"
-    grep -q "$CMD" ~/.shellrc_local || echo "$CMD" >> ~/.shellrc_local
+    grep -q "$CMD" ~/.shellrc || echo "$CMD" >> ~/.shellrc
     set +x
 }
 
@@ -53,10 +53,10 @@ sticky() {
     if [[ "$1" ]]; then
         alias_name="${2:-$cmd}"
         program="$(realpath "$1")"
-        echo "alias $alias_name=\"$program\"" >> "$HOME/.shellrc_local"
+        echo "alias $alias_name=\"$program\"" >> "$HOME/.shellrc"
     fi
 
-    source "$HOME/.shellrc_local"
+    source "$HOME/.shellrc"
 }
 
 # Aliases
@@ -566,4 +566,3 @@ fi
 #
 
 source_if_exists ~/.shellrc_linux
-source_if_exists ~/.shellrc_local

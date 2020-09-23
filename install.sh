@@ -61,14 +61,57 @@ link_settings() {
     fi
 }
 
+inject() {
+    local inject="$1"
+    local file="$2"
+    local pos="${3:-last}"
+
+    test -f "$file" || touch "$file"
+
+    if grep -q -F "$inject" "$file"; then
+        return
+    fi
+
+    # create tmp file since reading and writing to the same with (without sponge) is bad
+    local tmp_file="${file}.inject-bak"
+    if [[ "$pos" == "first" ]]; then
+        echo "$inject" > "$tmp_file"
+        cat "$file" >> "$tmp_file"
+    elif [[ "$pos" == "last" ]]; then
+        cat "$file" > "$tmp_file"
+        echo "$inject" >> "$tmp_file"
+    else
+        echo "Unsupported position $pos for $file inject"
+        exit 1
+    fi
+    echo "injected $inject into $file" 
+    mv "$tmp_file" "$file"
+}
+
+# TODO TEMP migrate from old setup - can be deleted later
+migrate_local() {
+    if [[ -f "$1" ]]; then
+        echo "Migrating local $1 to $2"
+        mv "$1" "$2"
+    fi
+}
+
+test -L "$HOME/.zshrc" && rm "$HOME/.zshrc"
+test -L "$HOME/.bashrc" && rm "$HOME/.bashrc"
+test -L "$HOME/.shellrc" && rm "$HOME/.shellrc"
+migrate_local "$HOME/.zshrc_local" "$HOME/.zshrc"
+migrate_local "$HOME/.bashrc_local" "$HOME/.bashrc"
+migrate_local "$HOME/.shellrc_local" "$HOME/.shellrc"
+# TODO end tmp
+
 link . .dotfiles
 link bin
 
-link .zshrc
+link .zshrc_base
 link .zgen_plugins
-bak_nonlink .bashrc
-link .bashrc
-link .shellrc
+# NOCOMMIT temp linking
+link .bashrc_base
+link .shellrc_base
 link .kubectl_aliases
 
 link .fasd.sh # autojump
@@ -82,9 +125,15 @@ link .agignore
 mkdir -p "$HOME/.vim"
 link .vim/colors
 link .vim/spell
+
 link .ideavimrc
 link .tmux.conf
 link .tmux-scripts
+
+inject 'source "$HOME/.zshrc_base"' "$HOME/.zshrc" first
+inject '# Note: Overrides below can be overridden again by anything in .zshrc_*, use .zshrc if this is a problem' "$HOME/.shellrc" first
+inject 'source "$HOME/.shellrc_base"' "$HOME/.shellrc" first
+inject 'source "$HOME/.bashrc_base"' "$HOME/.bashrc" first
 
 case "$(uname -s)" in
     Darwin)
