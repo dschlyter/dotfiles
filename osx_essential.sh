@@ -70,3 +70,10 @@ defaults write NSGlobalDomain com.apple.springing.delay -float 0
 
 # Avoid creating .DS_Store files on network volumes
 defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+
+# Install spotify global hotkeys
+
+cp -r osx/Services/* "$HOME/Library/Services/"
+# TODO automate this
+echo "You need to set up keyboard shortcuts in Preferences -> Keyboard -> Services yourself"
+echo "You may need to upen the menu [Program] -> Services (e.g. Chrome -> Services) to get shortcuts to register"
