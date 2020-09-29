@@ -124,7 +124,6 @@
   </action>
   <action id="HippieCompletion">
     <keyboard-shortcut first-keystroke="alt slash" />
-    <keyboard-shortcut first-keystroke="meta o_with_diaeresis" />
   </action>
   <action id="ImportModule">
     <keyboard-shortcut first-keystroke="shift meta m" />

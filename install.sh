@@ -48,8 +48,6 @@ link_settings() {
     local settings_file="$3"
     local dotfiles_file="${4:-$settings_file}"
 
-    echo $settings_root
-
     local target="$settings_root/$settings_subdir/$settings_file"
 
     if [ -d "$settings_root" ]; then
@@ -84,7 +82,7 @@ inject() {
         echo "Unsupported position $pos for $file inject"
         exit 1
     fi
-    echo "injected $inject into $file" 
+    echo "injected $inject into $file"
     mv "$tmp_file" "$file"
 }
 
@@ -116,7 +114,7 @@ link .kubectl_aliases
 
 link .fasd.sh # autojump
 link .vimrc
-link .gitconfig
+link .gitconfig .gitconfig_base
 link .gitignore_global .gitignore
 link .git_template
 link git-scripts .git-scripts
@@ -134,6 +132,8 @@ inject 'source "$HOME/.zshrc_base"' "$HOME/.zshrc" first
 inject '# Note: Overrides below can be overridden again by anything in .zshrc_*, use .zshrc if this is a problem' "$HOME/.shellrc" first
 inject 'source "$HOME/.shellrc_base"' "$HOME/.shellrc" first
 inject 'source "$HOME/.bashrc_base"' "$HOME/.bashrc" first
+inject '[include]
+    path = .gitconfig_base' "$HOME/.gitconfig" first
 
 case "$(uname -s)" in
     Darwin)
@@ -143,7 +143,7 @@ case "$(uname -s)" in
         # make sure the local file exists since it will be loaded
         touch .hammerspoon/init-local.lua
 
-        intellij_prefs="$(echo "/Users/$USER/Library/Preferences/IntelliJIdea"* | xargs -n 1 echo | tail -n 1)"
+        intellij_prefs="$(printf '%s\n' "/Users/$USER/Library/Application Support/JetBrains/"*Idea* | tail -n 1)"
         link_settings "$intellij_prefs" "keymaps" "intellij_mac_keys.xml"
 
         link_settings "/Users/$USER/Library/Application Support/Code/" "User" "keybindings.json" "vscode_keybindings.json"
@@ -173,7 +173,7 @@ case "$(uname -s)" in
             fi
         fi
 
-        intellij_prefs="$(echo "$HOME/.config/JetBrains/IntelliJIdea"* | xargs -n 1 echo | tail -n 1)"
+        intellij_prefs="$(printf '%s\n' "$HOME/.config/JetBrains/"*Idea* | tail -n 1)"
         link_settings "$intellij_prefs" "config/keymaps" "intellij_linux_keys.xml"
 
         ;;
@@ -256,13 +256,8 @@ else
 fi
 
 if [[ "$*" == *"--git"* ]]; then
-    if [[ ! -f $HOME/.gitconfig_local ]]; then
-        echo "Configuring git user name"
-        cp .gitconfig_local $HOME/.gitconfig_local
-        ${EDITOR:-vi} $HOME/.gitconfig_local
-    else
-        echo ".gitconfig_local already added"
-    fi
+    git config --global user.name "David Schlyter"
+    git config --global user.email "dschlyter@gmail.com"
 else
-    echo "Not configuring git author info, run with --git to enable"
+    echo "Not configuring default git author info, run with --git to enable"
 fi
