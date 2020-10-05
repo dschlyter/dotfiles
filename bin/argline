@@ -6,7 +6,5 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-while [[ -n "${1:-}" ]]; do
-    echo "> $1"
-    shift
-done
+# You don't really need a command for this
+printf "%s\n" "$@"

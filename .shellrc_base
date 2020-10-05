@@ -412,7 +412,7 @@ alias pys="_script_template script_template.py"
 alias pyc="_script_template script_cli_template.py"
 
 venv() {
-    python3 -m venv venv
+    python3 -m venv "${1:-"venv"}"
     source venv/bin/activate
     echo "source venv/bin/activate" > .envrc
     direnv allow
@@ -462,6 +462,25 @@ loop() {
     for _ in $(seq "$COUNT"); do
         eval "$@"
     done
+}
+
+# wait on pid or string (like wait but does not need to be child process)
+await() {
+    pid="$1"
+
+    if ! ps aux "$pid"; then
+        echo "No such pid running"
+        return 1
+    fi
+
+    printf "Waiting"
+    while ps "$pid" > /dev/null; do
+        printf "."
+        sleep 10
+    done
+    printf "\n"
+
+    return 0
 }
 
 serve() {
