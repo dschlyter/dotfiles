@@ -143,10 +143,10 @@ case "$(uname -s)" in
         # make sure the local file exists since it will be loaded
         touch .hammerspoon/init-local.lua
 
-        intellij_prefs="$(printf '%s\n' "/Users/$USER/Library/Application Support/JetBrains/"*Idea* | tail -n 1)"
+        intellij_prefs="$(printf '%s\n' "$HOME/Library/Application Support/JetBrains/"*Idea* | tail -n 1)"
         link_settings "$intellij_prefs" "keymaps" "intellij_mac_keys.xml"
 
-        link_settings "/Users/$USER/Library/Application Support/Code/" "User" "keybindings.json" "vscode_keybindings.json"
+        link_settings "$HOME/Library/Application Support/Code/" "User" "keybindings.json" "vscode_keybindings.json"
         ;;
 
     CYGWIN*|MINGW32*|MSYS*)
@@ -175,7 +175,7 @@ case "$(uname -s)" in
 
         intellij_prefs="$(printf '%s\n' "$HOME/.config/JetBrains/"*Idea* | tail -n 1)"
         link_settings "$intellij_prefs" "config/keymaps" "intellij_linux_keys.xml"
-
+        link_settings "$HOME/.config/Code - OSS/" "User" "keybindings.json" "vscode_keybindings_linux.json"
         ;;
 
     *)
