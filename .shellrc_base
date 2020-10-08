@@ -86,6 +86,7 @@ alias vims='vim -S .vimsession'
 
 alias inet="ifconfig | grep -E '(^[a-z])|inet ' | grep -B 1 'inet '"
 alias speedtest='time wget --output-document=/dev/null http://speedtest.tele2.net/100MB.zip'
+alias jqkeys="jq '"'[path(..)|map(if type=="number" then "[]" else tostring end)|join(".")|split(".[]")|join("[]")]|unique|map("."+.)|.[]'"'"
 
 alias x="session ./run.sh"
 alias rw='rlwrap'

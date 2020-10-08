@@ -55,7 +55,7 @@
     pu = push -u --follow-tags
     pp = !git pull --rebase && git pu
     pufl = push --force-with-lease
-    br = branch
+    br = branch -vv
     par = pull --rebase --autostash
     rb = rebase
     rba = rebase --autostash
@@ -190,6 +190,8 @@
     lazy-pu = !br=$(git curr-br) && git same \"$br\" origin/\"$br\" 2> /dev/null || git pu
 
     # branch management
+    # when done with branch after squash (this will do a hard delete of the branch)
+    done = !branch=$(git branch --show-current) && test ! $branch = master && git checkout master && git pull --prune && git branch -D $branch
     # try merge and print conflicts if merge fails
     merge-dry = !git merge --no-commit "$1" || git diff ";" git merge --abort "#"
     brl = branch --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
