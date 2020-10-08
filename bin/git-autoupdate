@@ -27,16 +27,15 @@ fi
 
 for repo in $GIT_AUTOUPDATE_REPOS; do
     if [ -d "$repo" ]; then
-        (cd $repo
+        (
+            cd $repo
 
-        echo Updating $repo
-        # all github repos used for auto-update are public, so this rewrite is good enough for now
-        ORIGIN="$(git remote get-url origin | sed -E 's,git@github.com:(.*)[.]git,https://github.com/\1,')"
-        git fetch "$ORIGIN"
-
-        # semi hack warning, update origin/master from custom fetch
-        cp .git/FETCH_HEAD .git/refs/remotes/origin/master
-        git merge --ff-only) || true
+            echo Updating $repo
+            # all github repos used for auto-update are public, so this rewrite is good enough for now
+            ORIGIN="$(git remote get-url origin | sed -E 's,git@github.com:(.*)[.]git,https://github.com/\1,')"
+            git fetch -f "$ORIGIN" master:autoupdate
+            git merge --ff-only autoupdate
+        ) || true
     else
         echo Skipping $repo - no such repo
     fi
