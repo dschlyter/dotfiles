@@ -179,6 +179,21 @@ addkeys() {
     cat ~/.ssh/id_ed25519.pub | ssh "$@" bash -c "mkdir -p .ssh; tee -a .ssh/authorized_keys"
 }
 
+enc() {
+    echo "Note: Use a looooooooong password since there is no key derivation in use."
+    echo "Suggested password: $(genpass)"
+    in="$1"
+    out="${2:-$in.enc}"
+    openssl enc -aes-256-cbc -in "$in" -out "$out"
+}
+
+encd() {
+    in="$1"
+    out="${2:-$in.decrypted}"
+    test ! -f "${in/.enc/}" && out="${in/.enc/}"
+    openssl enc -aes-256-cbc -d -in "$in" -out "$out"
+}
+
 p() {
     DOC=$1
     if [ -n "$(echo ~/docs/plans/"$DOC"*)" ]; then

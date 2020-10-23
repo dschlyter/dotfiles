@@ -42,5 +42,8 @@ git-of-theseus-data
 # local dotfiles gitignore
 .vim/spell/en.utf-8.add.spl
 
+# jenv
+.java-version
+
 # custom for specific projects
 scripts/dev

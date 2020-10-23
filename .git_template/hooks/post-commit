@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+IFS=$'\n\t'
+set -euo pipefail
+
+if [[ "$(git log -2 --pretty=%s | tail -n 1)" == "wip-commit" ]]; then
+    echo "Merging commit with wip-commit"
+    git reset --soft "HEAD~2"
+    git recommit
+fi

@@ -119,7 +119,8 @@
     checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip-stash"
     wip = !git add -A";" git wipa
-    wipa = !git commit --no-verify -m 'wip-stash'
+    wipa = !git commit --no-verify -m 'wip-commit'
+    wip-stash = !git add -A";" git commit --no-verify -m 'wip-stash'
     # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
     blacklist = !echo \"$@\" >> .gitblacklist "#"
     # import matched global ignores into repo .gitignore
@@ -191,7 +192,7 @@
 
     # branch management
     # when done with branch after squash (this will do a hard delete of the branch)
-    done = !git com && git brc
+    done = !git com && git pull --prune && git brc
     # try merge and print conflicts if merge fails
     merge-dry = !git merge --no-commit "$1" || git diff ";" git merge --abort "#"
     brl = branch --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '

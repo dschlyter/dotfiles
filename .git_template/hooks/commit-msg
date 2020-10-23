@@ -7,5 +7,6 @@ JIRA_ISSUE=$(echo $BRANCH_NAME | grep -oE "[a-zA-Z]+[-][0-9]+" | head -n 1)
 COMMIT_MSG="$(cat "$1")"
 
 if [ -n "$JIRA_ISSUE" ] && [[ ! "$COMMIT_MSG" == "$JIRA_ISSUE - "* ]]; then
-    echo "$JIRA_ISSUE - $COMMIT_MSG" > "$1"
+    # echo "$JIRA_ISSUE - $COMMIT_MSG" > "$1"
+    :
 fi
