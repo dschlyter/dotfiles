@@ -70,6 +70,7 @@
     # entry point for custom scripts (for things that are too large to define inline here)
     # list contibutors with number of commits
     contribs = !$HOME/.git-scripts/entry contribs
+    contribs2 = !$HOME/.git-scripts/entry contribs2
     # checkout branch and prepare for review
     review = !$HOME/.git-scripts/entry review
     wsreset = !$HOME/.git-scripts/entry wsreset

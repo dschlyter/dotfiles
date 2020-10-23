@@ -1,0 +1,95 @@
+#!/usr/bin/env python
+import math
+import queue
+import sys
+from collections import defaultdict
+from datetime import datetime, timedelta
+from typing import List
+
+# pip install gitpython
+import git
+from git import Repo
+
+
+CHUNKS = 60
+
+
+class Author:
+    def __init__(self):
+        self.name = None
+        self.commit_count = 0
+        self.commit_lines = 0
+        self.commit_history = [0] * CHUNKS
+        self.first_commit = None
+        self.last_commit = None
+        # TODO commit correlation
+
+
+def main():
+    location = "."
+    if len(sys.argv) > 1:
+        location = sys.argv[1]
+
+    history = git_log(location)
+
+    start = history[0].authored_datetime
+    end = history[-1].authored_datetime
+    chunk_size = (end - start) / CHUNKS
+
+    print("first commit:", start)
+    print("last commit", end)
+
+    author_lookup = defaultdict(lambda: Author())
+
+    for c in history:
+        author = author_lookup[c.author]
+        author.name = c.author.name
+        author.commit_count += 1
+
+        if not author.first_commit:
+            author.first_commit = c.authored_datetime
+        author.last_commit = c.authored_datetime
+
+        chunk_index = min(math.floor((c.authored_datetime - start) / chunk_size), CHUNKS - 1)
+        author.commit_history[chunk_index] += 1
+
+    author_list = sorted(author_lookup.values(), key=lambda x: x.commit_count, reverse=True)
+
+    commit_peak = max(h for a in author_list for h in a.commit_history)
+    name_max = max([len(a.name) for a in author_list])
+
+    header = ""
+    while len(header) < CHUNKS:
+        d = start + (len(header) + 3) * chunk_size
+        header += str(d)[2:7] + " "
+
+    print("\t"+header)
+    for a in author_list:
+        print(a.commit_count, end="\t")
+        for h in a.commit_history:
+            print(ratio_char(h / commit_peak), end="")
+        print(end="\t")
+        print(a.name.ljust(name_max), str(a.first_commit)[:10], "-", str(a.last_commit)[:10])
+
+
+def ratio_char(ratio):
+    ratio = max(0, min(ratio, 1))
+    if ratio == 0:
+        return ' '
+
+    chars = ['_', '▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+    index = round(ratio * (len(chars) - 1))
+    return chars[index]
+
+
+def git_log(location) -> List[git.Commit]:
+    r = git.Repo(location)
+    h = r.head
+    head_commit = h.object
+    history = [c for c in head_commit.traverse()]
+    history = sorted(history, key=lambda c: c.authored_date)
+    return history
+
+
+if __name__ == '__main__':
+    main()
