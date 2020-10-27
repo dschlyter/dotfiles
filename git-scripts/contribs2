@@ -6,9 +6,12 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List
 
-# pip install gitpython
-import git
-from git import Repo
+try:
+    import git
+    from git import Repo
+except:
+    print("dependency missing, fix with: pip install gitpython")
+    sys.exit(1)
 
 
 CHUNKS = 60
