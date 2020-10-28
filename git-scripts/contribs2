@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 import math
-import queue
 import sys
+import argparse
+import dateutil.tz
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Dict
 
 try:
     import git
@@ -29,12 +30,25 @@ class Author:
 
 
 def main():
-    location = "."
-    if len(sys.argv) > 1:
-        location = sys.argv[1]
+    parser = argparse.ArgumentParser(description='Print contributor stats for repo')
+    parser.add_argument('location', nargs="?", default=".", help='where the repo is')
+    parser.add_argument('--days-back', type=int, help='days back to read log')
+    args = parser.parse_args()
 
-    history = git_log(location)
+    history = git_log(args.location)
 
+    if args.days_back:
+        now = datetime.now(tz=dateutil.tz.tzoffset(None, 0))
+        history = list(filter(lambda commit: now - commit.authored_datetime < timedelta(days=args.days_back), history))
+
+    if history:
+        print_author_stats(history)
+        print_collaborator_matrix(history)
+    else:
+        print("No commits")
+
+
+def print_author_stats(history: List[git.Commit]):
     start = history[0].authored_datetime
     end = history[-1].authored_datetime
     chunk_size = (end - start) / CHUNKS
@@ -73,6 +87,52 @@ def main():
             print(ratio_char(h / commit_peak), end="")
         print(end="\t")
         print(a.name.ljust(name_max), str(a.first_commit)[:10], "-", str(a.last_commit)[:10])
+
+
+def print_collaborator_matrix(history: List[git.Commit]):
+    print("Building collaborator matrix...")
+    contributions_per_author = defaultdict(lambda: 0)
+
+    contributions_per_file = defaultdict(lambda: [])
+    for commit in history:
+        author = commit.author.name
+        for file in commit.stats.files.keys():
+            contributions_per_file[file].append({'author': author, 'time': commit.authored_datetime})
+            contributions_per_author[author] += 1
+
+    # inefficient O(n^2) algo, but this is dwarfed by whatever the loop above is doing, so no need for opt
+    collaborations = defaultdict(lambda: 0)
+    collaboration_limit = timedelta(weeks=1).total_seconds()
+    for file_contributions in contributions_per_file.values():
+        for i, contribution in enumerate(file_contributions):
+
+            def near_in_time(other_contribution):
+                return abs((contribution['time'] - other_contribution['time']).total_seconds()) < collaboration_limit
+
+            near_contribs = filter(near_in_time, file_contributions)
+            collaborators = set(map(lambda x: x['author'], near_contribs))
+            for author in collaborators:
+                collaborations[(contribution['author'], author)] += 1
+
+    authors_by_file = sorted(contributions_per_author.keys(), key=lambda a: contributions_per_author[a], reverse=True)
+    # cap authors to avoid a massive matrix with line breaks
+    authors_by_file = authors_by_file[:10]
+
+    # print header
+    first_col = 15
+    print(" "*first_col, end=" ")
+    print("Edits", end="\t")
+    for i, author in enumerate(authors_by_file):
+        print(author[:6], end="\t")
+    print()
+
+    for i, author in enumerate(authors_by_file):
+        print(author[:first_col].rjust(first_col), end=" ")
+        print(contributions_per_author[author], end="\t")
+        for j, other_author in enumerate(authors_by_file):
+            colab_ratio = collaborations[(author, other_author)] / contributions_per_author[author]
+            print(f"{colab_ratio:.2f}", end="\t")
+        print()
 
 
 def ratio_char(ratio):
