@@ -6,7 +6,7 @@
 set key_file [lindex $argv 0];
 set password [lindex $argv 1];
 
-spawn ssh-add -t 8h $key_file
+spawn ssh-add -t 16h $key_file
 
 expect "Enter passphrase for ${key_file}:"
 send $password

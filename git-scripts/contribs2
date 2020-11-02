@@ -76,17 +76,32 @@ def print_author_stats(history: List[git.Commit]):
     name_max = max([len(a.name) for a in author_list])
 
     header = ""
+    year = 0
+    month = -1
     while len(header) < CHUNKS:
-        d = start + (len(header) + 3) * chunk_size
-        header += str(d)[2:7] + " "
+        d = start + (len(header) + 1) * chunk_size
+        if d.year != year:
+            header += str(d.year) + " "
+            year = d.year
+        elif d.month != month:
+            header += d.strftime("%b") + " "
+            month = d.month
+        else:
+            header += str(d.day) + " "
 
     print("\t"+header)
     for a in author_list:
-        print(a.commit_count, end="\t")
+        print8(a.commit_count, end="\t")
         for h in a.commit_history:
-            print(ratio_char(h / commit_peak), end="")
-        print(end="\t")
-        print(a.name.ljust(name_max), str(a.first_commit)[:10], "-", str(a.last_commit)[:10])
+            print8(ratio_char(h / commit_peak), end="")
+        print8(end="\t")
+        print8(a.name.ljust(name_max), str(a.first_commit)[:10], "-", str(a.last_commit)[:10])
+
+
+# force print utf-8 when python is stupid
+def print8(*args, end="\n"):
+    sys.stdout.buffer.write(" ".join(map(str, args)).encode("utf-8"))
+    sys.stdout.buffer.write(end.encode("utf-8"))
 
 
 def print_collaborator_matrix(history: List[git.Commit]):
