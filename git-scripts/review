@@ -15,7 +15,15 @@ fi
 test -z "$(git status --porcelain)" || (echo "Uncommited changes"; exit 1)
 
 git fetch
-git br -f review $(git braf)
+
+if [[ -z "${1:-}" ]]; then
+    branch="$(git braf)"
+else
+    branch="$1"
+fi
+
+git checkout master
+git br -f review "$branch"
 git co review
 git merge origin/master -m "tmp merge"
 

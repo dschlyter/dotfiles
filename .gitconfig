@@ -84,6 +84,9 @@
     # add "#" to the end to prevent alias from consuming input, useful with $1 args
     # " needs escaping, ' does not
 
+    al = !git config alias.\"$1\" "#"
+    alias = !git config alias.\"$1\" "#"
+
     # diff with selection
     df = !git status --porcelain | awk '{print $2}' | fzf | xargs git diff "#"
     dg = !git status --porcelain | awk '{print $2}' | grep -i \"$1\" | xargs git diff "#"
@@ -122,6 +125,7 @@
     wip = !git add -A";" git wipa
     wipa = !git commit --no-verify -m 'wip-commit'
     wip-stash = !git add -A";" git commit --no-verify -m 'wip-stash'
+    ws = wip-stash
     # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
     blacklist = !echo \"$@\" >> .gitblacklist "#"
     # import matched global ignores into repo .gitignore
@@ -194,6 +198,7 @@
     # branch management
     # when done with branch after squash (this will do a hard delete of the branch)
     done = !git com && git pull --prune && git brc
+    nuke = reset --hard
     # try merge and print conflicts if merge fails
     merge-dry = !git merge --no-commit "$1" || git diff ";" git merge --abort "#"
     brl = branch --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
@@ -219,8 +224,6 @@
     # quickly just add everything to a branch
     qb = !git checkout -b "$(echo $* | tr ' ' '-')" && git add . && git commit -am \"$*\" "#"
 
-    alias = !git config alias.\"$1\"
-
     # tag management
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
     tv = !git tag -m \"Version $1\" \"$1\" "#"
@@ -231,6 +234,7 @@
     github-use-ssh = !git remote set-url origin \"git@github.com:$(git config --get remote.origin.url | sed -e 's,github.com[/],,' -e 's,.*[:][/]*,,')\"
     pr = !git same origin/$(git curr-br) $(git curr-br) || git pu && open \"$(git github-url)/compare/$(git curr-br)?expand=1\"
     pr-winner = !git log --oneline --since='1 week' --pretty=format:'%an: %s' | grep 'Merge pull request' | sed 's/:.*//' | sort | uniq -c | sort -nr
+    fpr = !git fetch origin "pull/$1/head:pr-$1" "#"
 
     # gitflow stuff (for those unfortunate enough to use gitflow)
     mmd = !git co develop && git merge --ff-only && git co master && git merge --ff-only && git merge develop
@@ -270,4 +274,5 @@
     prompt = false
     trustexitcode = false
 [rebase]
-	autoStash = true
+    autoStash = true
+

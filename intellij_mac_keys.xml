@@ -91,6 +91,10 @@
     <keyboard-shortcut first-keystroke="meta 7" />
   </action>
   <action id="Console.TableResult.AddColumn" />
+  <action id="CopyReference">
+    <keyboard-shortcut first-keystroke="shift meta alt c" />
+    <keyboard-shortcut first-keystroke="ctrl meta c" />
+  </action>
   <action id="Cursive.Repl.Command.figwheel">
     <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl f" />
   </action>
@@ -111,9 +115,6 @@
   </action>
   <action id="Git.Branches">
     <keyboard-shortcut first-keystroke="ctrl meta b" />
-  </action>
-  <action id="Git.CompareWithBranch">
-    <keyboard-shortcut first-keystroke="ctrl meta c" />
   </action>
   <action id="Git.Fetch">
     <keyboard-shortcut first-keystroke="ctrl meta t" />

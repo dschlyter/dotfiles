@@ -217,11 +217,6 @@ function eachdir {
     return $max_ret
 }
 
-# cd to directory in the same level ie. /dir/hej to /dir/hej2 with autocomplete
-function cs {
-    cd ../$(ls ../(/) | grep "$*" | fzf -1)
-}
-
 profiling_log "aliases loaded"
 
 # Aliases and functions shared with bash config
