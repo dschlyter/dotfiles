@@ -32,7 +32,11 @@ vnoremap <leader>n y/<C-R>"<CR>
 
 nnoremap <leader>R :source ~/.ideavimrc<CR>
 
+" repeat last command and move down a line
 noremap - mt.`tj
+" use S to repeat the last substitution
+nnoremap S /<C-r>"<cr>.
+
 noremap <Cr> o<Esc>
 
 " use Q to run the macro on q

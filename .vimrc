@@ -118,6 +118,8 @@ map å [
 
 " repeat last command and move down a line
 noremap - mt.`tj
+" use S to repeat the last substitution
+nnoremap S /<C-r>"<cr>.
 
 " allow . and Q to execute once for each line of a visual selection
 vnoremap . :normal .<CR>
@@ -175,8 +177,6 @@ noremap Q @q
 nnoremap K "_d
 nnoremap KK "_dd
 vnoremap K "_d
-" use S to repeat the last substitution
-nnoremap S /<C-r>"<cr>.
 
 " break undo in sensible places
 inoremap <CR>  <C-G>u<CR>
