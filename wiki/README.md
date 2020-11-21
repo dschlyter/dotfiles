@@ -1,10 +1,13 @@
 ## TOC
 <!--TOC START-->
-* [README](README.md)
 * [bash](bash.md)
 * [bq](bq.md)
+* [gcs](gcs.md)
 * [jq](jq.md)
+* [k8s](k8s.md)
 * [manjaro](manjaro.md)
+* [postgres](postgres.md)
+* [README](README.md)
 * [security](security.md)
 * [vscode](vscode.md)
 <!--TOC END-->

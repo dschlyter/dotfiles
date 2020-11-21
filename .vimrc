@@ -17,8 +17,13 @@ nmap <leader>y :.w !termcopy<CR><CR>
 vmap <leader>y :'<,'>w !termcopy<CR><CR>
 nmap <leader>p :set paste<CR>:r !termpaste<CR>:set nopaste<CR>
 
-" copy into macro slot
+
+" copy out of and into the q macro slot (_v$h to avoid copy trailing CR)
+nnoremap <leader>Q "qp
 nnoremap <leader>q _v$h"qy
+" append to the q macro from the a macro
+nnoremap <leader>a :let @q = @q . @a<CR>
+
 nnoremap <leader>2 :set shiftwidth=2<cr>
 nnoremap <leader>4 :set shiftwidth=4<cr>
 
