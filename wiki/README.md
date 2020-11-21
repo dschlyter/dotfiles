@@ -8,6 +8,7 @@
 * [manjaro](manjaro.md)
 * [postgres](postgres.md)
 * [README](README.md)
+* [scala](scala.md)
 * [security](security.md)
 * [vscode](vscode.md)
 <!--TOC END-->
