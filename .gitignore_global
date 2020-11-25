@@ -47,3 +47,5 @@ git-of-theseus-data
 
 # custom for specific projects
 scripts/dev
+_qstyx*
+/.bsp

@@ -46,9 +46,9 @@
 [alias]
     # shorthands with good defaults
     st = status -sb
-    di = diff
+    di = diff HEAD
     dic = diff --cached
-    diw = diff --color-words='[^[:space:]]|([[:alnum:]]|UTF_8_GUARD)+'
+    diw = diff HEAD --color-words='[^[:space:]]|([[:alnum:]]|UTF_8_GUARD)+'
     au = add -u
     cm = commit -v
     cma = !git cm --amend
@@ -56,7 +56,7 @@
     pp = !git pull --rebase && git pu
     pufl = push --force-with-lease
     br = branch -vv
-    par = pull --rebase --autostash
+    par = pull --autostash --rebase
     rb = rebase
     rba = rebase --autostash
     co = checkout
@@ -66,6 +66,7 @@
     comm = checkout master --merge
     cp = cherry-pick
     sa = stash --include-untracked
+    ski = stash --keep-index
 
     # entry point for custom scripts (for things that are too large to define inline here)
     # list contibutors with number of commits
@@ -84,6 +85,7 @@
     # add "#" to the end to prevent alias from consuming input, useful with $1 args
     # " needs escaping, ' does not
 
+    # shorthand to show aliases
     al = !git config alias.\"$1\" "#"
     alias = !git config alias.\"$1\" "#"
 
@@ -96,9 +98,6 @@
     # lgh only shows HEAD and ancestor commits
     # lg shows all branches
     lg = !git lh --all
-    lh1 = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ai) %C(bold blue)<%an>%Creset' --abbrev-commit -n 15
-    lh2 = log --color --graph --date='format:%Y-%m-%d %H:%M' --pretty=format:'%C(red)%h%C(reset) - %s%C(yellow)%d%C(reset) %C(green)%ad%C(reset) %C(bold blue)%an%C(reset)' --abbrev-commit -n 15
-    lh3 = log --color --graph --date='format:%Y-%m-%d %H:%M' --pretty=format:'%C(red)%h%C(reset) - %C(green)%ad%C(reset) %C(bold blue)%an%C(reset): %s%C(yellow)%d%C(reset)' --abbrev-commit -n 15
     lh = log --color --graph --date='format:%Y-%m-%d %H:%M' --pretty=format:'%C(red)%h%C(reset) %C(green)%ad%C(reset): %s%C(reset)%C(yellow)%d%C(reset) - %C(bold blue)%an%C(reset)' --abbrev-commit -n 15
     lst = !git lh --stat
     ln = !git lh --no-merges
@@ -120,10 +119,9 @@
     # stage all unstaged, and unstage all staged (note: partially staged becomes fully staged)
     invert = !UNSTAGED=$(git status --porcelain | grep -E '^.[^ ]' | colrm 1 3) && git reset > /dev/null && git add $UNSTAGED
     add-again = !git status --porcelain | grep -E '^[^ ?][^ ]' | colrm 1 3 | xargs git add
-    checkpoint = !git stash save --include-untracked checkpoint of WIP && git stash apply
     # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip-stash"
     wip = !git add -A";" git wipa
-    wipa = !git commit --no-verify -m 'wip-commit'
+    wipa = !git commit -m 'wip-commit'
     wip-stash = !git add -A";" git commit --no-verify -m 'wip-stash'
     ws = wip-stash
     # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
@@ -147,6 +145,7 @@
     fup = !git fixup \"$(git select)\"
     # automatically fixup the last commit where added files where changed
     fup-auto = !git fixup $(git log -n 1 --pretty=format:%H -- $(git diff --cached --name-only))
+    sfupp = !git ski && git fup-auto && git stash pop
     select = !git log --pretty --oneline --decorate --color | fzf --ansi | awk '{print ""$""1}'
     cps = !git cherry-pick $(git select)
     amend-date = !GIT_COMMITTER_DATE=\"$1\" git commit --amend --date=\"$1\" "#"
@@ -210,15 +209,15 @@
     brd = !git branch -d $1";" git push origin --delete $1 "#"
     brm = !old_name=$(git curr-br) && git br -m $1 && git push origin :$old_name $1 && git su "#"
     # branch cleanup
-    brc = !git branch --merged | grep -v \\* | grep -v master | grep -v develop | xargs -n 1 git branch -d && git brcg
+    brc = !git branch --merged | grep -v \\* | grep -v master | grep -v develop | xargs -n 1 git branch -d && git delete-gone
     # delete branches that has upstream deleted
-    brcg = !git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -n 1 git branch -D
+    delete-gone = !git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -n 1 git branch -D
     # quick alias for setting upstream
     su = !git branch -u origin/$(git curr-br)
     # when you forget to create a feature branch and commit on main
     rbr = !branch=\"$(git symbolic-ref --short HEAD)\" && git branch -m \"$1\" && git branch \"$branch\" \"origin/$branch\" "#"
     # move the added files to a new branch from master, save unstaged as a WIP commit. for when you start new work on the wrong branch.
-    nbr = !git invert && git wipa && git checkout master --merge && git checkout -b
+    nbr = !git invert && git wip-stash && git checkout master --merge && git checkout -b
     cbf = !git branch -f \"$1\" && git checkout \"$1\" "#"
     tmp = !git cbf tmp
     # quickly just add everything to a branch
