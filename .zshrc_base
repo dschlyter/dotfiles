@@ -282,10 +282,13 @@ _update_git_info() {
             test -z "$GIT_REMOTE" && GIT_REMOTE_BRANCH="origin/master"
 
             local GIT_AHEAD="$(git rev-list $GIT_REMOTE_BRANCH..HEAD 2> /dev/null | wc -l)"
+            GIT_AHEAD=$((GIT_AHEAD)) # remove whitespace from wc
             if [ "$GIT_AHEAD" -gt 0 ]; then
                 GIT_STATUS="$GIT_STATUS%F{46}↑$GIT_AHEAD "
             fi
+
             local GIT_BEHIND="$(git rev-list HEAD..$GIT_REMOTE_BRANCH 2> /dev/null | wc -l)"
+            GIT_BEHIND=$((GIT_BEHIND)) # remove whitespace from wc
             if [ "$GIT_BEHIND" -gt 0 ]; then
                 GIT_STATUS="$GIT_STATUS%F{220}↓$GIT_BEHIND "
             fi
