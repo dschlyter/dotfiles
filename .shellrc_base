@@ -87,6 +87,7 @@ alias vims='vim -S .vimsession'
 alias inet="ifconfig | grep -E '(^[a-z])|inet ' | grep -B 1 'inet '"
 alias speedtest='time wget --output-document=/dev/null http://speedtest.tele2.net/100MB.zip'
 alias jqkeys="jq '"'[path(..)|map(if type=="number" then "[]" else tostring end)|join(".")|split(".[]")|join("[]")]|unique|map("."+.)|.[]'"'"
+alias yaml2js="python -c 'import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout, indent=4)'"
 
 alias x="session ./run.sh"
 alias rw='rlwrap'
@@ -300,6 +301,10 @@ chunk() {
 # remove empty lines
 trim() {
     sed '/^[ \t]*$/d'
+}
+
+sum() {
+    python -c "import sys; print(sum(int(l) for l in sys.stdin))"
 }
 
 # reverse input

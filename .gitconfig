@@ -77,6 +77,7 @@
     wsreset = !$HOME/.git-scripts/entry wsreset
     update-hooks = !$HOME/.git-scripts/entry update-hooks
 
+    # easy merge and split of repos, with preserved history (hash-identical roundtrip when testing)
     filter-repo = !$HOME/.git-scripts/filter-repo
     repo-barf = !$HOME/.git-scripts/entry repo-barf
     repo-slurp = !$HOME/.git-scripts/entry repo-slurp
@@ -154,11 +155,12 @@
 
     # checkout/reset back n commits
     rsn = !COUNT=${1:-1}";" shift";" git reset HEAD~$COUNT \"$@\" "#"
+    ucm = rsn 1
     # soft reset, useful to retract (un-amend) things and then recommit
-    rss = reset --soft HEAD~1
+    rss = ucm --soft
     recommit = commit --reuse-message=HEAD@{1}
     retract = !git reset && git rss && git reset -p && git recommit
-    retract-files = !git reset && git rss && git add . && git ri && git recommit
+    retract-files = !git reset && git rss && git ri && git recommit
     # rebase the last n commits
     rbn = !git rebase -i HEAD~$1 "#"
     rsm = branch -f master origin/master
@@ -169,7 +171,8 @@
     # fetch, prune removed remote branches and shortlog fetched changes
     fe = !sh -c 'PRE=${1:-$(git rev-parse origin/master)} && git fetch --tags --prune && git lh $PRE..$(git rev-parse origin/master) || true' -
     # utils for branch comparisons
-    curr-br = rev-parse --abbrev-ref HEAD
+    # --show-current requires git 2.22+ (released summer 2019)
+    curr-br = branch --show-current
     branch-exists = !git rev-parse $1 > /dev/null 2>&1 "#"
     on = !test \"$(git curr-br 2> /dev/null)\" == \"$1\" "#"
     behind = !git merge-base --is-ancestor HEAD "$1" "#"

@@ -7,6 +7,8 @@
 .gitautofetch
 .gitblacklist
 /gitignored
+gitignored-*
+/gign
 gign-*
 
 nocommit_*
@@ -46,7 +48,11 @@ git-of-theseus-data
 # jenv
 .java-version
 
+# pyenv
+.python-version
+
 # custom for specific projects
 scripts/dev
 _qstyx*
-/.bsp
+.bsp
+sbt.json

@@ -2,6 +2,8 @@
 <!--TOC START-->
 * [README](README.md)
 * [bash](bash.md)
+* [bq](bq.md)
+* [jq](jq.md)
 * [manjaro](manjaro.md)
 * [security](security.md)
 * [vscode](vscode.md)
