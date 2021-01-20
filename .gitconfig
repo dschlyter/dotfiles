@@ -76,6 +76,7 @@
     review = !$HOME/.git-scripts/entry review
     wsreset = !$HOME/.git-scripts/entry wsreset
     update-hooks = !$HOME/.git-scripts/entry update-hooks
+    alex = !$HOME/.git-scripts/entry alias-export
 
     # easy merge and split of repos, with preserved history (hash-identical roundtrip when testing)
     filter-repo = !$HOME/.git-scripts/filter-repo
