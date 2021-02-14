@@ -2,7 +2,7 @@
 
 Traversable -> Iterable -> Seq/Set/Map
 
-* Traversable - has head, tail
+* Traversable - has head, tail (removed in 2.13)
 * Iterable - java style iteration, may be infinite
 * Seq - has ordering (e.g. not set or map)
 * IndexedSeq - has access by index 
@@ -10,6 +10,38 @@ Traversable -> Iterable -> Seq/Set/Map
 Immutable by default.
 
 [diagram](https://docs.scala-lang.org/resources/images/tour/collections-immutable-diagram.svg)
+
+## Immutable collections
+
+* List - Linked list, the workhorse of Scala.* Vector - Trie with branching factor 32. Effectively O(1) time random access, append, update, etc. Solid all round choice.
+* LazyList - a lazy linked list, can represent infinite collections etc
+* Stream - deprecated for LazyList in 2.13, tail is lazy, head is not
+* Queue - addLast, popFirst. Amortized O(1) Implemented with two lists, push on one, pop on the other, switch and reverse when pop is empty.* Stack - basically a list, not used much* Range - Equally spaced integers. Head, tail and random access in constant time with calculaton
+* String - Array of chars. Full copy on every change so beware.
+* HashMap - Trie/Vector backed HashMap. Effectively O(1) time random access, add, update, etc.* ListMap - Dumb map that iterates through a list, O(n) but good if first item is very often selected.
+Immutable collections often don't have methods but only operators, and they are confusing and hard to autocomplete
+
+### Element operations
+
+`c :+ e` append element
+`e +: c` prepend element`c + e` add to set
+`c + (e -> v)` update map (also `.updated(e, v)`)
+`c - a` remove key a from map or set`c +:= a` and similar work for updating vars
+Warning: `List("ok") + "wat"` will result in `"List(ok)wat"`. Javascript style string-conversion.
+### Collections operations
+`c ++ c2` concat (union for sets and maps, for sets also `|`)
+`c -- c2` subtract (only for sets and maps)`c & c2` set intersection
+
+## Mutable collections
+
+ArrayBuffer - Mutable array
+ListBuffer - Mutable linked list, O(1) append on tail, optimized for building immutable Lists
+MutableList - Mutable linked list, O(1) append on tail, difference https://stackoverflow.com/questions/5446744/difference-between-mutablelist-and-listbuffer/5753935ArraySeq - Mutable but fixed size arrayStack - Mutable stackQueue - Mutable queue
+StringBuilder
+
+* [Performance of collections](https://docs.scala-lang.org/overviews/collections/performance-characteristics.html)
+* [Offical docs](https://docs.scala-lang.org/overviews/collections/concrete-immutable-collection-classes.html)
+* [Blog with implementation details](https://www.waitingforcode.com/scala-collections/collections-complexity-scala-immutable-collections/read)
 
 ## Iterator functions
 
