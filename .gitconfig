@@ -59,11 +59,12 @@
     par = pull --autostash --rebase
     rb = rebase
     rba = rebase --autostash
-    co = checkout
-    cb = checkout -b
-    cop = checkout -p
-    com = checkout master
-    comm = checkout master --merge
+    sw = switch
+    sc = switch -c
+    sm = switch master
+    smm = switch master --merge
+    smc = switch master -c
+    rep = restore -p
     cp = cherry-pick
     sa = stash --include-untracked
     ski = stash --keep-index
@@ -72,7 +73,7 @@
     # list contibutors with number of commits
     contribs = !$HOME/.git-scripts/entry contribs
     contribs2 = !$HOME/.git-scripts/entry contribs2
-    # checkout branch and prepare for review
+    # switch branch and prepare for review
     review = !$HOME/.git-scripts/entry review
     wsreset = !$HOME/.git-scripts/entry wsreset
     update-hooks = !$HOME/.git-scripts/entry update-hooks
@@ -95,6 +96,15 @@
     df = !git status --porcelain | awk '{print $2}' | fzf | xargs git diff "#"
     dg = !git status --porcelain | awk '{print $2}' | grep -i \"$1\" | xargs git diff "#"
 
+    # repo checks (reusable in aliases below)
+    is-clean = !test -z \"$(git status --porcelain)\"
+    # --show-current requires git 2.22+ (released summer 2019)
+    curr-br = branch --show-current
+    branch-exists = !git rev-parse $1 > /dev/null 2>&1 "#"
+    on = !test \"$(git curr-br 2> /dev/null)\" == \"$1\" "#"
+    behind = !git merge-base --is-ancestor HEAD "$1" "#"
+    same = !test $(git rev-parse $1) == $(git rev-parse $2) "#"
+
     # log and display
     # nicely formatted log, default to 15 entries but another -n may override that
     # lgh only shows HEAD and ancestor commits
@@ -110,7 +120,7 @@
     la = !git lg $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
     mine = !git ll --since='2 weeks ago' --author='David Schlyter' --author-date-order
     # show the first commit from log that matches sha-prefix, eg. git sc 72F
-    sc = !git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show "#"
+    sf = !git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show "#"
 
     # commit
     # patched commit with a file review and untracked sanity check first
@@ -121,10 +131,11 @@
     # stage all unstaged, and unstage all staged (note: partially staged becomes fully staged)
     invert = !UNSTAGED=$(git status --porcelain | grep -E '^.[^ ]' | colrm 1 3) && git reset > /dev/null && git add $UNSTAGED
     add-again = !git status --porcelain | grep -E '^[^ ?][^ ]' | colrm 1 3 | xargs git add
-    # wip commit, to be used in combination with post-checkout auto pop of all commits named "wip-stash"
+    # wip commit, to be used in combination with post-switch auto pop of all commits named "wip-stash"
     wip = !git add -A";" git wipa
     wipa = !git commit -m 'wip-commit'
-    wip-stash = !git add -A";" git commit --no-verify -m 'wip-stash'
+    wip-stash = !git add -A";" git wipa-stash
+    wipa-stash = !git commit --no-verify -m 'wip-stash'
     ws = wip-stash
     # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
     blacklist = !echo \"$@\" >> .gitblacklist "#"
@@ -135,8 +146,8 @@
     sapply = !git stash apply stash^{/$*}
     srevert = !git sshow \"$@\" | git apply --reverse
     # remove all whitespace changes
-    rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git checkout "${@:-.}" && git reset'
-    bc = !git checkout -b \"$1\" && git commit -p
+    rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git restore "${@:-.}" && git reset'
+    bc = !git switch -b \"$1\" && git commit -p
 
     # amend and rebase
     # amend without changing git commit message
@@ -154,7 +165,7 @@
     # continue rebase with sanity check and auto add
     rbc = !ag \"<<<<\" || git add -u && git rebase --continue
 
-    # checkout/reset back n commits
+    # switch/reset back n commits
     rsn = !COUNT=${1:-1}";" shift";" git reset HEAD~$COUNT \"$@\" "#"
     ucm = rsn 1
     # soft reset, useful to retract (un-amend) things and then recommit
@@ -171,13 +182,6 @@
     # pulling changes more productively
     # fetch, prune removed remote branches and shortlog fetched changes
     fe = !sh -c 'PRE=${1:-$(git rev-parse origin/master)} && git fetch --tags --prune && git lh $PRE..$(git rev-parse origin/master) || true' -
-    # utils for branch comparisons
-    # --show-current requires git 2.22+ (released summer 2019)
-    curr-br = branch --show-current
-    branch-exists = !git rev-parse $1 > /dev/null 2>&1 "#"
-    on = !test \"$(git curr-br 2> /dev/null)\" == \"$1\" "#"
-    behind = !git merge-base --is-ancestor HEAD "$1" "#"
-    same = !test $(git rev-parse $1) == $(git rev-parse $2) "#"
     # get remote updates even with local uncommited changes (but abort on conflicts)
     ff = !sh -c 'git lazy-fe && git merge --ff-only'
     fr = !sh -c 'git lazy-fe && git rb --autostash'
@@ -200,14 +204,14 @@
 
     # branch management
     # when done with branch after squash (this will do a hard delete of the branch)
-    done = !git com && git pull --prune && git brc
+    done = !git switch master && git pull --prune && git brc
     nuke = reset --hard
     # try merge and print conflicts if merge fails
     merge-dry = !git merge --no-commit "$1" || git diff ";" git merge --abort "#"
     brl = branch --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
     bra = !git brl -a
     braf = !git bra --color | fzf --ansi -e | awk '{print $5}' "#"
-    cof = !git braf | sed 's,origin/,,' | xargs git co "#"
+    swf = !git braf | sed 's,origin/,,' | xargs git sw "#"
     # branch cleanup
     # delete or rename branch, both locally and remotely
     brd = !git branch -d $1";" git push origin --delete $1 "#"
@@ -221,11 +225,10 @@
     # when you forget to create a feature branch and commit on main
     rbr = !branch=\"$(git symbolic-ref --short HEAD)\" && git branch -m \"$1\" && git branch \"$branch\" \"origin/$branch\" "#"
     # move the added files to a new branch from master, save unstaged as a WIP commit. for when you start new work on the wrong branch.
-    nbr = !git invert && git wip-stash && git checkout master --merge && git checkout -b
-    cbf = !git branch -f \"$1\" && git checkout \"$1\" "#"
-    tmp = !git cbf tmp
+    nbr = !git invert && git wipa-stash && git switch master -c
+    tmp = !git switch -C tmp
     # quickly just add everything to a branch
-    qb = !git checkout -b "$(echo $* | tr ' ' '-')" && git add . && git commit -am \"$*\" "#"
+    qb = !git switch -b "$(echo $* | tr ' ' '-')" && git add . && git commit -am \"$*\" "#"
 
     # tag management
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
@@ -240,7 +243,7 @@
     fpr = !git fetch origin "pull/$1/head:pr-$1" "#"
 
     # gitflow stuff (for those unfortunate enough to use gitflow)
-    mmd = !git co develop && git merge --ff-only && git co master && git merge --ff-only && git merge develop
+    mmd = !git sw develop && git merge --ff-only && git sw master && git merge --ff-only && git merge develop
     # check unreleased features on develop branch
     features = !git lh master..develop --merges -n 9999
     # check failures to merge changes into develop
@@ -250,7 +253,7 @@
     dur = !git urb develop
     durp = !git dir && git pufl
     # fast forward another branch and push both that and current (ie. double push develop+master)
-    f2p = !BRANCH=\"$(git symbolic-ref --short -q HEAD)\"";" git co $1 && git merge --ff-only \"$BRANCH\" && git push origin \"$1\" \"$BRANCH\" "#"
+    f2p = !BRANCH=\"$(git symbolic-ref --short -q HEAD)\"";" git sw $1 && git merge --ff-only \"$BRANCH\" && git push origin \"$1\" \"$BRANCH\" "#"
 
     # multi-repo stuff
     # everything i have done the last month. there is an echo and inverse grep empty lines to make sure newlines are properly inserted
