@@ -228,7 +228,7 @@
     nbr = !git invert && git wipa-stash && git switch master -c
     tmp = !git switch -C tmp
     # quickly just add everything to a branch
-    qb = !git switch -b "$(echo $* | tr ' ' '-')" && git add . && git commit -am \"$*\" "#"
+    qb = !git switch -c "$(echo $* | tr ' ' '-')" && git add . && git commit -am \"$*\" "#"
 
     # tag management
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message

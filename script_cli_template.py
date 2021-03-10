@@ -33,7 +33,7 @@ def sh(command):
 
 
 def sh_read(command):
-    return subprocess.check_output(command, shell=True)
+    return subprocess.check_output(command, shell=True).decode("utf-8")
 
 
 if __name__ == '__main__':

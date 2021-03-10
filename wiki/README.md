@@ -1,5 +1,7 @@
 ## TOC
 <!--TOC START-->
+* [README](README.md)
+* [awesome](awesome.md)
 * [bash](bash.md)
 * [bq](bq.md)
 * [gcs](gcs.md)
@@ -7,7 +9,6 @@
 * [k8s](k8s.md)
 * [manjaro](manjaro.md)
 * [postgres](postgres.md)
-* [README](README.md)
 * [scala](scala.md)
 * [security](security.md)
 * [vscode](vscode.md)

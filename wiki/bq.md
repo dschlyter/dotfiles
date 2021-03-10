@@ -51,3 +51,7 @@ Note: This will not handle duplicate rows with different counts
         STRUCT(60 as id, 'b' as join_key)
     ]))
     SELECT * FROM data a INNER JOIN data b USING(join_key)
+
+## Loading data from terminal
+
+    bq load --location=EU --source_format=AVRO --autodetect project:dataset.table 'gs://bucket/path/to/part-*'

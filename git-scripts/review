@@ -23,8 +23,8 @@ else
 fi
 
 git checkout master
-git br -f review "$branch"
-git co review
+git branch -f review "$branch"
+git switch review
 git merge origin/master -m "tmp merge"
 
 # reset to master to make changes into uncommited changes

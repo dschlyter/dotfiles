@@ -1,5 +1,9 @@
 #!/bin/bash
 
+usage() {
+    echo "Usage: TODO"
+}
+
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 IFS=$'\n\t'
@@ -9,10 +13,6 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     alias xargs="gxargs"
     alias sed="gsed"
 fi
-
-usage() {
-    echo "Usage: TODO"
-}
 
 while getopts ":hp:" opt; do
     case $opt in

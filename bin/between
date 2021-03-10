@@ -10,6 +10,7 @@ def main():
     argv = sys.argv
     if len(argv) < 4:
         print("Usage: cat data-to-insert.txt | ", argv[0], "'<start token>' '<end token>' filename.txt")
+        print("Alt usage: cat data-to-insert.txt | ", argv[0], "'<start token>' --after filename.txt")
         sys.exit(1)
 
     start_token = sys.argv[1]
@@ -26,6 +27,9 @@ def main():
             start_token_idx = i
         if line.rstrip() == end_token:
             end_token_idx = i
+
+    if end_token == "--after":
+        end_token_idx = start_token_idx+1
 
     if start_token_idx is None:
         print("Start token not found")

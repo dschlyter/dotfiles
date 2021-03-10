@@ -54,8 +54,10 @@ profiling_log "plugins loaded"
 ## Conveniences
 alias b='popd'
 alias h='harpo'
+alias hist='fc -ldD'
 alias sadd='harpo --vault david hi && echo Fetching from harpo... && ssh-add2 $HOME/.ssh/id_ed25519 "$(h --vault david get ssh-key-id_ed22519 password | tail -n 1)"'
 alias zshrc='vim ~/.zshrc; rc'
+alias pastecmd='print -z -- $(cb)'
 alias rc='source ~/.zshrc'
 alias zl="vim $HOME/.zshrc; rc"
 
@@ -466,6 +468,9 @@ HISTSIZE=10000
 SAVEHIST=10000
 setopt INC_APPEND_HISTORY       # append history incrementally as commands are entered
 # setopt sharehistory             # update history from other shells shile running
+# drop the last command from permanent history (there is a small sleep for the race-condition of 'd' being written to history)
+alias D="sleep 0.1; cat $HISTFILE | grep -vE '^[dD]$' | dropr 1 | sponge $HISTFILE"
+alias d="sleep 0.1; cat $HISTFILE | grep -vE '^[dD]$' | tail -n 1 >> $HISTFILE.deleted; D"
 
 ## mostly from ofb.net zshtricks
 

@@ -1,7 +1,3 @@
-" use Vim settings, rather than Vi settings
-set nocompatible
-
-
 " leader customizations
 " =====================
 
@@ -196,7 +192,9 @@ augroup END
 " when file is edited outside vim, and no changes are unsaved, reload the file
 set autoread
 " check for modications when gaining focus or ending movement
-autocmd FocusGained,BufEnter,CursorHold,CursorHoldI * :checktime
+augroup checktime
+    autocmd FocusGained,BufEnter,CursorHold,CursorHoldI * :checktime
+augroup END
 " timer for check updated
 if ! exists("g:CheckUpdateStarted")
     let g:CheckUpdateStarted=1
@@ -302,12 +300,13 @@ set smarttab
 set tabstop=4
 set shiftwidth=4
 set softtabstop=4
-set smartindent
 set autoindent
 set shiftround
 
 " regular tabs for makefiles
-autocmd FileType make setlocal noexpandtab
+augroup AutoMake
+    autocmd FileType make setlocal noexpandtab
+augroup END
 
 " some basic security
 " do not run plugins when using sudo / sudoedit
@@ -467,8 +466,10 @@ set noerrorbells
 set tabpagemax=20
 
 " spellcheck
-autocmd BufRead,BufNewFile *.md setlocal spell
-autocmd BufRead,BufNewFile *.txt setlocal spell
+augroup spellcheck
+    autocmd BufRead,BufNewFile *.md setlocal spell
+    autocmd BufRead,BufNewFile *.txt setlocal spell
+augroup END
 set spelllang=en,sv
 set spellcapcheck=
 
