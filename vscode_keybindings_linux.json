@@ -1,4 +1,5 @@
-// Place your key bindings in this file to override the defaultsauto[]
+// Place your key bindings in this file to override the defaultsauto
+// Also works on windows, but instead on install.sh: Shift-Ctrl P -> Open Keyboard Shortcuts (JSON), and copy-paste
 [
     {
         "key": "ctrl+n",
