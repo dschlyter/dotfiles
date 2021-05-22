@@ -2,7 +2,9 @@ alias o='xdg-open'
 alias -g CB='| xclip -selection clipboard'
 alias cb='xclip -out -selection clipboard'
 
-alias docker='sudo docker'
+function docker() {
+    sudo docker "$@"
+}
 
 # echo 'prefix = /home/david/.node' >> $HOME/.npmrc
 _add_to_path "$HOME/.node/bin"
