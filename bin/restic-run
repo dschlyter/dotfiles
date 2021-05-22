@@ -4,26 +4,32 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-# Most important usage:
-# restic backup dir1 dir2 ..
-# restic snapshots
-# restic ls latest
-# restic restore latest --include /dir1/blah --target path/to/restore/to
+if [[ "${1:-}" == 'usage' ]]; then
+    echo Taking a backup
+    echo restic backup dir1 dir2 ..
+    echo
+    echo Restoring a backup
+    echo restic snapshots
+    echo restic ls latest
+    echo restic restore latest --include /D/Dropbox/code/dotfiles --target $HOME/tmp/restore
+    echo
+    echo Compare total size with latest size
+    echo restic stats --mode raw-data
+    echo restic stats --mode raw-data latest
+    echo
+    echo Removing old data - you need to run prune to actually delete data
+    echo restic forget --keep-daily 7 --keep-monthly 5 --keep-yearly 3
+    echo restic prune
+    echo
+    echo Dealing with repo errors. Basically as of 2020-08 it is kinda borked. Recommended to restart on a new repo it breaks.
+    echo "1. Running rebuild-index breaks restore from snapshots that refer to missing packs https://github.com/restic/restic/issues/2334"
+    echo "2. New backups will not re-upload missing/corrupted files, unless you both rebuild-index (dangerous) AND run a new backup with --force to upload "unchanged" files"
 
-# Compare total size with latest size
-# restic stats --mode raw-data
-# restic stats --mode raw-data latest
-
-# Removing old data - you need to run prune to actually delete data
-# restic forget --keep-daily 7 --keep-monthly 5 --keep-yearly 3
-# resitc prune
-
-# Dealing with repo errors. Basically as of 2020-08 it is kinda borked. Recommended to restart on a new repo it breaks.
-# 1. Running rebuild-index breaks restore from snapshots that refer to missing packs https://github.com/restic/restic/issues/2334
-# 2. New backups will not re-upload missing/corrupted files, unless you both rebuild-index (dangerous) AND run a new backup with --force to upload "unchanged" files
+    exit 0
+fi
 
 # export RESTIC_REPOSITORY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and RESTIC_PASSWORD in this file
-source "$HOME/.restic_conf"
+source "$HOME/.restic.conf"
 
 if [[ "${1:-}" == 'backup-run' ]]; then
     shift
