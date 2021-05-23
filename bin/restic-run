@@ -21,9 +21,7 @@ if [[ "${1:-}" == 'usage' ]]; then
     echo restic forget --keep-daily 7 --keep-monthly 5 --keep-yearly 3
     echo restic prune
     echo
-    echo Dealing with repo errors. Basically as of 2020-08 it is kinda borked. Recommended to restart on a new repo it breaks.
-    echo "1. Running rebuild-index breaks restore from snapshots that refer to missing packs https://github.com/restic/restic/issues/2334"
-    echo "2. New backups will not re-upload missing/corrupted files, unless you both rebuild-index (dangerous) AND run a new backup with --force to upload "unchanged" files"
+    echo "Dealing with repo errors. Missing packs can break a backup, but new backups should heal it. https://github.com/restic/restic/issues/2334"
 
     exit 0
 fi

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# A trivial protection against trivial scrapes for access keys
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+script="$1"
+
+if [[ "${2:-}" != "undo" ]]; then
+    while read fileline; do
+        echo '$(echo '"$(echo "$fileline" | base64 -w 0)"' | base64 -d)'
+    done < "$script"
+else
+    while read fileline; do
+        bash -c "echo $fileline"
+    done < "$script"
+fi
