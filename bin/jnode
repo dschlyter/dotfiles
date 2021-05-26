@@ -1,0 +1,99 @@
+#!/usr/bin/env node
+
+// Run a command, assuming the output is json, then start a repl where output is loaded to 'data'
+// https://2ality.com/2011/11/node-repl-start.html
+
+var p = require('child_process');
+
+let cmd = process.argv.slice(2)
+
+if (cmd.length === 0) {
+    console.error("No command given in args")
+    process.exit(1)
+}
+
+// TODO async execFile ?
+p.execFile(cmd[0], cmd.slice(1), (err, stdout, stderr) => {
+    console.log(stderr)
+    if (err) {
+        console.error("Process failed")
+        process.exit(1)
+    }
+
+    let data = JSON.parse(stdout)
+    console.log("$ k(data)")
+    helpers.krec(data)
+    console.log("Available helpers:", Object.keys(helpers).join(" "))
+
+    var repl = require("repl");
+    var context = repl.start("$ ").context;
+    // Configure what’s available in the REPL
+    context.data = data
+    for (let fnName of Object.keys(helpers)) {
+        context[fnName] = helpers[fnName]
+    }
+})
+
+var helpers = {
+    keys: Object.keys,
+    krec: (data) => {
+        let a = Array.from(k_set(data))
+        for (let key of a.sort()) {
+            console.log(key)
+        }
+    },
+    first: (data) => {
+        return data[Object.keys(data)[0]]
+    },
+    ch: (expr, ...fns) => {
+        let ret = expr
+        for (let f of fns) {
+            ret = f(ret)
+        }
+        return ret
+    },
+    cursor: (data, path, prev) => {
+        let cursorObj = {}
+        let prefix = path || ""
+        if (isObj(data)) {
+            for (let key of Object.keys(data)) {
+                cursorObj[key] = helpers.cursor(data[key], prefix+"."+key, cursorObj)
+            }
+        } else if (Array.isArray(data)) {
+            for (let key in data) {
+                cursorObj[key] = helpers.cursor(data[key], prefix+"["+key+"]", cursorObj)
+            }
+        } else {
+            return data
+        }
+        cursorObj["_path"] = path
+        cursorObj["_prev"] = x => prev
+        return cursorObj
+    }
+}
+
+function isObj(o) {
+    return typeof o === 'object' && o !== null && !Array.isArray(o)
+}
+
+let k_set = (data) => {
+    const r = new Set()
+    if (isObj(data)) {
+        for (let key of Object.keys(data)) {
+            let k = "." + key
+            r.add(k)
+            for (let c of k_set(data[key])) {
+                r.add(k + c)
+            }
+        }
+    } else if (Array.isArray(data)) {
+        for (let c of data.flatMap(x => Array.from(k_set(x)))) {
+            r.add("[]" + c)
+        }
+    }
+
+    return r
+}
+
+
+// TODO handle all forms of exceptions
