@@ -5,7 +5,7 @@ IFS=$'\n\t'
 set -euo pipefail
 
 if [[ -n "$(git diff --cached -G "NOCOMMIT")" ]]; then
-    echo "Forbidden content (NOCOMMIT) found in commit (override with --no-verify, remove with git rsnc)"
+    echo "Forbidden content (NOCOMMIT) found in commit (override with --no-verify, remove with git nocommit-reset)"
     git --no-pager diff --cached -G NOCOMMIT
     exit 1
 fi

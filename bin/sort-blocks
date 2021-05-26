@@ -2,8 +2,7 @@
 
 import click
 import re
-
-from dotfiles import run
+import sys
 
 
 @click.command()
@@ -16,7 +15,7 @@ def main(ctx, block_regex, file_path, skip):
     Sorts blocks of content in a file, with blocks separated by a user-supplied regex. The regex only matches the start of the string (use .* prefix to override)
     """
     blocks = [[]]
-    with open(file_path, 'r') as f:
+    with (open(file_path, 'r') if file_path != '-' else sys.stdin) as f:
         for line in f:
             if re.match(block_regex, line) and len(blocks[-1]) > 0:
                 blocks.append([])

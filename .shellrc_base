@@ -506,7 +506,7 @@ await() {
 
 serve() {
     PORT=${1:-8000}
-    python -m SimpleHTTPServer "$PORT"
+    python -m http.server "$PORT"
 }
 
 genpass() {

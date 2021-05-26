@@ -59,13 +59,14 @@ alias sadd='harpo --vault david hi && echo Fetching from harpo... && ssh-add2 $H
 alias zshrc='vim ~/.zshrc; rc'
 alias pastecmd='print -z -- $(cb)'
 alias rc='source ~/.zshrc'
+alias rh='fc -R'
 alias zl="vim $HOME/.zshrc; rc"
 
 ## Global aliases
 # note: alias R breaks fasd
 alias -g P='|'
 alias -g G='| grep -i'
-alias -g L='| less'
+alias -g L='| less --RAW-CONTROL-CHARS'
 alias -g H='| head'
 alias -g H1='| head -n 1'
 alias -g REV='| reverse'

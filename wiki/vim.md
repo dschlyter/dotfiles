@@ -1,3 +1,16 @@
+15 years later and you are still learning stuff
+
+## Commands that I still have not learned
+
+qa - create a macro
+qA - append to the macro - !!!
+
+`gn` go to next match and enter visual mode
+`cgn` change next match - this can be repeated with `.` !!!
+
+`ge` and `gE` go backwards to end of last word (aka ge is to e what b is to w) - however `be` should be the same almost always
+Increment multiple lines by selecting them and doing `g C-a`
+
 ## Idea vim
 
 [Emulates](https://github.com/JetBrains/ideavim/wiki/Emulated-plugins) a bunch of plugins.

@@ -11,6 +11,7 @@ Awesome list but like actually curated
 [Good explaination of HyperLogLog](https://engineering.fb.com/2018/12/13/data-infrastructure/hyperloglog/)
 
 ## Data Engineering
+[Debezium CDC input to Kafka](https://github.com/debezium/debezium)
 [Iceberg storage format](https://iceberg.apache.org/)
 
 ## Culture

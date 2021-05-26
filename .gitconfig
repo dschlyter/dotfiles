@@ -117,7 +117,7 @@
     lhl = !git lh -n 9999
     lS = log --color --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ai) %C(bold blue)<%an>%Creset' --abbrev-commit -S
     # log including all branchless (rebased, amended, dropped) commits
-    la = !git lg $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
+    la = !git ll $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
     mine = !git ll --since='2 weeks ago' --author='David Schlyter' --author-date-order
     # show the first commit from log that matches sha-prefix, eg. git sc 72F
     sf = !git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show "#"
@@ -156,8 +156,9 @@
     # --amend but to a previous commit below HEAD
     fixup = !(git diff-files --quiet || (echo 'Unstaged changes, please commit or stash with --keep-index' && exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1 "#"
     fup = !git fixup \"$(git select)\"
-    # automatically fixup the last commit where added files where changed
-    fup-auto = !git fixup $(git log -n 1 --pretty=format:%H -- $(git diff --cached --name-only))
+    # automatically fixup the last commit where added files where changed (no stash change since this never conflicts)
+    fixup-unsafe = !COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1 "#"
+    fixup-last = !git fixup-unsafe $(git log -n 1 --pretty=format:%H -- $(git diff --cached --name-only))
     sfupp = !git ski && git fup-auto && git stash pop
     select = !git log --pretty --oneline --decorate --color | fzf --ansi | awk '{print ""$""1}'
     cps = !git cherry-pick $(git select)

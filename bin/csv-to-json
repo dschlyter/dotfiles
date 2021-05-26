@@ -23,7 +23,7 @@ def main():
 
     args = parse_args()
 
-    with open(args.file, 'r') as csvfile:
+    with (open(args.file, 'r') if args.file != '-' else sys.stdin) as csvfile:
         lines = csv_read_lines(csvfile)
 
     header = lines[0]

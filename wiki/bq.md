@@ -2,15 +2,19 @@
 
     WHERE mod(farm_fingerprint(to_hex(user_id)), 100) = 0
 
+# Arrays
+
 ## Arrays select
 
     SELECT list, list[OFFSET(0)] as first_elem
 
     SELECT list, list[SAFE_OFFSET(0)] as first_elem
 
+    SELECT list, list[SAFE_OFFSET(ARRAY_LENGTH(list))-1] as last_elem
+
 ## Arrays select a field
 
-Note: This is safe even when the field is null - result will just be null
+Note: This is safe even when the array element is null - result will just be null
 
     SELECT repeated_record[SAFE_OFFSET(1)].field
 
@@ -18,6 +22,60 @@ Note: This is safe even when the field is null - result will just be null
 
     SELECT ARRAY(SELECT repeated_record.field FROM UNNEST(repeated_record))
     FROM table
+
+
+# Timestamps
+
+## Unix timestamp
+
+    SELECT UNIX_DATE(date)
+
+    SELECT UNIX_SECONDS(timestamp)
+
+    SELECT DATE(TIMESTAMP_SECONDS(1230219000))
+
+# Window functions
+
+## Finding rows that are near in time to interesting event
+
+Rows after event_id = 1337
+
+    SELECT
+        time,
+        TIMESTAMP_DIFF(MIN(IF(event_id = 1337, time, NULL)) OVER (ORDER BY time ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING), time, SECONDS) < 10 AS near_interesting
+    FROM ...
+    ORDER BY near_interesting DESC, time
+
+Rows before event_id = 1337
+
+    SELECT
+        time,
+        TIMESTAMP_DIFF(time, MAX(IF(event_id = 1337, time, NULL)) OVER (ORDER BY time ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), SECONDS) < 10 AS near_interesting
+    FROM ...
+    ORDER BY near_interesting DESC, time
+
+The usage of ORDER BY could be a WHERE over a subquery, so this is a lazy/fast variant that can be improved
+
+# Partitions
+
+## Finding all
+
+    SELECT _PARTITIONTIME as pt, FORMAT_TIMESTAMP("%Y%m%d", _PARTITIONTIME) as partition_id
+    FROM `project.dataset.table`
+    GROUP BY _PARTITIONTIME
+    ORDER BY _PARTITIONTIME
+
+## Preview partition
+
+(does not work on the web UI)
+
+    bq head -n 1 --format prettyjson 'project:dataset.table$20210404'
+
+## Combining GROUP BY and UNNEST
+
+Subquery inside aggregation fn, note you need double parens to make it work.
+
+    SELECT group_key, min((SELECT avg(client_timestamp) FROM UNNEST(array) i WHERE i.key = 'active')) FROM ... GROUP BY group_key
 
 ## Comparing result
 
@@ -41,17 +99,29 @@ Note: This will not handle duplicate rows with different counts
 
 ## Inline example data for playing around
 
-    WITH data AS
-    (SELECT * FROM UNNEST([
-        STRUCT(1 as id, 'a' as join_key),
-        STRUCT(2 as id, 'a' as join_key),
-        STRUCT(3 as id, 'a' as join_key),
-        STRUCT(4 as id, 'a' as join_key),
-        STRUCT(5 as id, 'a' as join_key),
-        STRUCT(60 as id, 'b' as join_key)
-    ]))
-    SELECT * FROM data a INNER JOIN data b USING(join_key)
+Simplest but a lot of boilerplate per row
+
+    (
+        SELECT 1 as id, 'a' as join_key UNION ALL
+        SELECT 2 as id, 'a' as join_key
+    )
+
+Or for larger stuff some extra setup boilerplate
+
+    WITH arr AS (SELECT
+        ["alice", "bob", "carl"] AS names,
+        [1, 2, 3, 4, 5, 60] AS age,
+    ),
+    data as (SELECT
+        names[SAFE_OFFSET(i)] AS name,
+        age[SAFE_OFFSET(i)] as age
+    FROM arr, UNNEST(GENERATE_ARRAY(0, ARRAY_LENGTH(arr.names) - 1)) i)
+    SELECT * FROM data
 
 ## Loading data from terminal
 
     bq load --location=EU --source_format=AVRO --autodetect project:dataset.table 'gs://bucket/path/to/part-*'
+
+# Pro tip
+
+Don't mix `OUTER JOIN` and `WHERE table._TABLE_SUFFIX = ...`. Since `_TABLE_SUFFIX` will be null when the join does not match, split this out into subqueries.

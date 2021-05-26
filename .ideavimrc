@@ -33,6 +33,12 @@ nnoremap <leader>* I**<Esc>A**<Esc>
 " search for selected text
 vnoremap <leader>n y/<C-R>"<CR>
 
+" camel<->snake mappings (there seems to be a bug fucking this up, \%V is not supported)
+vnoremap <leader>_ :s,\([A-Z][a-z]\),_\l\1,g<cr>
+vnoremap <leader>C :s,_\(\l\),\u\1,g<cr>
+nnoremap <leader>_ viwö_
+nnoremap <leader>C viwö-
+
 nnoremap <leader>R :source ~/.ideavimrc<CR>
 
 " repeat last command and move down a line
@@ -45,175 +51,141 @@ noremap <Cr> o<Esc>
 " use Q to run the macro on q
 noremap Q @q
 
-" TEST - use J K to move lines faster
-noremap J 5j
-noremap K 5k
+" Don't copy the contents of an overwritten selection.
+vnoremap p "_dP
+
+" Use Y to append to a paste (on the y register)
+noremap Y  "Yy
+nnoremap YY  "Yy
+
 set scrolloff=7
 
-" TEST - remap J to quickly navigate to line
-noremap Jq /^\A*q/e<CR>
-noremap Jw /^\A*w/e<CR>
-noremap Je /^\A*e/e<CR>
-noremap Jr /^\A*r/e<CR>
-noremap Jt /^\A*t/e<CR>
-noremap Jy /^\A*y/e<CR>
-noremap Ju /^\A*u/e<CR>
-noremap Ji /^\A*i/e<CR>
-noremap Jo /^\A*o/e<CR>
-noremap Jp /^\A*p/e<CR>
+" quickly search for the start of a word
+" \C case sensitive \A non-alpha character \zs - start the match here
+noremap s /\C\A\zs
+noremap S ?\C\A\zs
 
-noremap Ja /^\A*a/e<CR>
-noremap Js /^\A*s/e<CR>
-noremap Jd /^\A*d/e<CR>
-noremap Jf /^\A*f/e<CR>
-noremap Jg /^\A*g/e<CR>
-noremap Jh /^\A*h/e<CR>
-noremap Jj /^\A*j/e<CR>
-noremap Jk /^\A*k/e<CR>
-noremap Jl /^\A*l/e<CR>
-
-noremap Jz /^\A*z/e<CR>
-noremap Jx /^\A*x/e<CR>
-noremap Jc /^\A*c/e<CR>
-noremap Jv /^\A*v/e<CR>
-noremap Jb /^\A*b/e<CR>
-noremap Jn /^\A*n/e<CR>
-noremap Jm /^\A*m/e<CR>
-
-noremap J. /^\s*[.]/e<CR>
-noremap J( /^\s*[(]/e<CR>
-noremap J) /^\s*[)]/e<CR>
-noremap J{ /^\s*[{]/e<CR>
-noremap J} /^\s*[}]/e<CR>
-
-" fallback start a search
-noremap J /^\A*[]/e<Left><Left><Left>
-
-" keep original function
-noremap gJ J
-
-" TEST 2 - remap s to quickly navigate to start of word
+" TEST - remap s to quickly navigate to start of word
 " \C case sensitive, /e put cursor at the end
 
-noremap sq /\C[^A-Za-z_]q/e<CR>
-noremap sw /\C[^A-Za-z_]w/e<CR>
-noremap se /\C[^A-Za-z_]e/e<CR>
-noremap sr /\C[^A-Za-z_]r/e<CR>
-noremap st /\C[^A-Za-z_]t/e<CR>
-noremap sy /\C[^A-Za-z_]y/e<CR>
-noremap su /\C[^A-Za-z_]u/e<CR>
-noremap si /\C[^A-Za-z_]i/e<CR>
-noremap so /\C[^A-Za-z_]o/e<CR>
-noremap sp /\C[^A-Za-z_]p/e<CR>
+" noremap sq /\C[^A-Za-z_]q/e<CR>
+" noremap sw /\C[^A-Za-z_]w/e<CR>
+" noremap se /\C[^A-Za-z_]e/e<CR>
+" noremap sr /\C[^A-Za-z_]r/e<CR>
+" noremap st /\C[^A-Za-z_]t/e<CR>
+" noremap sy /\C[^A-Za-z_]y/e<CR>
+" noremap su /\C[^A-Za-z_]u/e<CR>
+" noremap si /\C[^A-Za-z_]i/e<CR>
+" noremap so /\C[^A-Za-z_]o/e<CR>
+" noremap sp /\C[^A-Za-z_]p/e<CR>
 
-noremap sa /\C[^A-Za-z_]a/e<CR>
-noremap ss /\C[^A-Za-z_]s/e<CR>
-noremap sd /\C[^A-Za-z_]d/e<CR>
-noremap sf /\C[^A-Za-z_]f/e<CR>
-noremap sg /\C[^A-Za-z_]g/e<CR>
-noremap sh /\C[^A-Za-z_]h/e<CR>
-noremap sj /\C[^A-Za-z_]j/e<CR>
-noremap sk /\C[^A-Za-z_]k/e<CR>
-noremap sl /\C[^A-Za-z_]l/e<CR>
+" noremap sa /\C[^A-Za-z_]a/e<CR>
+" noremap ss /\C[^A-Za-z_]s/e<CR>
+" noremap sd /\C[^A-Za-z_]d/e<CR>
+" noremap sf /\C[^A-Za-z_]f/e<CR>
+" noremap sg /\C[^A-Za-z_]g/e<CR>
+" noremap sh /\C[^A-Za-z_]h/e<CR>
+" noremap sj /\C[^A-Za-z_]j/e<CR>
+" noremap sk /\C[^A-Za-z_]k/e<CR>
+" noremap sl /\C[^A-Za-z_]l/e<CR>
 
-noremap sz /\C[^A-Za-z_]z/e<CR>
-noremap sx /\C[^A-Za-z_]x/e<CR>
-noremap sc /\C[^A-Za-z_]c/e<CR>
-noremap sv /\C[^A-Za-z_]v/e<CR>
-noremap sb /\C[^A-Za-z_]b/e<CR>
-noremap sn /\C[^A-Za-z_]n/e<CR>
-noremap sm /\C[^A-Za-z_]m/e<CR>
+" noremap sz /\C[^A-Za-z_]z/e<CR>
+" noremap sx /\C[^A-Za-z_]x/e<CR>
+" noremap sc /\C[^A-Za-z_]c/e<CR>
+" noremap sv /\C[^A-Za-z_]v/e<CR>
+" noremap sb /\C[^A-Za-z_]b/e<CR>
+" noremap sn /\C[^A-Za-z_]n/e<CR>
+" noremap sm /\C[^A-Za-z_]m/e<CR>
 
-noremap sQ /\C[^A-Za-z_]Q/e<CR>
-noremap sW /\C[^A-Za-z_]W/e<CR>
-noremap sE /\C[^A-Za-z_]E/e<CR>
-noremap sR /\C[^A-Za-z_]R/e<CR>
-noremap sT /\C[^A-Za-z_]T/e<CR>
-noremap sY /\C[^A-Za-z_]Y/e<CR>
-noremap sU /\C[^A-Za-z_]U/e<CR>
-noremap sI /\C[^A-Za-z_]I/e<CR>
-noremap sO /\C[^A-Za-z_]O/e<CR>
-noremap sP /\C[^A-Za-z_]P/e<CR>
+" noremap sQ /\C[^A-Za-z_]Q/e<CR>
+" noremap sW /\C[^A-Za-z_]W/e<CR>
+" noremap sE /\C[^A-Za-z_]E/e<CR>
+" noremap sR /\C[^A-Za-z_]R/e<CR>
+" noremap sT /\C[^A-Za-z_]T/e<CR>
+" noremap sY /\C[^A-Za-z_]Y/e<CR>
+" noremap sU /\C[^A-Za-z_]U/e<CR>
+" noremap sI /\C[^A-Za-z_]I/e<CR>
+" noremap sO /\C[^A-Za-z_]O/e<CR>
+" noremap sP /\C[^A-Za-z_]P/e<CR>
 
-noremap sA /\C[^A-Za-z_]A/e<CR>
-noremap sS /\C[^A-Za-z_]S/e<CR>
-noremap sD /\C[^A-Za-z_]D/e<CR>
-noremap sF /\C[^A-Za-z_]F/e<CR>
-noremap sG /\C[^A-Za-z_]G/e<CR>
-noremap sH /\C[^A-Za-z_]H/e<CR>
-noremap sJ /\C[^A-Za-z_]J/e<CR>
-noremap sK /\C[^A-Za-z_]K/e<CR>
-noremap sL /\C[^A-Za-z_]L/e<CR>
+" noremap sA /\C[^A-Za-z_]A/e<CR>
+" noremap sS /\C[^A-Za-z_]S/e<CR>
+" noremap sD /\C[^A-Za-z_]D/e<CR>
+" noremap sF /\C[^A-Za-z_]F/e<CR>
+" noremap sG /\C[^A-Za-z_]G/e<CR>
+" noremap sH /\C[^A-Za-z_]H/e<CR>
+" noremap sJ /\C[^A-Za-z_]J/e<CR>
+" noremap sK /\C[^A-Za-z_]K/e<CR>
+" noremap sL /\C[^A-Za-z_]L/e<CR>
 
-noremap sZ /\C[^A-Za-z_]Z/e<CR>
-noremap sX /\C[^A-Za-z_]X/e<CR>
-noremap sC /\C[^A-Za-z_]C/e<CR>
-noremap sV /\C[^A-Za-z_]V/e<CR>
-noremap sB /\C[^A-Za-z_]B/e<CR>
-noremap sN /\C[^A-Za-z_]N/e<CR>
-noremap sM /\C[^A-Za-z_]M/e<CR>
+" noremap sZ /\C[^A-Za-z_]Z/e<CR>
+" noremap sX /\C[^A-Za-z_]X/e<CR>
+" noremap sC /\C[^A-Za-z_]C/e<CR>
+" noremap sV /\C[^A-Za-z_]V/e<CR>
+" noremap sB /\C[^A-Za-z_]B/e<CR>
+" noremap sN /\C[^A-Za-z_]N/e<CR>
+" noremap sM /\C[^A-Za-z_]M/e<CR>
 
-noremap s /\C\A[]/e<Left><Left><Left>
+" noremap Sq ?\C[^A-Za-z_]q?e<CR>
+" noremap Sw ?\C[^A-Za-z_]w?e<CR>
+" noremap Se ?\C[^A-Za-z_]e?e<CR>
+" noremap Sr ?\C[^A-Za-z_]r?e<CR>
+" noremap St ?\C[^A-Za-z_]t?e<CR>
+" noremap Sy ?\C[^A-Za-z_]y?e<CR>
+" noremap Su ?\C[^A-Za-z_]u?e<CR>
+" noremap Si ?\C[^A-Za-z_]i?e<CR>
+" noremap So ?\C[^A-Za-z_]o?e<CR>
+" noremap Sp ?\C[^A-Za-z_]p?e<CR>
 
-noremap Sq ?\C[^A-Za-z_]q?e<CR>
-noremap Sw ?\C[^A-Za-z_]w?e<CR>
-noremap Se ?\C[^A-Za-z_]e?e<CR>
-noremap Sr ?\C[^A-Za-z_]r?e<CR>
-noremap St ?\C[^A-Za-z_]t?e<CR>
-noremap Sy ?\C[^A-Za-z_]y?e<CR>
-noremap Su ?\C[^A-Za-z_]u?e<CR>
-noremap Si ?\C[^A-Za-z_]i?e<CR>
-noremap So ?\C[^A-Za-z_]o?e<CR>
-noremap Sp ?\C[^A-Za-z_]p?e<CR>
+" noremap Sa ?\C[^A-Za-z_]a?e<CR>
+" noremap Ss ?\C[^A-Za-z_]s?e<CR>
+" noremap Sd ?\C[^A-Za-z_]d?e<CR>
+" noremap Sf ?\C[^A-Za-z_]f?e<CR>
+" noremap Sg ?\C[^A-Za-z_]g?e<CR>
+" noremap Sh ?\C[^A-Za-z_]h?e<CR>
+" noremap Sj ?\C[^A-Za-z_]j?e<CR>
+" noremap Sk ?\C[^A-Za-z_]k?e<CR>
+" noremap Sl ?\C[^A-Za-z_]l?e<CR>
 
-noremap Sa ?\C[^A-Za-z_]a?e<CR>
-noremap Ss ?\C[^A-Za-z_]s?e<CR>
-noremap Sd ?\C[^A-Za-z_]d?e<CR>
-noremap Sf ?\C[^A-Za-z_]f?e<CR>
-noremap Sg ?\C[^A-Za-z_]g?e<CR>
-noremap Sh ?\C[^A-Za-z_]h?e<CR>
-noremap Sj ?\C[^A-Za-z_]j?e<CR>
-noremap Sk ?\C[^A-Za-z_]k?e<CR>
-noremap Sl ?\C[^A-Za-z_]l?e<CR>
+" noremap Sz ?\C[^A-Za-z_]z?e<CR>
+" noremap Sx ?\C[^A-Za-z_]x?e<CR>
+" noremap Sc ?\C[^A-Za-z_]c?e<CR>
+" noremap Sv ?\C[^A-Za-z_]v?e<CR>
+" noremap Sb ?\C[^A-Za-z_]b?e<CR>
+" noremap Sn ?\C[^A-Za-z_]n?e<CR>
+" noremap Sm ?\C[^A-Za-z_]m?e<CR>
 
-noremap Sz ?\C[^A-Za-z_]z?e<CR>
-noremap Sx ?\C[^A-Za-z_]x?e<CR>
-noremap Sc ?\C[^A-Za-z_]c?e<CR>
-noremap Sv ?\C[^A-Za-z_]v?e<CR>
-noremap Sb ?\C[^A-Za-z_]b?e<CR>
-noremap Sn ?\C[^A-Za-z_]n?e<CR>
-noremap Sm ?\C[^A-Za-z_]m?e<CR>
+" noremap SQ ?\C[^A-Za-z_]Q?e<CR>
+" noremap SW ?\C[^A-Za-z_]W?e<CR>
+" noremap SE ?\C[^A-Za-z_]E?e<CR>
+" noremap SR ?\C[^A-Za-z_]R?e<CR>
+" noremap ST ?\C[^A-Za-z_]T?e<CR>
+" noremap SY ?\C[^A-Za-z_]Y?e<CR>
+" noremap SU ?\C[^A-Za-z_]U?e<CR>
+" noremap SI ?\C[^A-Za-z_]I?e<CR>
+" noremap SO ?\C[^A-Za-z_]O?e<CR>
+" noremap SP ?\C[^A-Za-z_]P?e<CR>
 
-noremap SQ ?\C[^A-Za-z_]Q?e<CR>
-noremap SW ?\C[^A-Za-z_]W?e<CR>
-noremap SE ?\C[^A-Za-z_]E?e<CR>
-noremap SR ?\C[^A-Za-z_]R?e<CR>
-noremap ST ?\C[^A-Za-z_]T?e<CR>
-noremap SY ?\C[^A-Za-z_]Y?e<CR>
-noremap SU ?\C[^A-Za-z_]U?e<CR>
-noremap SI ?\C[^A-Za-z_]I?e<CR>
-noremap SO ?\C[^A-Za-z_]O?e<CR>
-noremap SP ?\C[^A-Za-z_]P?e<CR>
+" noremap SA ?\C[^A-Za-z_]A?e<CR>
+" noremap SS ?\C[^A-Za-z_]S?e<CR>
+" noremap SD ?\C[^A-Za-z_]D?e<CR>
+" noremap SF ?\C[^A-Za-z_]F?e<CR>
+" noremap SG ?\C[^A-Za-z_]G?e<CR>
+" noremap SH ?\C[^A-Za-z_]H?e<CR>
+" noremap SJ ?\C[^A-Za-z_]J?e<CR>
+" noremap SK ?\C[^A-Za-z_]K?e<CR>
+" noremap SL ?\C[^A-Za-z_]L?e<CR>
 
-noremap SA ?\C[^A-Za-z_]A?e<CR>
-noremap SS ?\C[^A-Za-z_]S?e<CR>
-noremap SD ?\C[^A-Za-z_]D?e<CR>
-noremap SF ?\C[^A-Za-z_]F?e<CR>
-noremap SG ?\C[^A-Za-z_]G?e<CR>
-noremap SH ?\C[^A-Za-z_]H?e<CR>
-noremap SJ ?\C[^A-Za-z_]J?e<CR>
-noremap SK ?\C[^A-Za-z_]K?e<CR>
-noremap SL ?\C[^A-Za-z_]L?e<CR>
+" noremap SZ ?\C[^A-Za-z_]Z?e<CR>
+" noremap SX ?\C[^A-Za-z_]X?e<CR>
+" noremap SC ?\C[^A-Za-z_]C?e<CR>
+" noremap SV ?\C[^A-Za-z_]V?e<CR>
+" noremap SB ?\C[^A-Za-z_]B?e<CR>
+" noremap SN ?\C[^A-Za-z_]N?e<CR>
+" noremap SM ?\C[^A-Za-z_]M?e<CR>
 
-noremap SZ ?\C[^A-Za-z_]Z?e<CR>
-noremap SX ?\C[^A-Za-z_]X?e<CR>
-noremap SC ?\C[^A-Za-z_]C?e<CR>
-noremap SV ?\C[^A-Za-z_]V?e<CR>
-noremap SB ?\C[^A-Za-z_]B?e<CR>
-noremap SN ?\C[^A-Za-z_]N?e<CR>
-noremap SM ?\C[^A-Za-z_]M?e<CR>
-
-noremap S ?\C\A[]?e<Left><Left><Left>
+" noremap s /\C\A[]/e<Left><Left><Left>
+" noremap S ?\C\A[]?e<Left><Left><Left>
 
 " use K to delete without writing to register
 " nnoremap K "_d

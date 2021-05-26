@@ -23,6 +23,12 @@ nnoremap <leader>a :let @q = @q . @a<CR>
 nnoremap <leader>2 :set shiftwidth=2<cr>
 nnoremap <leader>4 :set shiftwidth=4<cr>
 
+" snake_case <-> camelCase converstion
+vnoremap <leader>_ :s,\%V\([A-Z][a-z]\),_\l\1,g<CR>
+vnoremap <leader>C :s,\%V_\(\l\),\u\1,g<CR>
+nmap <leader>_ viwö_
+nmap <leader>C viwöC
+
 " quick hex editor
 nnoremap <leader>xd :% ! xxd<cr>
 nnoremap <leader>xr :% ! xxd -r<cr>
@@ -167,6 +173,10 @@ inoremap <C-l> <C-o>:bn<CR>
 
 " Don't copy the contents of an overwritten selection.
 vnoremap p "_dP
+
+" Use Y to append to a paste (on the y register)
+noremap Y  "Yy
+nnoremap YY  "Yy
 
 " Make shift-tab work in reverse of tab in insert mode
 inoremap <S-Tab> <C-o><<
