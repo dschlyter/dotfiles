@@ -532,6 +532,9 @@ alias d=docker
 alias dco=docker-compose
 
 devplay() {
+    cd $HOME/.dotfiles/docker/devplay
+    ./build.sh
+    cd -
     docker run -it -v "$PWD:/opt/app" "$@" devplay
 }
 

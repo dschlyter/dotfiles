@@ -99,24 +99,13 @@ Note: This will not handle duplicate rows with different counts
 
 ## Inline example data for playing around
 
-Simplest but a lot of boilerplate per row
+Pro tip: You only need col names on the first row
 
     (
         SELECT 1 as id, 'a' as join_key UNION ALL
-        SELECT 2 as id, 'a' as join_key
+        SELECT 2, 'a' UNION ALL
+        SELECT 3, 'a'
     )
-
-Or for larger stuff some extra setup boilerplate
-
-    WITH arr AS (SELECT
-        ["alice", "bob", "carl"] AS names,
-        [1, 2, 3, 4, 5, 60] AS age,
-    ),
-    data as (SELECT
-        names[SAFE_OFFSET(i)] AS name,
-        age[SAFE_OFFSET(i)] as age
-    FROM arr, UNNEST(GENERATE_ARRAY(0, ARRAY_LENGTH(arr.names) - 1)) i)
-    SELECT * FROM data
 
 ## Loading data from terminal
 

@@ -1,9 +1,11 @@
-FROM ubuntu
+# 20.04 LTS
+FROM ubuntu:20.04
 
 # Basic image for playing around with tech. Ubuntu with useful stuff installed
 # Run: docker run -it -v $(pwd):/opt/app --name whatever devplay
 
-RUN apt-get update && apt-get install -y git vim zsh python3 python3-pip
+RUN apt-get update && apt-get install -y sudo git vim zsh python3 python3-pip curl wget lsb-release tmux
+RUN apt-get clean all
 
 RUN mkdir -p /opt/app
 
