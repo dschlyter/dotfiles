@@ -47,7 +47,8 @@ If pamac update fails with this message:
 
 It seems to be safe just to remove this package and try again. You can check that a newer driver is installed.
 
-# Troubleshooting
+Troubleshooting
+---------------
 
 ## Lightdm does not start
 
@@ -57,7 +58,7 @@ Check logs
     cat /var/log/Xorg.0.log
     dmesg
 
-Last time this was nvidia driver issue. There seems to be a driver for every kernel and it is not automatically installed? :@
+Last time this was nvidia driver issue. There seems to be a driver for every kernel and it is not automatically installed?
 
 Don't trust `mhwd`. It installs the wrong drivers. Don't run it and don't let it mess up xorg.conf. Uninstalling and reinstalling mhwd and mhwd-db seems to maybe fix it? But I've uninstalled it totally. Get your drivers manually.
 
@@ -74,6 +75,25 @@ This seems to be [Dropbox](https://askubuntu.com/questions/1062568/dropbox-asks-
     find Dropbox \! -user david -print
     chown david -r Dropbox
 
-## No sound
+Setting java version
+--------------------
 
-This happened after X and driver-issues above. Might be because of manually started lightdm in debug mode. A reboot solved it.
+Wrong version might cause Idea not to start for example.
+
+    archlinux-java set java-11-openjdk
+
+Networking
+----------
+
+Install some general tooling before you get problems
+
+    sudo pacman -Syu bind whois arp-scan net-tools traceroute
+
+General tips
+
+    nmcli device show
+    sudo arp-scan --localnet
+    traceroute 8.8.8.8
+    ip addr
+    ping 8.8.8.8
+    ping google.se
