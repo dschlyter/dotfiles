@@ -1,7 +1,8 @@
 #!/bin/bash
 
 usage() {
-    echo "Usage: TODO"
+    echo "TODO describe script"
+    echo "Usage: $0 arg1 arg2 TODO"
 }
 
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
@@ -30,5 +31,10 @@ while getopts ":hp:" opt; do
     esac
 done
 shift $((OPTIND-1))
+
+if [[ -z "${1:-}" ]]; then
+    usage
+    exit 0
+fi
 
 

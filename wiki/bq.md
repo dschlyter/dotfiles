@@ -30,9 +30,15 @@ Note: This is safe even when the array element is null - result will just be nul
 
     SELECT UNIX_DATE(date)
 
+    SELECT UNIX_SECONDS(CURRENT_TIMESTAMP())
+
     SELECT UNIX_SECONDS(timestamp)
 
+*Converting from unix*
+
     SELECT DATE(TIMESTAMP_SECONDS(1230219000))
+
+    SELECT DATE(TIMESTAMP_MILLIS(1230219000))
 
 # Window functions
 

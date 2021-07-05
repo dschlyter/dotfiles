@@ -1,0 +1,22 @@
+#!/bin/bash
+
+usage() {
+    echo "cat file but insert lines from stdin at line number"
+    echo "Usage: echo 'text to add at line' | $0 file.txt 15 | sponge file.txt"
+}
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+if [[ -z "${2:-}" ]]; then
+    usage
+    exit 0
+fi
+
+file="$1"
+line="$2"
+
+head -n "$line" "$file"
+cat /dev/stdin
+tail -n +"$((line+1))" "$file"
