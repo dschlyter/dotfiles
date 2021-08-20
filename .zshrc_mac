@@ -130,7 +130,7 @@ function bup() {
         grab /usr/local/sbin
     fi
 
-    brew update || return 1
+    brew update && brew upgrade || return 1
 
     date "+%s" > $BREW_UPDATE_FILE
 

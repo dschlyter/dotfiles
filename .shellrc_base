@@ -436,7 +436,7 @@ venv() {
     python3 -m venv "${1:-"venv"}"
     source venv/bin/activate
     echo "source venv/bin/activate" > .envrc
-    direnv allow
+    has direnv && direnv allow
 }
 
 pipi() {

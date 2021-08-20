@@ -109,6 +109,8 @@ Methods with type params converted into methods will get impossible types.
     val f = tripple _ 
     f(6) // error: type mismatch; found: Int(6) required: Nothing
 
+Functions are values, and can't take arguments by-name, can't be polymorphic, can't be variadic, can't be overloaded, and can't have implicit parameters. While methods can have these, they cannot be passed around as values.
+
 ## Partial functions
 
     val f: PartialFunction[Int, String] = { case 1 => "one" }
