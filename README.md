@@ -1,12 +1,12 @@
 Dotfiles
 ========
 
-Various dotfiles that are useful.
+My dotfiles
 
 Installation
 ------------
 
-There is an installation script that sets (almost) everything up. It mostly just symlinks these into your home directory, with different files used on different platforms.
+There is an installation script that sets (almost) everything up on a mac or linux computer. It mostly just symlinks these into your home directory, with different files used on different platforms.
 
     git clone https://github.com/dschlyter/dotfiles
     cd dotfiles
