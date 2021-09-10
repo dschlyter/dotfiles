@@ -7,7 +7,7 @@ import readline
 import traceback
 import sys
 import signal
-import time
+import os
 from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -65,7 +65,9 @@ def main():
         except EOFError:
             # user pressed ctrl-d
             error_handler(None, None)
-            # break # TODO dev mode
+            if os.environ.get("PLANNER_DEV"):
+                # rapid abort when developing
+                break
         except Exception as e:
             traceback.print_exc()
 
@@ -73,12 +75,7 @@ def main():
 class Planner:
     def __init__(self):
         self.display = TabulaRasa()
-        self.tasks: List[Task] = [
-            Task(parse3('100'), parse3('110'), "standupp"),
-            Task(parse3('110'), parse3('120'), "EM meeting"),
-            Task(parse3('120'), parse3('130'), "Lunch"),
-            Task(parse3('160'), parse3('163'), "Fika"),
-        ]
+        self.tasks: List[Task] = []
 
         self.print_tasks()
 
@@ -282,8 +279,6 @@ class Planner:
 
         print(" "*(CHECK_WIDTH+NAME_WIDTH), end="")
 
-        render_start = time.time()
-
         # print the header with times
         # TODO dynamic time range?
         all_timestamps = []
@@ -307,7 +302,6 @@ class Planner:
             print(" ", end="")
             offset += 1
         self.display.println()
-        self.display.println("render time", time.time() - render_start)
 
         # print each task
         for index, task in enumerate(self.tasks):
@@ -340,7 +334,6 @@ class Planner:
                         task_bar[i] = bcolors.FAIL + '>' + bcolors.ENDC
 
             self.display.println("".join(task_bar))
-        self.display.println("render time", time.time() - render_start)
 
     def help(self):
         self.display.reset()
