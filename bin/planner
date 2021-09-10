@@ -1,0 +1,454 @@
+#!/usr/bin/env python3
+
+# TODO describe script
+import math
+import subprocess
+import readline
+import traceback
+import sys
+import signal
+import time
+from datetime import datetime, timedelta
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import TypeVar, Generic, List
+
+HIST_FILE = str(Path.home()) + '/.config/planner_history.txt'
+T = TypeVar('T')
+readline.read_history_file(HIST_FILE)
+
+CHECK_WIDTH = 2
+NAME_WIDTH = 45
+TIME_WIDTH = 80
+TOTAL_WIDTH = CHECK_WIDTH + NAME_WIDTH + TIME_WIDTH
+
+# TODO permanent storage for various days
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+class STATES:
+    TODO = 'todo'
+    SKIPPED = 'skipped'
+    COMPLETE = 'complete'
+
+
+@dataclass
+class Task:
+    start: datetime
+    end: datetime
+    name: str
+    actual: list = field(default_factory=lambda: [])
+    state: str = STATES.TODO
+
+
+def main():
+    planner = Planner()
+
+    def error_handler(sig, frame):
+        planner.display.println("Use 'exit' to exit")
+
+    signal.signal(signal.SIGINT, error_handler)
+
+    while True:
+        try:
+            planner.parse_command()
+        except EOFError:
+            # user pressed ctrl-d
+            error_handler(None, None)
+            # break # TODO dev mode
+        except Exception as e:
+            traceback.print_exc()
+
+
+class Planner:
+    def __init__(self):
+        self.display = TabulaRasa()
+        self.tasks: List[Task] = [
+            Task(parse3('100'), parse3('110'), "standupp"),
+            Task(parse3('110'), parse3('120'), "EM meeting"),
+            Task(parse3('120'), parse3('130'), "Lunch"),
+            Task(parse3('160'), parse3('163'), "Fika"),
+        ]
+
+        self.print_tasks()
+
+    def parse_command(self):
+        # TODO operation remove boilerplate
+
+        command = self.display.readln()
+        words = list(filter(lambda s: len(s) > 0, command.split(" ")))
+        task_index = None
+
+        # check if a task is referenced
+        if get(words, 0, '').isdigit():
+            task_index = int(words[0]) - 1
+            words = words[1:]
+            command = " ".join(command.split(" ")[1:])
+
+        if command == "exit":
+            sys.exit(0)
+        elif command == "":
+            pass
+        elif command == "help" or command == "h":
+            self.help()
+            return
+
+        elif get(words, 0) == "describe":
+            task = self.tasks[task_index]
+            self.display.println("Name", task.name)
+            self.display.println("State", task.state)
+            self.display.println("Planned", task.start.strftime("%H:%M"), "-", task.end.strftime("%H:%M"))
+            for actual in task.actual:
+                self.display.println("Actual", actual[0].strftime("%H:%M"), "-", actual[1].strftime("%H:%M"))
+            return
+
+        # adding tasks
+        elif get(words, 0) == "p":
+            end = parse3(get(words, 1))
+            name = " ".join(words[2:]).strip()
+
+            if not name:
+                self.display.println("name required")
+                return
+
+            start = None
+            for task in self.tasks:
+                if task.end < end:
+                    start = task.end
+            if start is None:
+                start = datetime.now()
+
+            self.tasks.append(Task(start, end, name))
+        elif get(words, 0) == "a":
+            duration = words[1].split(":")
+            if len(duration) >= 2:
+                interval = timedelta(hours=int(duration[0]), minutes=int(duration[1]))
+            else:
+                interval = timedelta(hours=int(duration[0]))
+
+            name = " ".join(words[2:]).strip()
+
+            if not name:
+                self.display.println("name required")
+                return
+
+            start = None
+            for task in self.tasks:
+                start = task.end
+            if start is None:
+                start = datetime.now()
+
+            self.tasks.append(Task(start, start+interval, name))
+        elif get(words, 0) == "pr":
+            start = parse3(get(words, 1))
+            end = parse3(get(words, 2))
+            name = " ".join(words[3:]).strip()
+
+            if not name:
+                self.display.println("name required")
+                return
+
+            self.tasks.append(Task(start, end, name))
+        elif get(words, 0) == "u":
+            name = " ".join(words[1:]).strip()
+
+            if not name:
+                self.display.println("name required")
+                return
+
+            self.tasks.append(Task(datetime.now(), datetime.now(), name))
+
+        # replanning tasks
+        elif get(words, 0) == "shift":
+            start_i = int(get(words, 1, '1')) - 1
+            end_i = int(get(words, 2, str(len(self.tasks))))
+
+            min_time = None
+            for i in range(start_i, end_i):
+                task = self.tasks[i]
+                if min_time and min_time > task.start:
+                    diff = min_time - task.start
+                    task.start = task.start + diff
+                    task.end = task.end + diff
+                min_time = task.end
+        elif get(words, 0) == "m":
+            task_index = task_index or self.pick_task(task_index)
+            start = parse3(get(words, 1))
+            end = parse3(get(words, 2))
+
+            self.tasks[task_index].start = start
+            self.tasks[task_index].end = end
+        elif get(words, 0) == "name":
+            task_index = task_index or self.pick_task(task_index)
+            name = " ".join(words[1:]).strip()
+
+            if not name:
+                self.display.println("name required")
+                return
+
+            self.tasks[task_index].name = name
+        elif get(words, 0) == "delete":
+            delete_indicies = {int(index)-1 for index in words[1:]}
+            if task_index is not None:
+                delete_indicies.add(task_index)
+            self.tasks = [task for i, task in enumerate(self.tasks) if i not in delete_indicies]
+
+        # completing tasks
+        elif get(words, 0) == "b":
+            task_index = self.pick_task(task_index)
+
+            if get(words, 1) is None:
+                start = datetime.now()
+            else:
+                start = parse3(get(words, 1))
+
+            self.tasks[task_index].actual.append((start, start))
+        elif get(words, 0) == "x":
+            if get(words, 1) is None:
+                end = datetime.now()
+            else:
+                end = parse3(get(words, 1))
+
+            # find the first started task
+            if task_index is None:
+                for i, t in enumerate(self.tasks):
+                    if t.state == STATES.TODO and len(t.actual) > 0:
+                        task_index = i
+                        break
+            if task_index is None:
+                self.display.println("No pending task was found")
+                return
+
+            task = self.tasks[task_index]
+            if len(task.actual) == 0:
+                self.display.println("Task is not started")
+                return
+
+            task.actual[-1] = (task.actual[-1][0], end)
+            task.state = STATES.COMPLETE
+        elif get(words, 0) == "xr":
+            task_index = self.pick_task(task_index)
+            start = parse3(get(words, 1))
+            end = parse3(get(words, 2))
+
+            self.tasks[task_index].actual.append((start, end))
+            self.tasks[task_index].state = STATES.COMPLETE
+        elif get(words, 0) == "s":
+            task_index = self.pick_task(task_index)
+            self.tasks[task_index].actual = []
+            self.tasks[task_index].state = STATES.SKIPPED
+        elif get(words, 0) == "r":
+            if task_index is None:
+                task_index = self.pick_task(task_index)
+                if task_index >= len(self.tasks):
+                    task_index -= 1
+
+            self.tasks[task_index].actual = []
+            self.tasks[task_index].state = STATES.TODO
+        else:
+            self.display.println("No such command")
+            return
+
+        self.print_tasks()
+
+    def pick_task(self, task_index):
+        if task_index is not None:
+            return task_index
+
+        next_todo = len(self.tasks)
+        for i, v in enumerate(self.tasks):
+            if self.tasks[i].state == STATES.TODO:
+                next_todo = i
+                break
+        return next_todo
+
+    def print_tasks(self):
+        self.tasks = sorted(self.tasks, key=lambda t: (t.start, t.end))
+        self.display.reset()
+
+        # we can't set time ranges without tasks
+        if len(self.tasks) <= 0:
+            return
+
+        print(" "*(CHECK_WIDTH+NAME_WIDTH), end="")
+
+        render_start = time.time()
+
+        # print the header with times
+        # TODO dynamic time range?
+        all_timestamps = []
+        for task in self.tasks:
+            all_timestamps.append(task.start)
+            all_timestamps.append(task.end)
+            for actual in task.actual:
+                all_timestamps.append(actual[0])
+                all_timestamps.append(actual[1])
+        day_start = min(all_timestamps)
+        day_end = max(all_timestamps)
+        step = (day_end - day_start) / TIME_WIDTH
+        offset = 0
+        last = None
+        while offset < TIME_WIDTH:
+            col_time = (day_start + step * offset).strftime("%H")
+            if col_time != last:
+                print(col_time, end=" ")
+                offset += len(str(col_time))+1
+                last = col_time
+            print(" ", end="")
+            offset += 1
+        self.display.println()
+        self.display.println("render time", time.time() - render_start)
+
+        # print each task
+        for index, task in enumerate(self.tasks):
+            if task.state == STATES.COMPLETE:
+                print(bcolors.OKGREEN + "x " + bcolors.ENDC, end="")
+            elif task.state == STATES.SKIPPED:
+                print(bcolors.WARNING + "- " + bcolors.ENDC, end="")
+            elif len(task.actual) > 0:
+                print(". ", end="")
+            else:
+                print("  ", end="")
+            name = f"{str(index+1).rjust(3, ' ')} {to_clock(task.start)} {task.name}"
+            print(name[:NAME_WIDTH].ljust(NAME_WIDTH, ' '), end="")
+
+            task_bar = [' ']*TIME_WIDTH
+            plan_start_i = to_index(task.start, day_start, day_end, TIME_WIDTH)
+            plan_end_i = max(to_index(task.end, day_start, day_end, TIME_WIDTH), plan_start_i+1)
+            for i in range(plan_start_i, plan_end_i):
+                task_bar[i] = '_'
+
+            for (task_start, task_end) in task.actual:
+                start_i = to_index(task_start, day_start, day_end, TIME_WIDTH)
+                end_i = max(to_index(task_end, day_start, day_end, TIME_WIDTH), start_i+1)
+                for i in range(start_i, end_i):
+                    if plan_start_i <= i <= plan_end_i:
+                        task_bar[i] = bcolors.OKGREEN + 'x' + bcolors.ENDC
+                    elif i < plan_start_i:
+                        task_bar[i] = bcolors.OKCYAN + '<' + bcolors.ENDC
+                    else:
+                        task_bar[i] = bcolors.FAIL + '>' + bcolors.ENDC
+
+            self.display.println("".join(task_bar))
+        self.display.println("render time", time.time() - render_start)
+
+    def help(self):
+        self.display.reset()
+        self.display.println("Adding tasks:")
+        self.display.println("a DURATION NAME - add a task with duration (hh or hh:mm)")
+        self.display.println("p STOP NAME - plan a task after the previous one")
+        self.display.println("pr START STOP NAME - plan a task with explicit start and stop")
+        self.display.println("u NAME - unplanned task right now")
+        self.display.println("")
+        self.display.println("Replanning tasks:")
+        self.display.println("m START STOP - move a task (aka reschedule)")
+        self.display.println("shift [START_INDEX] [STOP_INDEX] - shift to fix overlaps")
+        self.display.println("name NEW_NAME - change the name of a task")
+        self.display.println("delete - delete a task")
+        self.display.println("")
+        self.display.println("Completing tasks:")
+        self.display.println("b [START] - begin a task now")
+        self.display.println("x [STOP] - complete a task now")
+        self.display.println("xr START STOP - complete a task with a range")
+        self.display.println("r - reset a task (remove completion)")
+        self.display.println("s - skip a task")
+        self.display.println("")
+        self.display.println("Indexing:")
+        self.display.println("- Prefix command with index to select task for replanning and completing")
+        self.display.println("- Default is first uncompleted for most commands")
+
+
+# interpret 0-24 without 0 suffix as hour
+# otherwise interpret 123 as 12:30
+# for digits is not supported
+def parse3(digits):
+    if not str(digits).startswith('0') and int(digits) < 24:
+        digits = str(digits) + '0'
+
+    digits = int(digits)
+
+    t = datetime.now() - timedelta(hours=5)
+    t = t.replace(hour=math.floor(digits / 10))
+    t = t.replace(minute=(digits % 10) * 10)
+    if t.hour <= 4:
+        t += timedelta(days=1)
+
+    return t
+
+
+def to_clock(dt):
+    return dt.strftime("%H:%M")
+
+
+def to_index(point, interval_start, interval_end, length):
+    p, s, e = point.timestamp(), interval_start.timestamp(), interval_end.timestamp()
+    frac = (p - s) / (e - s)
+    index = math.floor(frac * length)
+    return max(0, min(index, length-1))
+
+
+def shead(str):
+    return str.split(" ")[0]
+
+
+def stail(str):
+    split = str.split(" ")
+    if len(split) >= 2:
+        return " ".join(split[1:])
+    else:
+        return None
+
+
+# a hacky class that allows writing to screen and then clearing it out
+class TabulaRasa:
+    def __init__(self):
+        self.curr_line = 0
+
+    def readln(self):
+        command = input().strip()
+        if command:
+            # line is only printed if something was entered
+            self.curr_line += 1
+
+        readline.write_history_file(HIST_FILE)
+
+        return command
+
+    def println(self, *text):
+        self.curr_line += 1
+        print(*text)
+
+    def reset(self):
+        for c in range(self.curr_line):
+            print(" " * TOTAL_WIDTH + "\033[F" , end="")
+            # print("--- reset")
+        print(" " * TOTAL_WIDTH + "\r", end="")
+        self.curr_line = 0
+
+
+def sh(command):
+    subprocess.check_call(command, shell=True)
+
+
+def sh_read(command):
+    return subprocess.check_output(command, shell=True).decode('utf-8')
+
+
+def get(l: List[T], i, default=None) -> Generic[T]:
+    if i < 0 or i >= len(l):
+        return default
+    return l[i]
+
+
+if __name__ == '__main__':
+    main()
