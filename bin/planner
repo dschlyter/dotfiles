@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-# TODO describe script
+# This is a terminal based planner / todo-list
+# Plan tasks including time frame for completion, then log completion time to see matching
+
 import math
 import subprocess
 import readline
@@ -92,15 +94,17 @@ class Planner:
             words = words[1:]
             command = " ".join(command.split(" ")[1:])
 
+        action = get(words, 0)
+
         if command == "exit":
             sys.exit(0)
         elif command == "":
             pass
-        elif command == "help" or command == "h":
+        elif action == "help" or action == "h":
             self.help()
             return
 
-        elif get(words, 0) == "describe":
+        elif action == "describe":
             task = self.tasks[task_index]
             self.display.println("Name", task.name)
             self.display.println("State", task.state)
@@ -110,7 +114,7 @@ class Planner:
             return
 
         # adding tasks
-        elif get(words, 0) == "p":
+        elif action == "p":
             end = parse3(get(words, 1))
             name = " ".join(words[2:]).strip()
 
@@ -126,7 +130,7 @@ class Planner:
                 start = datetime.now()
 
             self.tasks.append(Task(start, end, name))
-        elif get(words, 0) == "a":
+        elif action == "a":
             duration = words[1].split(":")
             if len(duration) >= 2:
                 interval = timedelta(hours=int(duration[0]), minutes=int(duration[1]))
@@ -146,7 +150,7 @@ class Planner:
                 start = datetime.now()
 
             self.tasks.append(Task(start, start+interval, name))
-        elif get(words, 0) == "pr":
+        elif action == "pr":
             start = parse3(get(words, 1))
             end = parse3(get(words, 2))
             name = " ".join(words[3:]).strip()
@@ -156,7 +160,7 @@ class Planner:
                 return
 
             self.tasks.append(Task(start, end, name))
-        elif get(words, 0) == "u":
+        elif action == "u":
             name = " ".join(words[1:]).strip()
 
             if not name:
@@ -166,7 +170,7 @@ class Planner:
             self.tasks.append(Task(datetime.now(), datetime.now(), name))
 
         # replanning tasks
-        elif get(words, 0) == "shift":
+        elif action == "shift":
             start_i = int(get(words, 1, '1')) - 1
             end_i = int(get(words, 2, str(len(self.tasks))))
 
@@ -178,14 +182,14 @@ class Planner:
                     task.start = task.start + diff
                     task.end = task.end + diff
                 min_time = task.end
-        elif get(words, 0) == "m":
+        elif action == "m":
             task_index = task_index or self.pick_task(task_index)
             start = parse3(get(words, 1))
             end = parse3(get(words, 2))
 
             self.tasks[task_index].start = start
             self.tasks[task_index].end = end
-        elif get(words, 0) == "name":
+        elif action == "name":
             task_index = task_index or self.pick_task(task_index)
             name = " ".join(words[1:]).strip()
 
@@ -194,14 +198,14 @@ class Planner:
                 return
 
             self.tasks[task_index].name = name
-        elif get(words, 0) == "delete":
+        elif action == "delete":
             delete_indicies = {int(index)-1 for index in words[1:]}
             if task_index is not None:
                 delete_indicies.add(task_index)
             self.tasks = [task for i, task in enumerate(self.tasks) if i not in delete_indicies]
 
         # completing tasks
-        elif get(words, 0) == "b":
+        elif action == "b":
             task_index = self.pick_task(task_index)
 
             if get(words, 1) is None:
@@ -210,7 +214,7 @@ class Planner:
                 start = parse3(get(words, 1))
 
             self.tasks[task_index].actual.append((start, start))
-        elif get(words, 0) == "x":
+        elif action == "x" or action == 'e':
             if get(words, 1) is None:
                 end = datetime.now()
             else:
@@ -232,19 +236,21 @@ class Planner:
                 return
 
             task.actual[-1] = (task.actual[-1][0], end)
-            task.state = STATES.COMPLETE
-        elif get(words, 0) == "xr":
+            if action == "x":
+                task.state = STATES.COMPLETE
+        elif action == "xr" or action == "er":
             task_index = self.pick_task(task_index)
             start = parse3(get(words, 1))
             end = parse3(get(words, 2))
 
             self.tasks[task_index].actual.append((start, end))
-            self.tasks[task_index].state = STATES.COMPLETE
-        elif get(words, 0) == "s":
+            if action == "xr":
+                self.tasks[task_index].state = STATES.COMPLETE
+        elif action == "s":
             task_index = self.pick_task(task_index)
             self.tasks[task_index].actual = []
             self.tasks[task_index].state = STATES.SKIPPED
-        elif get(words, 0) == "r":
+        elif action == "r":
             if task_index is None:
                 task_index = self.pick_task(task_index)
                 if task_index >= len(self.tasks):
@@ -279,8 +285,7 @@ class Planner:
 
         print(" "*(CHECK_WIDTH+NAME_WIDTH), end="")
 
-        # print the header with times
-        # TODO dynamic time range?
+        # calculate day boundaries from tasks
         all_timestamps = []
         for task in self.tasks:
             all_timestamps.append(task.start)
@@ -290,18 +295,20 @@ class Planner:
                 all_timestamps.append(actual[1])
         day_start = min(all_timestamps)
         day_end = max(all_timestamps)
-        step = (day_end - day_start) / TIME_WIDTH
-        offset = 0
-        last = None
-        while offset < TIME_WIDTH:
-            col_time = (day_start + step * offset).strftime("%H")
-            if col_time != last:
-                print(col_time, end=" ")
-                offset += len(str(col_time))+1
-                last = col_time
-            print(" ", end="")
-            offset += 1
-        self.display.println()
+
+        # create a header bar and print each full hour to it
+        header_bar = [' ']*TIME_WIDTH
+        t = day_start
+        while t < day_end:
+            hour = t.strftime("%H")
+            t_index = to_index(t, day_start, day_end, TIME_WIDTH)
+            for i, c in enumerate(hour):
+                header_i = t_index + i
+                if header_i < TIME_WIDTH:
+                    header_bar[header_i] = hour[i]
+            t = (t + timedelta(seconds=3600)).replace(minute=0, second=0, microsecond=0)
+
+        self.display.println(''.join(header_bar))
 
         # print each task
         for index, task in enumerate(self.tasks):
