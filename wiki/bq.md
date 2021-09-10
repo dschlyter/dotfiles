@@ -23,6 +23,10 @@ Note: This is safe even when the array element is null - result will just be nul
     SELECT ARRAY(SELECT repeated_record.field FROM UNNEST(repeated_record))
     FROM table
 
+## Filtering an array
+
+    SELECT ARRAY(SELECT repeated_record.field FROM UNNEST(repeated_record) WHERE field = 'value')
+    FROM table
 
 # Timestamps
 
@@ -40,9 +44,11 @@ Note: This is safe even when the array element is null - result will just be nul
 
     SELECT UNIX_DATE(date)
 
-    SELECT UNIX_SECONDS(CURRENT_TIMESTAMP())
+    SELECT UNIX_MILLIS(CURRENT_TIMESTAMP())
 
-    SELECT UNIX_SECONDS(timestamp)
+    SELECT UNIX_MILLIS(timestamp)
+
+    SELECT UNIX_MILLIS(TIMESTAMP("2021-12-25 15:30:00+00"))
 
 # Deduplication
 
@@ -140,11 +146,19 @@ The usage of ORDER BY could be a WHERE over a subquery, so this is a lazy/fast v
     FROM table
     WINDOW seq AS (PARTITION BY user_id ORDER BY time)
 
-## Finding the percentage, or cumulative sum, on a GROUP BY
+## Finding the percentage, cumulative sum or cumulative percentage, on a GROUP BY
 
     COUNT(1) / SUM(COUNT(1)) OVER () percent,
 
     SUM(COUNT(1)) OVER (ORDER BY COUNT(1) DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) cum_sum,
+
+    SUM(COUNT(1)) OVER (ORDER BY [SAME AS QUERY] DESC) / SUM(COUNT(1)) OVER () cum_percent
+
+## Finding increase over time
+
+    SELECT COUNT(1) / FIRST_VALUE(COUNT(1)) OVER (PARTITION BY grouping_id ORDER BY day) increase
+    FROM ...
+    GROUP BY grouping_id, day
 
 ## Danger: ORDER BY
 
@@ -162,6 +176,14 @@ And for some reason you are not allowed to use ORDER BY inside the ARRAY_AGG for
 ## Danger: WHERE
 
 Be careful so you don't remove result from the window using WHERE, since it runs before the window.
+
+# Wildcards
+
+Combining string comparisons and table suffix allows for precise table selection of date-suffixed tables.
+
+    SELECT ...
+    FROM `project.dataset.table_2021*`
+    WHERE _TABLE_SUFFIX > '0325' AND _TABLE_SUFFIX < '0513'
 
 # Partitions
 

@@ -239,7 +239,7 @@
 
     # github
     github-url = !echo \"$(git config --get remote.origin.url | sed -e 's,:,/,' -e 's,https///,https://,' -e 's,git@,https://,' -e 's/[.]git$//')\"
-    web = !open \"$(git github-url)/blob/master/$1\" #
+    web = !open \"$(git github-url)/blob/master/$1\" "#"
     github-use-ssh = !git remote set-url origin \"git@github.com:$(git config --get remote.origin.url | sed -e 's,github.com[/],,' -e 's,.*[:][/]*,,')\"
     pr = !git same origin/$(git curr-br) $(git curr-br) || git pu && open \"$(git github-url)/compare/$(git curr-br)?expand=1\"
     pr-winner = !git log --oneline --since='1 week' --pretty=format:'%an: %s' | grep 'Merge pull request' | sed 's/:.*//' | sort | uniq -c | sort -nr

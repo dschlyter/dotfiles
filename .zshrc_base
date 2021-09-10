@@ -79,6 +79,23 @@ alias -g FS='$(fd --type f | fzf --multi)'
 alias -g DL='"$(echo $HOME/?ownloads)/$(ls -1 -tr $HOME/?ownloads | tail -n 1)"'
 alias -g LAST='"$(ls -tr | tail -n 1)"'
 
+alias -g TODAY='$(date -I)'
+alias -g YESTERDAY='$(date -I -d "-1 days")'
+alias -g TODAY-1='$(date -I -d "-1 days")'
+alias -g TODAY-2='$(date -I -d "-2 days")'
+alias -g TODAY-3='$(date -I -d "-3 days")'
+
+alias -g THISHOUR='$(date "+%Y-%m-%dT%H")'
+alias -g THISHOUR-1='$(date "+%Y-%m-%dT%H" -d "-1 hour")'
+alias -g THISHOUR-2='$(date "+%Y-%m-%dT%H" -d "-2 hour")'
+alias -g THISHOUR-3='$(date "+%Y-%m-%dT%H" -d "-3 hour")'
+alias -g THISHOUR-4='$(date "+%Y-%m-%dT%H" -d "-4 hour")'
+alias -g THISHOUR-5='$(date "+%Y-%m-%dT%H" -d "-5 hour")'
+alias -g THISHOUR-6='$(date "+%Y-%m-%dT%H" -d "-6 hour")'
+alias -g THISHOUR-7='$(date "+%Y-%m-%dT%H" -d "-7 hour")'
+alias -g THISHOUR-8='$(date "+%Y-%m-%dT%H" -d "-8 hour")'
+alias -g THISHOUR-24='$(date "+%Y-%m-%dT%H" -d "-24 hour")'
+
 # Functions
 
 # Enable per-pane history in tmux

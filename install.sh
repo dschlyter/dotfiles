@@ -183,10 +183,6 @@ case "$(uname -s)" in
         ;;
 esac
 
-# maintain the correct user for dotfiles
-git config user.name "David Schlyter"
-git config user.email "dschlyter@gmail.com"
-
 if [ "$SHELL" == "/bin/zsh" ]; then
     echo "zsh is the current active shell"
 elif [ -f /bin/zsh ]; then
@@ -251,9 +247,15 @@ cron_add() {
 if [[ "$*" == *"--cron"* ]]; then
     echo "Adding autoupdate to cron"
     cron_add "0 10 * * * $HOME/bin/git-autoupdate >> /tmp/git-autoupdate-$USER.log 2>&1"
+    echo "Setting up transient auto delete area"
+    cron_add "0 14 * * * find $HOME/transient -mtime +14 -delete"
 else
-    echo "Not installing autoupdate cron, run with --cron to enable"
+    echo "Not installing autoupdate/transient cron, run with --cron to enable"
 fi
+
+# maintain the correct user for dotfiles regardless of global config
+git config user.name "David Schlyter"
+git config user.email "dschlyter@gmail.com"
 
 if [[ "$*" == *"--git"* ]]; then
     git config --global user.name "David Schlyter"
