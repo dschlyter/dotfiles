@@ -52,3 +52,17 @@ Because I always forget how they work
     echo "associative array values" "${obj[@]}"
     echo "associative array keys" "${!obj[@]}"
 
+# Why shell is terrible
+
+## Sneaky subshells
+
+    X=2
+    echo eyyy | while read x; do
+      X=$((X+1))
+      echo X is $X
+    done
+    echo X is $X
+
+This will output "X is 3" and then "X is 2".
+
+The pipe spawns an implicit subshell that will execute while. Variables go into the while loop, but changes don't go out.

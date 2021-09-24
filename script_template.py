@@ -6,15 +6,15 @@ import subprocess
 
 
 def main():
-    sh("ls -la")
+    print(sh("ls -la | grep rw"))
 
 
 def sh(command):
-    subprocess.check_call(command, shell=True)
+    subprocess.check_call(['/bin/bash', '-o', 'pipefail', '-c', command])
 
 
 def sh_read(command):
-    return subprocess.check_output(command, shell=True).decode('utf-8')
+    return subprocess.check_output(['/bin/bash', '-o', 'pipefail', '-c', command]).decode("utf-8").strip()
 
 
 def get(list, i, default=None):

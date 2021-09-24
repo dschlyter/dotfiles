@@ -149,6 +149,7 @@
     # remove all whitespace changes
     rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git restore "${@:-.}" && git reset'
     bc = !git switch -b \"$1\" && git commit -p
+    empty = !git commit --allow-empty -m "empty"
 
     # amend and rebase
     # amend without changing git commit message
@@ -210,10 +211,11 @@
     nuke = reset --hard
     # try merge and print conflicts if merge fails
     merge-dry = !git merge --no-commit "$1" || git diff ";" git merge --abort "#"
-    brl = branch --sort=-committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
-    bra = !git brl -a
-    braf = !git bra --color | fzf --ansi -e | awk '{print $5}' "#"
-    swf = !git braf | sed 's,origin/,,' | xargs git sw "#"
+    brl = branch --sort=committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
+    # list all branches - but local last
+    bra = !git --no-pager brl --color --remotes && git --no-pager brl --color
+    braf = !git bra --color | fzf --tac --ansi --exact | awk '{print $5}' "#"
+    s = !git braf | sed 's,origin/,,' | xargs git sw "#"
     # branch cleanup
     # delete or rename branch, both locally and remotely
     brd = !git branch -d $1";" git push origin --delete $1 "#"

@@ -1,6 +1,9 @@
 ## Sampling stuff easily (to speed up queries)
 
+    WHERE mod(farm_fingerprint(user_id), 100) = 0
     WHERE mod(farm_fingerprint(to_hex(user_id)), 100) = 0
+
+Note: If you are doing a LEFT JOIN, make sure to do this filtering in a subquery or WITH statement.
 
 # Arrays
 
@@ -84,6 +87,16 @@ Commonly useful if you have duplicated boolean logic. Note the semicolon in the 
     CREATE TEMP FUNCTION pred(x STRING) RETURNS BOOL AS (x = 'expected');
 
 # Bucketing
+
+Quickly calculating quantiles. Cast to a json string to avoid 100 result rows.
+
+    SELECT TO_JSON_STRING(APPROX_QUANTILES(numeric_field, 100)) quantiles
+
+This is also cool
+
+    SELECT APPROX_TOP_COUNT(a, 10)
+
+## Explicit bucketing
 
 A quick bucketing. On the top-level using GROUP BY
 
@@ -231,10 +244,20 @@ Note: This will not handle duplicate rows with different counts
 Pro tip: You only need col names on the first row
 
     (
-        SELECT 1 as id, 'a' as join_key UNION ALL
-        SELECT 2, 'a' UNION ALL
+        SELECT 1 as id, 'a' as join_key 
+        UNION ALL
+        SELECT 2, 'a' 
+        UNION ALL
         SELECT 3, 'a'
     )
+
+Or you could do this. Slightly more setup but less stuff per new element. 
+
+    UNNEST([
+        STRUCT(1 as id, 'a' as join_key),
+        (2, 'a'),
+        (3, 'a')
+    ])
 
 ## Loading data from terminal
 

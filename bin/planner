@@ -24,7 +24,6 @@ NAME_WIDTH = 45
 TIME_WIDTH = 80
 TOTAL_WIDTH = CHECK_WIDTH + NAME_WIDTH + TIME_WIDTH
 
-# TODO permanent storage for various days
 
 class bcolors:
     HEADER = '\033[95m'
@@ -44,6 +43,11 @@ class STATES:
     COMPLETE = 'complete'
 
 
+class KIND:
+    PLANNED = 'planned'
+    UNPLANNED = 'unplanned'
+
+
 @dataclass
 class Task:
     start: datetime
@@ -51,6 +55,7 @@ class Task:
     name: str
     actual: list = field(default_factory=lambda: [])
     state: str = STATES.TODO
+    kind: str = KIND.PLANNED
 
 
 def main():
@@ -104,7 +109,7 @@ class Planner:
             self.help()
             return
 
-        elif action == "describe":
+        elif action == "v":
             task = self.tasks[task_index]
             self.display.println("Name", task.name)
             self.display.println("State", task.state)
@@ -167,7 +172,7 @@ class Planner:
                 self.display.println("name required")
                 return
 
-            self.tasks.append(Task(datetime.now(), datetime.now(), name))
+            self.tasks.append(Task(datetime.now(), datetime.now(), name, kind=KIND.UNPLANNED))
 
         # replanning tasks
         elif action == "shift":
@@ -214,13 +219,22 @@ class Planner:
                 start = parse3(get(words, 1))
 
             self.tasks[task_index].actual.append((start, start))
+            self.tasks[task_index].state = STATES.TODO
         elif action == "x" or action == 'e':
-            if get(words, 1) is None:
+            if len(words) == 1:
+                start = None
                 end = datetime.now()
-            else:
+            elif len(words) == 2:
+                start = None
                 end = parse3(get(words, 1))
+            elif len(words) == 3:
+                start = parse3(get(words, 1))
+                end = parse3(get(words, 2))
+            else:
+                self.display.println("Invalid number of args")
+                return
 
-            # find the first started task
+            # default to the first started task
             if task_index is None:
                 for i, t in enumerate(self.tasks):
                     if t.state == STATES.TODO and len(t.actual) > 0:
@@ -231,24 +245,19 @@ class Planner:
                 return
 
             task = self.tasks[task_index]
-            if len(task.actual) == 0:
-                self.display.println("Task is not started")
-                return
+            if start is None:
+                if len(task.actual) == 0:
+                    self.display.println("Task is not started")
+                    return
 
-            task.actual[-1] = (task.actual[-1][0], end)
+                task.actual[-1] = (task.actual[-1][0], end)
+            else:
+                task.actual.append((start, end))
+
             if action == "x":
                 task.state = STATES.COMPLETE
-        elif action == "xr" or action == "er":
-            task_index = self.pick_task(task_index)
-            start = parse3(get(words, 1))
-            end = parse3(get(words, 2))
-
-            self.tasks[task_index].actual.append((start, end))
-            if action == "xr":
-                self.tasks[task_index].state = STATES.COMPLETE
         elif action == "s":
             task_index = self.pick_task(task_index)
-            self.tasks[task_index].actual = []
             self.tasks[task_index].state = STATES.SKIPPED
         elif action == "r":
             if task_index is None:
@@ -257,6 +266,18 @@ class Planner:
                     task_index -= 1
 
             self.tasks[task_index].actual = []
+            self.tasks[task_index].state = STATES.TODO
+        elif action == "r1":
+            if task_index is None:
+                task_index = self.pick_task(task_index)
+                if task_index >= len(self.tasks):
+                    task_index -= 1
+
+            if len(self.tasks[task_index].actual) == 0:
+                self.display.println("Task has no work segment to remove")
+                return
+
+            self.tasks[task_index].actual = self.tasks[task_index].actual[:-1]
             self.tasks[task_index].state = STATES.TODO
         else:
             self.display.println("No such command")
@@ -320,8 +341,11 @@ class Planner:
                 print(". ", end="")
             else:
                 print("  ", end="")
-            name = f"{str(index+1).rjust(3, ' ')} {to_clock(task.start)} {task.name}"
-            print(name[:NAME_WIDTH].ljust(NAME_WIDTH, ' '), end="")
+            name = task.name
+            if task.kind == KIND.UNPLANNED:
+                name = f"u: {name}"
+            title = f"{str(index+1).rjust(3, ' ')} {to_clock(task.start)} {name}"
+            print(title[:NAME_WIDTH].ljust(NAME_WIDTH, ' '), end="")
 
             task_bar = [' ']*TIME_WIDTH
             plan_start_i = to_index(task.start, day_start, day_end, TIME_WIDTH)
@@ -345,27 +369,31 @@ class Planner:
     def help(self):
         self.display.reset()
         self.display.println("Adding tasks:")
-        self.display.println("a DURATION NAME - add a task with duration (hh or hh:mm)")
-        self.display.println("p STOP NAME - plan a task after the previous one")
-        self.display.println("pr START STOP NAME - plan a task with explicit start and stop")
+        self.display.println("a DURATION NAME - append a task with duration (hh or hh:mm)")
+        self.display.println("p STOP NAME - append a task with a stop time (hhm)")
+        self.display.println("pr START STOP NAME - plan a task with explicit start and stop time")
         self.display.println("u NAME - unplanned task right now")
         self.display.println("")
         self.display.println("Replanning tasks:")
+        self.display.println("v - view a more verbose description of the task")
         self.display.println("m START STOP - move a task (aka reschedule)")
-        self.display.println("shift [START_INDEX] [STOP_INDEX] - shift to fix overlaps")
+        self.display.println("shift [START_INDEX] [STOP_INDEX] - shift planned to fix overlaps")
         self.display.println("name NEW_NAME - change the name of a task")
-        self.display.println("delete - delete a task")
+        self.display.println("delete [index] [index] ... - delete a task")
         self.display.println("")
         self.display.println("Completing tasks:")
-        self.display.println("b [START] - begin a task now")
-        self.display.println("x [STOP] - complete a task now")
-        self.display.println("xr START STOP - complete a task with a range")
+        self.display.println("b [START] - begin working on a task now, or at time")
+        self.display.println("x [STOP] - complete a task now, or at time")
+        self.display.println("x START STOP - complete a task with a explicit range")
+        self.display.println("e [STOP] - end work on a task now, or at time")
+        self.display.println("e START STOP - end work on a task with a range")
         self.display.println("r - reset a task (remove completion)")
+        self.display.println("r1 - remove one work segment from a task, keeping the others")
         self.display.println("s - skip a task")
         self.display.println("")
         self.display.println("Indexing:")
         self.display.println("- Prefix command with index to select task for replanning and completing")
-        self.display.println("- Default is first uncompleted for most commands")
+        self.display.println("- Default is first uncompleted (for most commands)")
 
 
 # interpret 0-24 without 0 suffix as hour
