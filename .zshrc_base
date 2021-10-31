@@ -269,7 +269,7 @@ _slow_fs() {
     fi
     if where $cmd > /dev/null; then
         curr_fs="$($cmd --file-system --format=%T .)"
-        skip_fs=(osxfuse, fuseblk)
+        skip_fs=(osxfuse, fuseblk, wslfs)
         if (($skip_fs[(I)$curr_fs])); then
             return 0
         else
