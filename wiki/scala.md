@@ -403,6 +403,32 @@ Functors and Applicatives compose
 
 Two monads cannot automatically compose, but you can defined a monad transform that defines how one specific monad will nest within any other monad. Intuition (maybe wrong), you must always specify how to pack and unpack the monad?
 
+# Scalatest
+
+Default case class diff is not good, here is a big hack for it. There is also libs like diffx.
+
+    def diffFields(a: AnyRef, b: AnyRef, prefix: String = ""): Unit = {
+        val fields = a.getClass.getDeclaredFields
+        var goodFields: Vector[String] = Vector()
+        fields.foreach { f =>
+            f.setAccessible(true)
+            val av = f.get(a)
+            val bv = f.get(b)
+            val fieldName = prefix + f.getName
+            av == bv match {
+                case true => goodFields = goodFields :+ fieldName
+                case false =>
+                    println("Diffing field " + fieldName)
+                    println(av)
+                    println(bv)
+                    if (av.isInstanceOf[scala.Product] && av != None && bv != None) {
+                        diffFields(av, bv, fieldName + ".")
+                    }
+            }
+        }
+        println("These fields matched: " + String.join(" ", goodFields: _*))
+    }
+
 ## Other libs
 
 Scalaz - more scientific in depth complete typing

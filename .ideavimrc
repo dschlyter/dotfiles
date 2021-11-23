@@ -48,6 +48,9 @@ nnoremap S /<C-r>"<cr>.
 
 noremap <Cr> o<Esc>
 
+" delete method: <cursor>deleteMe(keepMe()) => keepMe()
+nnoremap dm mt%%%x<C-o>v'td
+
 " use Q to run the macro on q
 noremap Q @q
 

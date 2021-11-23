@@ -128,6 +128,9 @@ noremap - mt.`tj
 " use S to repeat the last substitution
 nnoremap S /<C-r>"<cr>.
 
+" delete method: <cursor>deleteMe(keepMe()) => keepMe()
+nnoremap dm mt%%%x<C-o>v'td
+
 " allow . and Q to execute once for each line of a visual selection
 vnoremap . :normal .<CR>
 noremap <Cr> o<Esc>
@@ -139,7 +142,7 @@ noremap <C-e> $
 inoremap <C-a> <C-o>^
 inoremap <C-e> <C-o>$
 
-" use alt j/k to move lines
+" use ctrl j/k to move lines
 nnoremap <C-j> :m .+1<CR>==
 nnoremap <C-k> :m .-2<CR>==
 inoremap <C-j> <Esc>:m .+1<CR>==gi
@@ -189,6 +192,9 @@ nnoremap K "_d
 nnoremap KK "_dd
 vnoremap K "_d
 
+" cute hacks
+" ==========
+
 " break undo in sensible places
 inoremap <CR>  <C-G>u<CR>
 
@@ -214,9 +220,6 @@ function! CheckUpdate(timer)
     silent! checktime
     call timer_start(30000,'CheckUpdate')
 endfunction
-
-" cute hacks
-" ==========
 
 " Open a file with fasd, a hack to have an interactive terminal
 function! s:FasdOpen()

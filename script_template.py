@@ -6,7 +6,7 @@ import subprocess
 
 
 def main():
-    print(sh("ls -la | grep rw"))
+    print(sh("ls -la | grep rw"))
 
 
 def sh(command):

@@ -6,10 +6,7 @@
 .gitconfig_local
 .gitautofetch
 .gitblacklist
-/gitignored
-gitignored-*
-/gign
-gign-*
+gitignored*
 
 nocommit_*
 

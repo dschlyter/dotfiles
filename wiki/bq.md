@@ -31,6 +31,10 @@ Note: This is safe even when the array element is null - result will just be nul
     SELECT ARRAY(SELECT repeated_record.field FROM UNNEST(repeated_record) WHERE field = 'value')
     FROM table
 
+## Getting offsets
+
+    SELECT * FROM UNNEST([1,2,3]) a WITH OFFSET AS offset_a
+
 # Timestamps
 
 ## Unix timestamp
@@ -52,6 +56,12 @@ Note: This is safe even when the array element is null - result will just be nul
     SELECT UNIX_MILLIS(timestamp)
 
     SELECT UNIX_MILLIS(TIMESTAMP("2021-12-25 15:30:00+00"))
+
+## Date formatted as YYYYMMDD
+
+Yesterday, where data is usually available.
+
+    FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
 
 # Deduplication
 
@@ -207,11 +217,21 @@ Combining string comparisons and table suffix allows for precise table selection
     GROUP BY _PARTITIONTIME
     ORDER BY _PARTITIONTIME
 
+Or you can view the metadata table.
+
+    SELECT *
+    FROM `project.dataset.INFORMATION_SCHEMA.PARTITIONS`
+    -- WHERE table_name = 'table'
+    ORDER BY partition_id DESC
+
+## DANGER: WHERE _PARTITIONTIME
+
 ## Preview partition
 
-(does not work on the web UI)
+Ddoes not work on the web UI, so you need to use console.
 
     bq head -n 1 --format prettyjson 'project:dataset.table$20210404'
+
 
 ## Combining GROUP BY and UNNEST
 
@@ -259,6 +279,18 @@ Or you could do this. Slightly more setup but less stuff per new element.
         (3, 'a')
     ])
 
+## Configure bq cli
+
+`vim $HOME/.bigqueryrc`
+
+    --location=EU
+
+    [query]
+    --use_legacy_sql=false
+
+    [mk]
+    --use_legacy_sql=false
+
 ## Loading data from terminal
 
     bq load --location=EU --source_format=AVRO --autodetect project:dataset.table 'gs://bucket/path/to/part-*'
@@ -267,6 +299,13 @@ Or you could do this. Slightly more setup but less stuff per new element.
 
     bq --project_id project-id cancel 'job-id'
 
+## Renaming a table
+
+    ALTER TABLE `project.dataset.table`
+    RENAME TO `new_table`
+
 # Pro tip
 
-Don't mix `OUTER JOIN` and `WHERE table._TABLE_SUFFIX = ...`. Since `_TABLE_SUFFIX` will be null when the join does not match, split this out into subqueries.
+Don't mix `OUTER JOIN` (or left, right) and `WHERE table._TABLE_SUFFIX = ...`. Since `_TABLE_SUFFIX` will be null when the join does not match, split this out into subqueries.
+
+Same thing goes for _PARTITIONTIME 
