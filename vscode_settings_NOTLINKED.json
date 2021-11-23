@@ -1,5 +1,6 @@
 {
     "vim.handleKeys": {
         "<C-f>": false
-    }
+    },
+    "vim.foldfix": true
 }

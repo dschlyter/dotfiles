@@ -1,0 +1,226 @@
+#!/usr/bin/env python3
+
+# Terminal based pomodoro tracker
+
+import math
+import subprocess
+import shutil
+import traceback
+import signal
+import os
+import time
+import readline
+from datetime import datetime, timedelta
+from dataclasses import dataclass, field
+from typing import TypeVar, Generic, List
+
+DEV_MODE = os.environ.get("POMO_DEV") == "1"
+
+POMO_LEN = 25 * 60
+if DEV_MODE:
+    POMO_LEN = 5
+
+DONE_SONG = 'spotify:track:4oeXcCqKyOtNidIYXWRsfV'
+TOTAL_WIDTH = 80
+
+# HIST_FILE = str(Path.home()) + '/.config/planner_history.txt'
+T = TypeVar('T')
+# readline.read_history_file(HIST_FILE)
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+class BLOCK_STATE:
+    GREEN = 'green'
+    AMBER = 'amber'
+    RED = 'red'
+    PENDING = 'pending'
+
+
+WAITING = False
+
+
+def main():
+    p = Pomo()
+
+    def error_handler(sig, frame):
+        global WAITING
+        if WAITING:
+            WAITING = False
+        else:
+            p.display.println("Use 'exit' to exit")
+
+    signal.signal(signal.SIGINT, error_handler)
+
+    while True:
+        try:
+            res = p.main()
+            if res == "exit":
+                break
+        except EOFError:
+            # user pressed ctrl-d
+            error_handler(None, None)
+            if os.environ.get("POMO_DEV"):
+                # rapid abort when developing
+                break
+        except Exception as e:
+            traceback.print_exc()
+
+
+class Pomo:
+    def __init__(self) -> None:
+        self.blocks = []
+        self.display = TabulaRasa()
+
+    def main(self):
+        self.display_blocks()
+
+        command = None
+        while not (command and command.strip()):
+            command = self.display.readln()
+
+        if command == 'exit':
+            return command
+        elif command == "help" or command == "h":
+            self.help()
+            return
+
+        self.execute_block(command)
+        self.display.reset()
+
+    def execute_block(self, command):
+        self.blocks.append({
+            'start': datetime.now(),
+            'stop': None,
+            'name': command,
+            'state': BLOCK_STATE.PENDING
+        })
+
+        wait_success = self.wait()
+        self.blocks[-1]['stop'] = datetime.now()
+        if not wait_success:
+            self.blocks[-1]['state'] = BLOCK_STATE.RED
+            return
+
+        self.play_sound()
+
+        # report the block result
+        while wait_success:
+            self.display.println("What was the outcome? [gar]")
+            result = self.display.readln()
+            state = {
+                'g': BLOCK_STATE.GREEN,
+                'a': BLOCK_STATE.AMBER,
+                'r': BLOCK_STATE.RED
+            }.get(result)
+            if state:
+                self.blocks[-1]['state'] = state
+                break
+
+    def help(self):
+        pass
+        self.display.println("Press enter to continue")
+        self.display.readln()
+
+    def display_blocks(self):
+        block_count = 0
+        for b in self.blocks:
+            if b['state'] in (BLOCK_STATE.GREEN, BLOCK_STATE.AMBER):
+                block_count += 1
+        self.display.println("Count:", block_count)
+
+        for b in self.blocks:
+            symbol = {
+                BLOCK_STATE.GREEN: bcolors.OKGREEN + 'x' + bcolors.ENDC,
+                BLOCK_STATE.AMBER: bcolors.WARNING + 'x' + bcolors.ENDC,
+                BLOCK_STATE.RED: bcolors.FAIL + '-' + bcolors.ENDC,
+                BLOCK_STATE.PENDING: '.'
+            }[b['state']]
+            self.display.println(symbol, to_clock(b['start']), "-", to_clock(b['stop']), b['name'])
+
+    def wait(self):
+        global WAITING
+        WAITING = True
+
+        wait_to = datetime.now() + timedelta(seconds=POMO_LEN)
+        while WAITING and datetime.now() < wait_to:
+            diff = (wait_to - datetime.now()).seconds
+            minutes = math.floor(diff / 60)
+            seconds = diff % 60
+            print(f"\rRunning timer: {minutes}:{seconds:02d}", end="")
+            time.sleep(1)
+        print("\r", end="")
+
+        ret = WAITING
+        WAITING = False
+        return ret
+
+    def play_sound(self):
+        # TODO something better might be needed here - does not work if already playing
+
+        if shutil.which("open"):
+            subprocess.check_call(['open', DONE_SONG])
+        elif shutil.which("xdg-open"):
+            subprocess.check_call(['xdg-open', DONE_SONG])
+        else:
+            self.display.println("Error: Could not play sound, did not find open executable")
+
+
+def to_clock(dt):
+    if dt:
+        return dt.strftime("%H:%M")
+    return "-"
+
+
+# a hacky class that allows writing to screen and then clearing it out
+class TabulaRasa:
+    def __init__(self):
+        self.curr_line = 0
+
+    def readln(self):
+        command = input().strip()
+        if command:
+            # line is only printed if something was entered
+            self.curr_line += 1
+
+        # readline.write_history_file(HIST_FILE)
+
+        return command
+
+    def println(self, *text):
+        self.curr_line += 1
+        print(*text)
+
+    def reset(self):
+        for c in range(self.curr_line):
+            print(" " * TOTAL_WIDTH + "\033[F" , end="")
+            # print("--- reset")
+        print(" " * TOTAL_WIDTH + "\r", end="")
+        self.curr_line = 0
+
+
+def sh(command):
+    subprocess.check_call(command, shell=True)
+
+
+def sh_read(command):
+    return subprocess.check_output(command, shell=True).decode('utf-8')
+
+
+def get(l: List[T], i, default=None) -> Generic[T]:
+    if i < 0 or i >= len(l):
+        return default
+    return l[i]
+
+
+if __name__ == '__main__':
+    main()
