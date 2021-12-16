@@ -470,9 +470,14 @@ ral() {
 # Various helpers
 
 retry() {
-    while true; do
+    local tries=100000
+    if [[ "$1" =~ '^[0-9]+$' ]]; then
+        tries="$1"
+        shift
+    fi
+    for attempt in $(seq $tries); do
         eval "$@" && return 0
-        echo "Exit $? - Retrying in 1 second"
+        echo "Exit $? - Retrying in 1 second. ${attempt}/${tries}"
         sleep 1
     done
 }

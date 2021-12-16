@@ -63,6 +63,18 @@ Yesterday, where data is usually available.
 
     FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
 
+# Select
+
+## Exclude and replace
+
+    SELECT * EXCEPT(a, b, c)
+
+    SELECT * REPLACE(a * 100 AS a, b * 100 AS b)
+
+## Exclude nested
+
+    SELECT (SELECT AS STRUCT nested_struct.* EXCEPT(nested_field)
+
 # Deduplication
 
 For all fields, except repeated which do not support this.
@@ -278,6 +290,8 @@ Or you could do this. Slightly more setup but less stuff per new element.
         (2, 'a'),
         (3, 'a')
     ])
+
+# CLI
 
 ## Configure bq cli
 

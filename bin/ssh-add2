@@ -5,8 +5,10 @@
 
 set key_file [lindex $argv 0];
 set password [lindex $argv 1];
+set time [lindex $argv 2];
+if {$time eq ""} {set time "16"}
 
-spawn ssh-add -t 16h $key_file
+spawn ssh-add -t ${time}h $key_file
 
 expect "Enter passphrase for ${key_file}:"
 send $password

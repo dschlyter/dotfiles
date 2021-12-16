@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+
+# Lists how many lines you have contributed to a git repo over time
+
+import subprocess
+import sys
+
+
+def main():
+    if len(sys.argv) > 1:
+        target_author = sys.argv[1]
+    else:
+        target_author = sh_read("git config --get user.email")
+        print("Commits by author", target_author)
+
+    lines_by_date = {}
+
+    commit_lines_changed = sh_read("git log --numstat --pretty='format:COMMIT;%ad;%ae' --date='format:%Y-%m-%dT%H:%M:%S'")
+
+    commit_date = None
+    commit_author = None
+
+    for line in commit_lines_changed.split("\n"):
+        if line == "":
+            continue
+        elif line.startswith("COMMIT;"):
+            _, commit_date, commit_author = line.split(";")
+        elif commit_author != target_author:
+            continue
+        else:
+            first_col = line.split("\t")[0]
+            if first_col != "-":
+                add(lines_by_date, commit_date, int(first_col))
+
+    print_dict(lines_by_date)
+    print("By month")
+    print_dict(collapse(lines_by_date, 7))
+    print("By year")
+    print_dict(collapse(lines_by_date, 4))
+
+
+def add(d, key, value):
+    d[key] = d.get(key, 0) + value
+
+
+# shorten keys of a dict, and merge values
+def collapse(d, key_len):
+    ret = {}
+    for key, count in d.items():
+        add(ret, key[0:key_len], count)
+    return ret
+
+
+def print_dict(d):
+    for key in sorted(d.keys()):
+        print(key, d[key])
+
+
+def sh_read(command):
+    return subprocess.check_output(['/bin/bash', '-o', 'pipefail', '-c', command]).decode("utf-8").strip()
+
+
+if __name__ == '__main__':
+    main()
+

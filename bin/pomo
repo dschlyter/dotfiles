@@ -156,7 +156,7 @@ class Pomo:
             diff = (wait_to - datetime.now()).seconds
             minutes = math.floor(diff / 60)
             seconds = diff % 60
-            print(f"\rRunning timer: {minutes}:{seconds:02d}", end="")
+            print(f"\rRunning timer: {minutes:02d}:{seconds:02d}", end="")
             time.sleep(1)
         print("\r", end="")
 
@@ -165,9 +165,11 @@ class Pomo:
         return ret
 
     def play_sound(self):
-        # TODO something better might be needed here - does not work if already playing
-
-        if shutil.which("open"):
+        if shutil.which("osascript"):
+            subprocess.check_call(['osascript', '-e' f'''tell application "Spotify"
+                play track "{DONE_SONG}"
+            end tell'''])
+        elif shutil.which("open"):
             subprocess.check_call(['open', DONE_SONG])
         elif shutil.which("xdg-open"):
             subprocess.check_call(['xdg-open', DONE_SONG])
