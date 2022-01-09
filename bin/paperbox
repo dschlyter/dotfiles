@@ -1,0 +1,240 @@
+#!/usr/bin/env python3
+
+# A poor mans dropbox in a single folder, very unscalable
+
+import json
+import os
+import sys
+import time
+import urllib
+import logging
+from urllib.request import Request, urlopen
+from urllib.parse import quote, unquote
+from pathlib import Path
+from datetime import datetime
+
+# log_level = logging.DEBUG
+log_level = logging.INFO
+logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s', level=log_level)
+
+HOME = str(Path.home())
+CREDS_PATH = HOME + "/.config/japp.json"
+STATE_PATH = HOME + "/.cache/paperbox.json"
+
+UPDATE_INTERVAL = 60
+
+LAST_MODIFIED = "api/paperbox/last_modified"
+
+def file_uri(file):
+    return "api/paperbox/file_"+quote(file)
+
+def main():
+    creds = load(CREDS_PATH, default="Not found")
+    if creds == "Not found":
+        logging.error(f"Grab session from japp.x.se/sm/session and put in {CREDS_PATH}")
+        sys.exit(1)
+
+    paperbox_state = load(STATE_PATH, default={})
+    if len(sys.argv) > 1:
+        paperbox = sys.argv[1]
+        if len(sys.argv) > 2 and sys.argv[2] == "--save":
+            paperbox_state['paperbox'] = os.path.abspath(paperbox)
+            save(STATE_PATH, paperbox_state)
+    elif 'paperbox' in paperbox_state:
+        paperbox = paperbox_state['paperbox']
+        logging.info(f"Using default paperbox location {paperbox}")
+    else:
+        logging.error(f"No default paperbox path configured, set with: paperbox PATH --save")
+        sys.exit(1)
+
+    # raw debugging of API
+    # get(creds, "api/paperbox")
+
+    p = Paperbox(paperbox, creds)
+    p.sync_loop()
+
+
+class Paperbox:
+    def __init__(self, paperbox, creds) -> None:
+        self.paperbox = paperbox
+        self.creds = creds
+        self.last_update = None
+
+    def sync_loop(self):
+        while True:
+            # NOTE: This does not trigger on deletes.
+            if self.last_update is None or self.is_local_updated() or self.is_remote_updated():
+                self.sync_all()
+            else:
+                logging.debug("No sync needed")
+
+            time.sleep(UPDATE_INTERVAL)
+
+
+    def sync_all(self):
+        # We maintain an index of files seen remotely to distinguish create and delete
+        config = load(STATE_PATH, default={})
+        config['index'] = config.get('index', {})
+
+        index_files = set(config['index'].keys())
+
+        local_files = set(self.get_local_files())
+        remote_files = set(self.get_remote_files())
+
+        update_count = 0
+
+        for file in local_files | remote_files:
+            if file in local_files and file in remote_files:
+                lt = self.local_time(file)
+                rt = self.remote_time(file)
+                if lt > rt:
+                    self.upload_file(file)
+                    update_count += 1
+                elif rt > lt:
+                    self.download_file(file)
+                    update_count += 1
+                else:
+                    logging.debug(f"{file} is up to date")
+
+                if file not in index_files:
+                    logging.warning(f"Repairing file missing from index {file}")
+                    index_files.add(file)
+            elif file not in local_files:
+                if file in index_files:
+                    # local delete
+                    self.delete_remote(file)
+                    index_files.remove(file)
+                else:
+                    # remote create
+                    self.download_file(file)
+                    index_files.add(file)
+                update_count += 1
+            elif file not in remote_files:
+                if file not in index_files:
+                    # local create
+                    self.upload_file(file)
+                    index_files.add(file)
+                else:
+                    # remote delete
+                    self.delete_local(file)
+                    index_files.remove(file)
+                update_count += 1
+
+        config['index'] = {key: 1 for key in index_files}
+        save(STATE_PATH, config)
+
+        self.last_update = time.time()
+
+        logging.info(f"Synced {update_count} files")
+
+
+    def is_local_updated(self):
+        for file in os.listdir(self.paperbox):
+            if os.stat(Path(self.paperbox, file)).st_mtime > self.last_update:
+                return True
+        return False
+
+
+    def is_remote_updated(self):
+        last = get(self.creds, LAST_MODIFIED)
+        if last and last["last_modified"] > self.last_update:
+            return True
+        return False
+
+
+    def local_time(self, file):
+        return os.stat(Path(self.paperbox, file)).st_mtime
+
+
+    def remote_time(self, file):
+        # TODO API could support a field filter here
+        return get(self.creds, file_uri(file))['last_modified']
+
+
+    def get_local_files(self):
+        return [file for file in os.listdir(self.paperbox) if os.path.isfile(Path(self.paperbox, file))]
+
+
+    def get_remote_files(self):
+        items = get(self.creds, "api/paperbox?keys=1")['keys']
+        return [unquote(item[5:]) for item in items if item.startswith("file_")]
+
+
+    def download_file(self, file):
+        logging.info(f"Downloading file {file}")
+        file_data = get(self.creds, file_uri(file))
+        last_modified = self.cap(file_data['last_modified'])
+        with open(Path(self.paperbox, file), mode="w") as fp:
+            fp.write(file_data['contents'])
+        os.utime(Path(self.paperbox, file), (last_modified, last_modified))
+
+
+    def upload_file(self, file):
+        logging.info(f"Uploading file {file}")
+        with open(Path(self.paperbox, file), mode='r') as fp:
+            contents = fp.read()
+        last_modified = self.cap(os.stat(Path(self.paperbox, file)).st_mtime)
+        put(self.creds, file_uri(file), {'last_modified': last_modified, 'contents': contents})
+
+        remote_last = get(self.creds, LAST_MODIFIED)
+        if not remote_last or remote_last['last_modified'] < last_modified:
+            put(self.creds, LAST_MODIFIED, {'last_modified': last_modified, 'contents': ''})
+
+
+    def delete_local(self, file):
+        logging.info(f"Delete local file {file}")
+        os.remove(Path(self.paperbox, file))
+
+
+    def delete_remote(self, file):
+        logging.info(f"Delete remote file {file}")
+        delete(self.creds, file_uri(file))
+
+    # sanity check cap for modification times
+    def cap(self, modified_time):
+        return min(modified_time, time.time())
+
+
+## generic utils
+
+def load(filename, default=None):
+    if not os.path.exists(filename) and default is not None:
+        return default
+    with open(filename, mode="r") as fp:
+        return json.load(fp)
+
+def save(filename, data):
+    with open(filename, mode="w") as fp:
+        return json.dump(data, fp)
+
+def get(creds, url):
+    return request(creds, url)
+
+def put(creds, url, data):
+    return request(creds, url, method="PUT", data=data)
+
+def delete(creds, url):
+    return request(creds, url, method="DELETE")
+
+def request(creds, url, method="GET", data=None):
+    try:
+        full_url = creds['host'] + "/" + url
+        logging.debug(f"Request to url {full_url}")
+        req = Request(full_url)
+        req.add_header('X-Session-Id', creds['session'])
+        req.method = method
+        if data is not None:
+            req.add_header('Content-Type', 'application/json')
+            req.data = json.dumps(data).encode('utf-8')
+        content = urlopen(req).read().decode()
+
+        logging.debug(f"Result {content}")
+        return json.loads(content)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        logging.error(f"Request error: {body}")
+        raise
+
+
+if __name__ == '__main__':
+    main()
