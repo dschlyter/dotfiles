@@ -47,6 +47,8 @@ def main():
         logging.error(f"No default paperbox path configured, set with: paperbox PATH --save")
         sys.exit(1)
 
+    Path(paperbox).mkdir(parents=True, exist_ok=True)
+
     # raw debugging of API
     # get(creds, "api/paperbox")
 
@@ -69,7 +71,6 @@ class Paperbox:
                 logging.debug("No sync needed")
 
             time.sleep(UPDATE_INTERVAL)
-
 
     def sync_all(self):
         # We maintain an index of files seen remotely to distinguish create and delete
@@ -127,13 +128,11 @@ class Paperbox:
 
         logging.info(f"Synced {update_count} files")
 
-
     def is_local_updated(self):
         for file in os.listdir(self.paperbox):
             if os.stat(Path(self.paperbox, file)).st_mtime > self.last_update:
                 return True
         return False
-
 
     def is_remote_updated(self):
         last = get(self.creds, LAST_MODIFIED)
@@ -141,24 +140,20 @@ class Paperbox:
             return True
         return False
 
-
     def local_time(self, file):
-        return os.stat(Path(self.paperbox, file)).st_mtime
-
+        # Windows seems to struggle with decimals, so use ints
+        return int(os.stat(Path(self.paperbox, file)).st_mtime)
 
     def remote_time(self, file):
         # TODO API could support a field filter here
-        return get(self.creds, file_uri(file))['last_modified']
-
+        return int(get(self.creds, file_uri(file)+"?fields=last_modified")['last_modified'])
 
     def get_local_files(self):
         return [file for file in os.listdir(self.paperbox) if os.path.isfile(Path(self.paperbox, file))]
 
-
     def get_remote_files(self):
         items = get(self.creds, "api/paperbox?keys=1")['keys']
         return [unquote(item[5:]) for item in items if item.startswith("file_")]
-
 
     def download_file(self, file):
         logging.info(f"Downloading file {file}")
@@ -167,7 +162,6 @@ class Paperbox:
         with open(Path(self.paperbox, file), mode="w") as fp:
             fp.write(file_data['contents'])
         os.utime(Path(self.paperbox, file), (last_modified, last_modified))
-
 
     def upload_file(self, file):
         logging.info(f"Uploading file {file}")
@@ -180,11 +174,9 @@ class Paperbox:
         if not remote_last or remote_last['last_modified'] < last_modified:
             put(self.creds, LAST_MODIFIED, {'last_modified': last_modified, 'contents': ''})
 
-
     def delete_local(self, file):
         logging.info(f"Delete local file {file}")
         os.remove(Path(self.paperbox, file))
-
 
     def delete_remote(self, file):
         logging.info(f"Delete remote file {file}")
@@ -219,7 +211,7 @@ def delete(creds, url):
 def request(creds, url, method="GET", data=None):
     try:
         full_url = creds['host'] + "/" + url
-        logging.debug(f"Request to url {full_url}")
+        logging.debug(f"{method} {full_url}")
         req = Request(full_url)
         req.add_header('X-Session-Id', creds['session'])
         req.method = method
