@@ -263,3 +263,9 @@ if [[ "$*" == *"--git"* ]]; then
 else
     echo "Not configuring default git author info, run with --git to enable"
 fi
+
+if ! git remote get-url origin | grep -q https; then
+    echo "Changing pull url to use https, push is still ssh"
+    git remote set-url origin --push "$(git remote get-url origin)"
+    git remote set-url origin "$(git github-url)"
+fi
