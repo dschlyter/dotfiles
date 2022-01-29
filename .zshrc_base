@@ -519,6 +519,7 @@ profiling_log "local conf loaded"
 source_if_exists ~/.zshrc_cygwin
 source_if_exists ~/.zshrc_mac
 source_if_exists ~/.zshrc_linux
+source_if_exists ~/.zshrc_linux_wsl
 profiling_log "platform conf loaded"
 
 # remove any duplicate entries in path

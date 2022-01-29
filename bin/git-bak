@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-# 5 19 * * * PATH="$HOME/.dotfiles/bin:$PATH" git-bak "$HOME/code" "$HOME/Dropbox/code" &> /home/david/log/git-bak
+# 5 * * * * PATH="$HOME/.dotfiles/bin:$PATH" TO_WIN=1 cron-run --name halation-win-git-bak --daily --health-slo 21 git-bak "$HOME/linux-code" /mnt/d/Dropbox/code
+# NOTE: Add TO_WIN=1 if you are backuping from wsl FS to windows FS
 
 import os
 import subprocess
@@ -27,7 +28,7 @@ def main():
         os.chdir(src_root)
         ignores = load_ignores(src_root)
 
-        repos = sh_read("find . -maxdepth 3 -type d -name .git").strip().split("\n")
+        repos = sh_read("find . -maxdepth 3 -type d -name .git").split("\n")
         for git_dir in repos:
             repo_dir = Path(git_dir).parent
             if str(repo_dir) in ignores:
@@ -52,35 +53,42 @@ def load_ignores(src_root):
 
 
 def backup_git(src, target):
-    print("Backing up", src, target)
-
     os.chdir(src)
     src_remote = get_remote()
+
+    GIT_EXEC = "git"
+    if os.environ.get("TO_WIN") == "1":
+        # use Windows executable since linux executable assumes POSIX and closes files that windows FS considers in use, causing errors
+        GIT_EXEC="git.exe"
+        src = subprocess.check_output(["wslpath", "-w", src]).decode("utf-8").strip()
+        print("Rewrote source to", src)
+
+    print("Backing up", src, target)
 
     if not os.path.exists(target):
         print(f"Creating directory {target}")
         os.makedirs(target)
         os.chdir(target)
-        sh("git init")
+        sh(GIT_EXEC+" init")
     else:
         os.chdir(target)
 
-    subprocess.check_call(["git", "pull", "--no-rebase", src, "master:master"])
+    subprocess.check_call([GIT_EXEC, "pull", "--no-rebase", src, "master:master"])
 
     target_remote = get_remote()
     if src_remote:
         if not target_remote:
             print("Adding remote "+src_remote)
-            subprocess.check_call(["git", "remote", "add", "origin", src_remote])
+            subprocess.check_call([GIT_EXEC, "remote", "add", "origin", src_remote])
         elif src_remote != target_remote:
             print("Setting remote to "+src_remote)
-            subprocess.check_call(["git", "remote", "set-url", "origin", src_remote])
+            subprocess.check_call([GIT_EXEC, "remote", "set-url", "origin", src_remote])
 
 
-def get_remote():
+def get_remote(GIT_EXEC):
     try:
         DEVNULL = open(os.devnull, 'wb')
-        r = subprocess.check_output(["git", "remote", "get-url", "origin"], stderr=DEVNULL)
+        r = subprocess.check_output("git", "remote", "get-url", "origin"], stderr=DEVNULL)
         return r.decode("utf-8").strip()
     except Exception as e:
         return None
@@ -91,7 +99,7 @@ def sh(command):
 
 
 def sh_read(command):
-    return subprocess.check_output(command, shell=True).decode('utf-8')
+    return subprocess.check_output(command, shell=True).decode('utf-8').strip()
 
 
 def alert(message):

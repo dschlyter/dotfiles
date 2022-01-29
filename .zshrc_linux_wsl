@@ -1,0 +1,3 @@
+alias o='wslview'
+alias -g CB='| clip.exe'
+alias cb='powershell.exe Get-Clipboard'

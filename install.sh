@@ -176,6 +176,10 @@ case "$(uname -s)" in
         intellij_prefs="$(printf '%s\n' "$HOME/.config/JetBrains/"*Idea* | tail -n 1)"
         link_settings "$intellij_prefs" "config/keymaps" "intellij_linux_keys.xml"
         link_settings "$HOME/.config/Code - OSS/" "User" "keybindings.json" "vscode_keybindings_linux.json"
+
+        if [[ $(grep microsoft /proc/version) ]]; then
+            link .zshrc_linux_wsl
+        fi
         ;;
 
     *)
