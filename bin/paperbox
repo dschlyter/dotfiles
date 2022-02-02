@@ -64,14 +64,14 @@ class Paperbox:
 
     def sync_loop(self):
         while True:
-            # NOTE: This does not trigger on deletes.
-            if self.last_update is None or self.is_local_updated() or self.is_remote_updated():
-                try:
+            try:
+                # NOTE: This does not trigger on deletes.
+                if self.last_update is None or self.is_local_updated() or self.is_remote_updated():
                     self.sync_all()
-                except Exception as e:
-                    logging.error("Exception when syncing, will retry. " + str(e))
-            else:
-                logging.debug("No sync needed")
+                else:
+                    logging.debug("No sync needed")
+            except Exception as e:
+                logging.error("Exception when syncing, will retry. " + str(e))
 
             time.sleep(UPDATE_INTERVAL)
 

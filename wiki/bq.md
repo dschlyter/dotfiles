@@ -318,6 +318,10 @@ Or you could do this. Slightly more setup but less stuff per new element.
     ALTER TABLE `project.dataset.table`
     RENAME TO `new_table`
 
+## Search past queries with jq
+
+    bq ls --format prettyjson -n 1000 -j <PROJECT> | jq '.[].configuration.query.query' | fzf | jq -r "."
+
 # Pro tip
 
 Don't mix `OUTER JOIN` (or left, right) and `WHERE table._TABLE_SUFFIX = ...`. Since `_TABLE_SUFFIX` will be null when the join does not match, split this out into subqueries.
