@@ -159,9 +159,11 @@ But the proper way to do this is probably nested GROUP BYs:
 
 Rows after event_id = 1337 by time
 
+You can use RANGE instead of ROWS to create the window by value.
+
     SELECT
         time,
-        TIMESTAMP_DIFF(MIN(IF(event_id = 1337, time, NULL)) OVER (ORDER BY time ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING), time, SECONDS) < 10 AS near_interesting
+        COUNTIF(type = 'bad') OVER (ORDER BY timestamp_seconds RANGE BETWEEN 10 PRECEDING AND CURRENT ROW) >= 1 AS near_interesting
     FROM ...
     ORDER BY near_interesting DESC, time
 
@@ -169,11 +171,9 @@ Rows before event_id = 1337 by time
 
     SELECT
         time,
-        TIMESTAMP_DIFF(time, MAX(IF(event_id = 1337, time, NULL)) OVER (ORDER BY time ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), SECONDS) < 10 AS near_interesting
+        COUNTIF(type = 'bad') OVER (ORDER BY timestamp_seconds RANGE BETWEEN CURRENT ROW AND 10 FOLLOWING) >= 1 AS near_interesting
     FROM ...
     ORDER BY near_interesting DESC, time
-
-The usage of ORDER BY could be a WHERE over a subquery, so this is a lazy/fast variant that can be improved
 
 ## Comparing with next/previous event
 
