@@ -1,0 +1,282 @@
+#!/usr/bin/env python3
+
+# Lists how many lines you have contributed to a git repo over time
+
+import argparse
+import json
+import os
+import subprocess
+import shutil
+from pathlib import Path
+from collections import defaultdict
+
+
+MAX_LOC_PER_COMMIT=500
+
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    parser = argparse.ArgumentParser(description='Utility to calculate locs added to git repos')
+    parser.set_defaults(func=lambda args_without_command: parser.print_usage())
+    parser.add_argument('--author', help='email of target author, default to you')
+    parser.add_argument('-a', '--all', help='show all authors, not just you', action='store_true')
+    subs = parser.add_subparsers()
+
+    sp = subs.add_parser('details', help='print the commit details for the current repository')
+    sp.set_defaults(func=details)
+    sp.add_argument('-d', '--days', help='also show details on a day-per-day level', action='store_true')
+
+    sp = subs.add_parser('show', help='show stats for the current repository')
+    sp.add_argument('-m', '--months', help='show months instead of years', action='store_true')
+    sp.add_argument('-l', '--log-scale', help='show log scale', action='store_true')
+    sp.set_defaults(func=show)
+
+    sp = subs.add_parser('log', help='show stats for all repositories in the database')
+    sp.set_defaults(func=log)
+    sp.add_argument('database_read_dir', nargs="?", help='directory of repo database, may contain multiple sub-dbs (from different computers)')
+    sp.add_argument('-m', '--months', help='show months instead of years', action='store_true')
+    sp.add_argument('-l', '--log-scale', help='show log scale', action='store_true')
+    sp.add_argument('--save', help='save repo and database for next time', action='store_true')
+
+    sp = subs.add_parser('dump', help='dump stats for all repositories in a directory to the database')
+    sp.set_defaults(func=dump)
+    sp.add_argument('database_write_dir', nargs="?", help='directory of repo database')
+    sp.add_argument('repo_dirs', nargs='*', help='directories of repositories, comma separated')
+    sp.add_argument('-d', '--depth', type=int, help='depth of recursion', default=2)
+    sp.add_argument('--no-cache', help='update everything', action='store_true')
+    sp.add_argument('--save', help='save database and repos for next time', action='store_true')
+
+    args = parser.parse_args()
+    if args.all:
+        args.author = None
+    elif args.author is None:
+        args.author = sh_read("git config --get user.email")
+    args.func(args)
+
+    # TODO
+    # x refactor details with an intermediate data structure
+    # x make the graph
+    # x --save flag (and load default)
+    # x iterate over dirs to create a db
+    # x read db and print stats (easy peasy)
+    #   store raw data and do agg/filtering later
+    #   add caching
+    #   quarterly summary
+    #   list all repositories and loc per repository
+
+
+
+def details(args):
+    lines_by_date = get_repo_loc(args.author)
+
+    if args.days:
+        print("By day:")
+        print_dict(lines_by_date)
+        print()
+    print("By month:")
+    print_dict(collapse(lines_by_date, 7))
+    print()
+    print("By year:")
+    print_dict(collapse(lines_by_date, 4))
+
+
+def show(args):
+    lines_by_date = get_repo_loc(args.author)
+    show_data(args, lines_by_date)
+
+
+def show_data(args, lines_by_date):
+    agg = collapse(lines_by_date, 4 if not args.months else 7)
+    graph_dict(agg, log_scale=args.log_scale)
+
+
+def log(args):
+    db_dir = arg_with_default(args, "database_read_dir", args.save)
+    data = load_data(db_dir)
+    lines_by_date = sum_dicts(data)
+
+    # TODO merge all repos, if time and lines are EXACTLY the same, then assume this is a duplicate - note, this need raw data
+
+    show_data(args, lines_by_date)
+
+    pass
+
+
+def load_data(db_dir):
+    ret = []
+    contents = os.listdir(db_dir)
+    for c in contents:
+        p = os.path.join(db_dir, c)
+        if os.path.isdir(p):
+            for sub_res in load_data(p):
+                ret.append(sub_res)
+        else:
+            with open(p) as fp:
+                ret.append(json.load(fp))
+    return ret
+
+
+def dump(args):
+    db_dir = arg_with_default(args, "database_write_dir", args.save)
+    repo_dirs = arg_with_default(args, "repo_dirs", args.save)
+    author = args.author
+
+    res = []
+    for d in repo_dirs:
+        for sub_res in crawl(d, author, depth=args.depth):
+            res.append(sub_res)
+
+    os.makedirs(db_dir, exist_ok=True)
+    for (repo_name, data) in res:
+        with open(os.path.join(db_dir, repo_name), mode='w') as fp:
+            json.dump(data, fp)
+
+    # TODO when .git/HEAD is newer than dump file
+    # TODO deal with deletion of repos (or don't?)
+
+def crawl(crawl_dir, target_author, depth=1):
+    ret = []
+
+    if os.path.exists(os.path.join(crawl_dir, ".git")):
+        orig_cwd = os.getcwd()
+        repo_name = os.path.basename(crawl_dir)
+
+        print("Scanning dir", crawl_dir)
+        os.chdir(crawl_dir)
+        try:
+            data = get_repo_loc(target_author)
+            ret.append((repo_name, data))
+        except Exception as e:
+            print(e)
+            print("Skipping this dir")
+
+        os.chdir(orig_cwd)
+    elif depth > 0:
+        contents = os.listdir(crawl_dir)
+        for c in contents:
+            p = os.path.join(crawl_dir, c)
+            if os.path.isdir(p):
+                for result in crawl(p, target_author, depth=depth-1):
+                    ret.append(result)
+
+    return ret
+
+
+def get_repo_loc(target_author):
+    ret = defaultdict(lambda: 0)
+
+    commit_lines_changed = sh_read("git log --numstat --pretty='format:COMMIT;;;%ad;;;%ae' --date='format:%Y-%m-%dT%H:%M:%S'")
+
+    commit_date = None
+    commit_author = None
+
+    for line in commit_lines_changed.split("\n"):
+        if line == "":
+            continue
+        elif line.startswith("COMMIT;"):
+            _, commit_date, commit_author = line.split(";;;")
+        elif target_author is not None and commit_author != target_author:
+            continue
+        else:
+            first_col = line.split("\t")[0]
+            if first_col != "-":
+                rows = int(first_col)
+                # TODO maybe not store data per day, instead store raw timestamps and fix more in post
+                # too many rows in one commit is probably some formatting or code generation
+                rows = min(rows, MAX_LOC_PER_COMMIT)
+                ret[commit_date] += rows
+
+    return ret
+
+
+# combine two data sets with sum
+def sum_dicts(dicts):
+    ret = defaultdict(lambda: 0)
+    for d in dicts:
+        for key, count in d.items():
+            ret[key] += count
+    return ret
+
+
+# shorten keys of a dict[str,int], and sum values
+def collapse(d, key_len):
+    ret = defaultdict(lambda: 0)
+    for key, count in d.items():
+        ret[key[0:key_len]] += count
+    return ret
+
+
+def print_dict(d):
+    for key in sorted(d.keys()):
+        print(key, d[key])
+
+
+def graph_dict(d, log_scale=False):
+    cols = int(shutil.get_terminal_size((80, 20)).columns / 2)
+    entries = [(key, d[key]) for key in sorted(d.keys())]
+    if len(entries) > cols:
+        print("Warning: capping", len(entries), "to columns to maximum of", cols)
+        entries = entries[-cols:]
+
+    max_val = max([e[1] for e in entries])
+    height = 20 if not log_scale else 10
+
+    # print bar-chart by value
+    print("Max value:", max_val)
+    for h in range(height):
+        if not log_scale:
+            cap = max_val - max_val * 1/height * (h+1)
+        else:
+            cap = max_val * 0.5 ** h
+
+        for e in entries:
+            if e[1] > cap:
+                print("#", end=" ")
+            else:
+                print(" ", end=" ")
+        print()
+    
+    # print keys vertically
+    for i in range(max([len(e[0]) for e in entries])):
+        for e in entries:
+            if i < len(e[0]):
+                print(e[0][i], end=" ")
+            else:
+                print(" ", end=" ")
+        print()
+
+
+def arg_with_default(args, name, save_flag, required=True):
+    DEFAULTS = os.path.join(Path.home(), ".config", "gloc_defaults.json")
+
+    arg_value = getattr(args, name) if hasattr(args, name) else None
+
+    if arg_value:
+        if save_flag:
+            if os.path.exists(DEFAULTS):
+                with open(DEFAULTS) as fp:
+                    conf = json.load(fp)
+            else:
+                conf = {}
+            conf[name] = arg_value
+            with open(DEFAULTS, mode="w") as fp:
+                json.dump(conf, fp)
+        return arg_value
+    else:
+        ret = None
+        if os.path.exists(DEFAULTS):
+            with open(DEFAULTS) as fp:
+                conf = json.load(fp)
+            ret = conf.get(name)
+        if required and ret is None:
+            raise Exception("Value "+name+" must be specified")
+        return ret
+
+
+def sh_read(command):
+    return subprocess.check_output(['/bin/bash', '-o', 'pipefail', '-c', command]).decode("utf-8").strip()
+
+
+if __name__ == '__main__':
+    main()
+
