@@ -7,6 +7,9 @@
 .gitautofetch
 .gitblacklist
 gitignored*
+.gign*
+gign
+gign_
 
 nocommit_*
 

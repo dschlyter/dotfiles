@@ -24,7 +24,8 @@ Immutable collections often don't have methods but only operators, and they are 
 ### Element operations
 
 `c :+ e` append element
-`e +: c` prepend element`c + e` add to set
+`e +: c` prepend element 
+`c + e` add to set
 `c + (e -> v)` update map (also `.updated(e, v)`)
 `c - a` remove key a from map or set`c +:= a` and similar work for updating vars
 Warning: `List("ok") + "wat"` will result in `"List(ok)wat"`. Javascript style string-conversion.

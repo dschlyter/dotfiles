@@ -124,7 +124,7 @@
     la = !git ll $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
     mine = !git ll --since='2 weeks ago' --author='David Schlyter' --author-date-order
     # show the first commit from log that matches sha-prefix, eg. git sc 72F
-    sf = !git log | grep 'commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show "#"
+    sf = !git log | grep '^commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show "#"
 
     # commit
     # patched commit with a file review and untracked sanity check first

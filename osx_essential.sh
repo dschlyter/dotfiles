@@ -3,6 +3,9 @@
 # Increase window resize speed for Cocoa applications
 defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
 
+# cmd-ctrl click to drag window
+defaults write -g NSWindowShouldDragOnGesture -bool true
+
 # This breaks hold key to repeat
 defaults write -g ApplePressAndHoldEnabled -bool false
 

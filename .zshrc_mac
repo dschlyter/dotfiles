@@ -12,6 +12,7 @@ alias rau='reattach-to-user-namespace'
 alias ij='open -a "IntelliJ IDEA" .'
 
 alias -g CB='| pbcopy'
+alias -g TCB='| tee >(pbcopy)'
 alias cb='pbpaste'
 alias o='open'
 alias sshot='screencapture -T 2 -t png -P screenshot.png'

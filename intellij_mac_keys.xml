@@ -59,6 +59,7 @@
   <action id=":cursive.repl.actions/switch-namespace">
     <keyboard-shortcut first-keystroke="shift ctrl c" second-keystroke="shift ctrl n" />
   </action>
+  <action id="ActivateBookmarksToolWindow" />
   <action id="ActivateDatabaseToolWindow">
     <keyboard-shortcut first-keystroke="meta 8" />
   </action>

@@ -141,6 +141,12 @@ But the proper way to do this is probably nested GROUP BYs:
     )
     GROUP BY key
 
+## Time bucketing
+
+From unix timestamp
+
+    TIMESTAMP_TRUNC(TIMESTAMP_MILLIS(client_timestamp), HOUR) client_hour
+
 # Window functions
 
 ## Finding rows that are near in time to interesting event

@@ -331,9 +331,11 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     call vundle#rc()
     Bundle 'gmarik/vundle'
 
-    Bundle 'maralla/completor.vim'
-    if has('python')
-      let g:completor_python_binary = '/Library/Python/2.7/site-packages/jedi'
+    if has('python3')
+      Bundle 'maralla/completor.vim'
+      if has('python')
+        let g:completor_python_binary = '/Library/Python/2.7/site-packages/jedi'
+      endif
     endif
 
     " syntax error highlights and descriptions
