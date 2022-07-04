@@ -302,10 +302,11 @@ def crawl(crawl_dir, target_author, db_age, depth=1, skip_cache=False):
         try:
             repo_name = os.path.basename(crawl_dir)
             if skip_cache or int(sh_read("git log -1 --pretty=format:%ct")) > db_age.get(repo_name, 0):
-                print("Scanning dir", crawl_dir)
+                print("Scanning dir", crawl_dir, end="... ")
 
                 data = get_repo_loc(target_author)
                 ret.append((repo_name, data))
+                print("added", len(data), "commits")
             else:
                 print("Up to date", crawl_dir)
                 ret.append((repo_name, None))
