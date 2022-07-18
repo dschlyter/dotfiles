@@ -1,0 +1,239 @@
+#!/usr/bin/env python3
+
+# A rudimentary factorio planner
+
+import json
+import os
+import re
+
+from collections import defaultdict
+from dataclasses import dataclass, asdict
+from pathlib import Path
+from typing import List, Dict
+
+# TODO, later
+# multiple recepies for the same thing (you can set aliases for this)
+# multi output and waste tracking
+
+SAVE_FILE = str(Path.home() / ".data/factorio_recipes.json")
+
+
+def help():
+    print("Example operations:")
+    print("goal add 10 yellow belt")
+    print("2 yellow belt = 1 cog 1 iron 0.5 assembler")
+    print("cog = 2 iron 0.5 assembler")
+    print("")
+    print("recipes")
+    print("goal toggle 0")
+    print("goal remove 0")
+    print("project")
+    print("exit")
+
+
+@dataclass
+class Amount:
+    count: float
+    resource: str
+
+    def to_dict(self):
+        return asdict(self)
+
+    def from_dict(d: dict):
+        return Amount(count=d['count'], resource=d['resource'])
+
+
+@dataclass
+class Recipe:
+    output: Amount
+    inputs: List[Amount]
+
+    def to_dict(self):
+        return {'output': self.output.to_dict(), 'inputs': [a.to_dict() for a in self.inputs]}
+
+    def from_dict(d: dict):
+        return Recipe(output=Amount.from_dict(d['output']), inputs=[Amount.from_dict(d2) for d2 in d['inputs']])
+
+
+def main():
+    project = "vanilla"
+    projects = defaultdict(lambda: Project())
+    for project_name, loaded_project in load_recipes().items():
+        projects[project_name] = loaded_project
+
+    while True:
+        cmd = input("> ").strip()
+        p = projects[project]
+
+        try:
+            if cmd == "exit":
+                break
+            elif cmd == "help":
+                help()
+                continue
+            elif cmd.startswith("goal add"):
+                suffix = " ".join(cmd.split(" ")[2:])
+                amounts = parse_amounts(suffix)
+                if len(amounts) != 1:
+                    raise Exception("Goal should be a single resource amount")
+                p.add_goal(amounts[0])
+            elif cmd.startswith("goal remove"):
+                _, _, index = cmd.split(" ")
+                p.remove_goal(int(index))
+            elif cmd.startswith("goal toggle"):
+                _, _, index = cmd.split(" ")
+                p.toggle_goal(int(index))
+            elif "=" in cmd:
+                first, second = cmd.split("=")
+
+                output_amounts = parse_amounts(first)
+                if len(output_amounts) != 1:
+                    raise Exception("Multi output recipes not supported yet")
+                output = output_amounts[0]
+
+                if second.strip() != "":
+                    input_amounts = parse_amounts(second)
+                    p.add_recipe(Recipe(output=output, inputs=input_amounts))
+                else:
+                    p.remove_recipe(output.resource)
+
+                save_recipes(projects)
+            elif cmd.startswith("project"):
+                split = cmd.split(" ")
+                if len(split) == 2:
+                    project = split[1]
+                    p = projects[project]
+                else:
+                    print("Current project", project)
+                    print("Available projects", list(projects.keys()))
+                    continue
+            elif cmd == "recipes":
+                p.print_recipes()
+                continue
+            else:
+                print("Unrecognized input, type 'help' for help")
+
+            p.print_goals()
+
+        except Exception as e:
+            print(e)
+
+
+# 1 yellow belt 1 iron -> (1, "yellow belt"), (1, "iron")
+def parse_amounts(s):
+    split = s.replace(",", "").strip().split(" ")
+    if not is_float(split[0]):
+        split = ["1"] + split
+
+    sublists = []
+    for ss in split:
+        if is_float(ss):
+            sublists.append([])
+        sublists[-1].append(ss)
+
+    ret = []
+    for sl in sublists:
+        if len(sl) < 2:
+            raise Exception(s + " contains elements without text")
+        ret.append(Amount(count=float(sl[0]), resource=" ".join(sl[1:])))
+
+    return ret
+
+
+class Project:
+    def __init__(self):
+        self.goals: List[Amount] = []
+        self.goal_toggles: Dict[int, bool] = {}
+        self.recipes: Dict[str, Recipe] = {}
+
+    def add_goal(self, amount: Amount):
+        self.goals.append(amount)
+
+    def remove_goal(self, i: int):
+        del self.goals[i]
+
+    def toggle_goal(self, i: int):
+        if i < len(self.goals):
+            self.goal_toggles[i] = not self.goal_toggles.get(i)
+        else:
+            raise Exception(f"Warning! No goal with index {i}")
+
+    def add_recipe(self, r: Recipe):
+        self.recipes[r.output.resource] = r
+
+    def remove_recipe(self, s: str):
+        del self.recipes[s]
+
+    def print_recipes(self):
+        for key in sorted(self.recipes.keys()):
+            r = self.recipes[key]
+            print(r.output.count, r.output.resource, "=", end=" ")
+            for inp in r.inputs:
+                print(inp.count, inp.resource, end=" ")
+            print()
+
+    def print_goals(self):
+        totals = {}
+        for i, g in enumerate(self.goals):
+            if self.goal_toggles.get(i) == True:
+                continue
+
+            print("Goal", i)
+            self.print_req(0, g.count, g.resource, totals)
+
+        totals_header_printed = False
+        for resource, agg in totals.items():
+            # Only show totals when the item is used more than once
+            if len(agg) > 1:
+                if not totals_header_printed:
+                    print("Totals:")
+                    totals_header_printed = True
+                print(sum(agg), resource)
+
+    def print_req(self, indent: int, count: float, resource: str, totals: Dict[str, List[int]]):
+        c = format(count, ".2f").rstrip("0").rstrip(".")
+        print(f"{indent*' '}{c} {resource}")
+        totals[resource] = (totals.get(resource) or []) + [count]
+        if indent > 100:
+            print("ERROR! Too deep!")
+            return
+
+        if resource in self.recipes:
+            r = self.recipes[resource]
+            mult = count / r.output.count
+            for inp in r.inputs:
+                self.print_req(indent+2, mult * inp.count, inp.resource, totals)
+
+
+def is_float(s):
+    return re.match(r'^-?\d+(\.\d+)?$', s) is not None
+
+
+def save_recipes(projects: Dict[str, Project]):
+    data = {
+        project_key: {resource: recipe.to_dict() for resource, recipe in project.recipes.items()}
+        for project_key, project in projects.items()}
+
+    os.makedirs(os.path.dirname(SAVE_FILE), exist_ok=True)
+
+    with open(SAVE_FILE, 'w') as fp:
+        json.dump(data, fp)
+
+
+def load_recipes() -> Dict[str, Project]:
+    ret = {}
+    if not os.path.exists(SAVE_FILE):
+        return ret
+
+    with open(SAVE_FILE, 'r') as fp:
+        data = json.load(fp)
+
+    for project_key, recipe_map in data.items():
+        ret[project_key] = Project()
+        ret[project_key].recipes = {resource_key: Recipe.from_dict(recipe) for resource_key, recipe in recipe_map.items()}
+
+    return ret
+
+
+if __name__ == '__main__':
+    main()
