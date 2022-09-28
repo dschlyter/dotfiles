@@ -43,3 +43,7 @@ Change the plot size
     df.plot(figsize=(24,12), ...)
 
 Or change the default, but global config like this is bad `plt.rcParams['figure.figsize'] = [10, 6]`
+
+# See more
+
+Also check out notebooks.md

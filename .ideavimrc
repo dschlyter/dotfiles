@@ -9,9 +9,11 @@ let mapleader = "ö"
 noremap gr :source ~/.ideavimrc<CR>
 noremap gf :action ShowUsages<CR>
 noremap gi :action GotoImplementation<CR>
-nnoremap <leader>r :action Vcs.RollbackChangedLines<CR>
 nnoremap gj :action VcsShowNextChangeMarker<CR>
 nnoremap gk :action VcsShowPrevChangeMarker<CR>
+
+nnoremap <leader>r :action Vcs.RollbackChangedLines<CR>
+nnoremap <leader>g :action Github.Open.In.Browser<CR>
 
 " use intellij C-j C-k shortcuts for this instead
 " nnoremap gn :action MethodDown<CR>

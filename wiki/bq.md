@@ -31,6 +31,16 @@ Note: This is safe even when the array element is null - result will just be nul
     SELECT ARRAY(SELECT repeated_record.field FROM UNNEST(repeated_record) WHERE field = 'value')
     FROM table
 
+## Doing an ANY check
+
+    SELECT (SELECT COUNT(1) FROM UNNEST(repeated_record) WHERE field = 'value') > 0
+    FROM table
+
+or ALL (beware of NULL here)
+
+    SELECT (SELECT COUNT(1) FROM UNNEST(repeated_record) WHERE field = 'value') = ARRAY_LENGTH(repeated_record)
+    FROM table 
+
 ## Getting offsets
 
     SELECT * FROM UNNEST([1,2,3]) a WITH OFFSET AS offset_a
@@ -296,6 +306,16 @@ Or you could do this. Slightly more setup but less stuff per new element.
         (2, 'a'),
         (3, 'a')
     ])
+
+# Ad Hoc query against GCS
+
+This is easier in console than in CLI (which seems to stuggle with avro and schema autodetect)
+
+1. Go to a dataset
+2. Create a table and specify URI to GCS
+    - set Table type=External table
+    - auto detect schema
+3. Query away
 
 # CLI
 

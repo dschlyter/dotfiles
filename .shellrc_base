@@ -62,6 +62,7 @@ sticky() {
 # Aliases
 
 alias g="git"
+alias py="python" # a quick calculator
 alias groot='cd "./$(git rev-parse --show-cdup)"'
 alias grootp='git rev-parse --show-cdup'
 
