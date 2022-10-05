@@ -317,6 +317,23 @@ This is easier in console than in CLI (which seems to stuggle with avro and sche
     - auto detect schema
 3. Query away
 
+# Performance
+
+## Checking for non-matches
+
+This might be a lot faster
+
+    SELECT a FROM a
+    WHERE NOT EXISTS (SELECT id FROM b WHERE a.id = b.id)
+
+Then this
+
+    SELECT * FROM a
+    LEFT JOIN b USING(id)
+    WHERE b.id IS NULL
+
+Since this avoids the quadratic explosion
+
 # CLI
 
 ## Configure bq cli

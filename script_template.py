@@ -6,36 +6,36 @@ import subprocess
 
 def main():
     # https://docs.python.org/3/library/argparse.html
-    parser = argparse.ArgumentParser(description='TODO describe script')
-    parser.set_defaults(func=lambda args_without_command: parser.print_usage())
-    parser.add_argument('-d', '--dry-run', action='store_true')
-    subs = parser.add_subparsers()
+    global_parser = argparse.ArgumentParser(description='TODO describe script')
+    global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_usage())
+    global_parser.add_argument('--dry-run', '-d', action='store_true')
+    sub_ps = global_parser.add_subparsers()
 
-    sp = subs.add_parser('list', help='list some files')
-    sp.set_defaults(func=list_files)
+    sp = sub_ps.add_parser('list', help='list some files')
+    sp.set_defaults(handler=list_files)
     sp.add_argument('files', type=str, nargs='*', help='files to list', metavar='N')
 
-    sp = subs.add_parser('hello', help='say hello')
-    sp.set_defaults(func=hello)
+    sp = sub_ps.add_parser('hello', help='say hello')
+    sp.set_defaults(handler=hello)
     sp.add_argument('first_name', type=str, help='your first name')
     sp.add_argument('last_name', type=str, nargs='?', help='your last name (optional)')
+    sp.add_argument('--title', '-t', type=str, help='your title (optional)')
 
-    args = parser.parse_args()
-    if args.dry_run:
-        print("There is no dry run")
-        return
-    args.func(args)
-
-
-def list_files(args):
-    # note: not space safe
-    print(args)
-    files = " ".join(args.files)
-    print(sh(f"ls -la {files} | grep rw"))
+    parsed_args = global_parser.parse_args()
+    # Note: All handlers must have **kwargs to handle global args
+    parsed_args.handler(**parsed_args.__dict__)
 
 
-def hello(args):
-    print("Hello", args.first_name, args.last_name)
+def list_files(files: list[str], **global_args):
+    if global_args.dry_run:
+        print("ls -la", files)
+    else:
+        subprocess.check_call(["ls", "-la"] + files)
+
+
+def hello(first_name: str, last_name: str, title: str, **global_args):
+    names = filter(lambda a: a is not None, [title, first_name, last_name])
+    print("Hello", " ".join(names))
 
 
 def sh(command):
