@@ -21,3 +21,5 @@ Hotkeys
 - Cmd-0 (or Cmd-Shift-E) for file navigator
 
 - Alt-up/down to reorder lines
+- Alt-F5 to jump to next change
+- Ctrl-Shift-O to jump to function
