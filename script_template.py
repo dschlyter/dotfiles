@@ -7,7 +7,7 @@ import subprocess
 def main():
     # https://docs.python.org/3/library/argparse.html
     global_parser = argparse.ArgumentParser(description='TODO describe script')
-    global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_usage())
+    global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
     global_parser.add_argument('--dry-run', '-d', action='store_true')
     sub_ps = global_parser.add_subparsers()
 
@@ -27,7 +27,7 @@ def main():
 
 
 def list_files(files: list[str], **global_args):
-    if global_args.dry_run:
+    if global_args['dry_run']:
         print("ls -la", files)
     else:
         subprocess.check_call(["ls", "-la"] + files)
