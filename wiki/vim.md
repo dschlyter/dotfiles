@@ -11,6 +11,11 @@ qA - append to the macro - !!!
 `ge` and `gE` go backwards to end of last word (aka ge is to e what b is to w) - however `be` should be the same almost always
 Increment multiple lines by selecting them and doing `g C-a`
 
+`'.` - go back to last edited region
+`''` - go back to
+
+`d2)` is a nice way to grab a code block
+
 ## Using vim in scripts
 
 Vim is not made for this, but it is kinda cool for quick hacks.

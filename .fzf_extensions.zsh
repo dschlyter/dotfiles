@@ -69,7 +69,7 @@ __last_command_sel() {
     if [[ -z "$selected_lines" ]]; then
       return
     fi
-    local selected_items="$(echo "$selected_lines" | tr " " "\n" | grep -v "^$" | fzf -q "$query" -m $FZF_CTRL_G_OPTS)"
+    local selected_items="$(echo "$selected_lines" | tr " " "\n" | grep -v "^$" | fzf --tac -q "$query" -m $FZF_CTRL_G_OPTS)"
 
     setopt localoptions pipefail 2> /dev/null
     echo "$selected_items" | while read item; do
