@@ -1,9 +1,18 @@
 15 years later and you are still learning stuff
 
+# General VIM
+
+## Appending
+
+You can append to registers by using the uppercase.
+
+`qQ` - append to macro q, very useful for fixes
+`"Ydd` - append the line to paste register, useful to batch up a bunch of lines
+
 ## Commands that I still have not learned
 
-qa - create a macro
-qA - append to the macro - !!!
+qq - create a macro
+qQ - append to the macro - !!!
 
 `gn` go to next match and enter visual mode
 `cgn` change next match - this can be repeated with `.` !!!
@@ -16,6 +25,11 @@ Increment multiple lines by selecting them and doing `g C-a`
 
 `d2)` is a nice way to grab a code block
 
+## Recursive macros
+
+You can trigger a macro from itself.
+A macro will also abort when a / find fails, so this could make something that keeps processing until all matches are done.
+
 ## Using vim in scripts
 
 Vim is not made for this, but it is kinda cool for quick hacks.
@@ -23,6 +37,8 @@ Vim is not made for this, but it is kinda cool for quick hacks.
     vim -T dumb -N -u NONE -n -es -c ':3' -c ':norm ccI CAN CHANGE LINE' -c '/find text' -c 'dd' -c 'wq' some_file
 
 Some flags [explained here](https://stackoverflow.com/questions/18860020/executing-vim-commands-in-a-shell-script)
+
+# Plugins in other IDEs
 
 ## Idea vim
 
