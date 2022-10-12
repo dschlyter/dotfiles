@@ -6,34 +6,27 @@ import json
 import os
 import sys
 import time
-import urllib
 import logging
 from urllib.request import Request, urlopen
 from urllib.parse import quote, unquote
 from pathlib import Path
-from datetime import datetime
+from dotlib.jstore import JStore
 
 # log_level = logging.DEBUG
 log_level = logging.INFO
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s', level=log_level)
 
 HOME = str(Path.home())
-CREDS_PATH = HOME + "/.config/japp.json"
 STATE_PATH = HOME + "/.cache/paperbox.json"
 
 UPDATE_INTERVAL = 60
 
-LAST_MODIFIED = "api/paperbox/last_modified"
+LAST_MODIFIED = "last_modified"
 
 def file_uri(file):
-    return "api/paperbox/file_"+quote(file)
+    return "file_"+quote(file)
 
 def main():
-    creds = load(CREDS_PATH, default="Not found")
-    if creds == "Not found":
-        logging.error(f"Grab session from japp.x.se/sm/session and put in {CREDS_PATH}")
-        sys.exit(1)
-
     paperbox_state = load(STATE_PATH, default={})
     if len(sys.argv) > 1:
         paperbox = sys.argv[1]
@@ -49,18 +42,15 @@ def main():
 
     Path(paperbox).mkdir(parents=True, exist_ok=True)
 
-    # raw debugging of API
-    # get(creds, "api/paperbox")
-
-    p = Paperbox(paperbox, creds)
+    p = Paperbox(paperbox)
     p.sync_loop()
 
 
 class Paperbox:
-    def __init__(self, paperbox, creds) -> None:
+    def __init__(self, paperbox) -> None:
         self.paperbox = paperbox
-        self.creds = creds
         self.last_update = None
+        self.store = JStore('paperbox')
 
     def sync_loop(self):
         while True:
@@ -72,6 +62,7 @@ class Paperbox:
                     logging.debug("No sync needed")
             except Exception as e:
                 logging.error("Exception when syncing, will retry. " + str(e))
+                raise
 
             time.sleep(UPDATE_INTERVAL)
 
@@ -138,7 +129,7 @@ class Paperbox:
         return False
 
     def is_remote_updated(self):
-        last = get(self.creds, LAST_MODIFIED)
+        last = self.store.get(LAST_MODIFIED)
         if last and last["last_modified"] > self.last_update:
             return True
         return False
@@ -148,19 +139,18 @@ class Paperbox:
         return int(os.stat(Path(self.paperbox, file)).st_mtime)
 
     def remote_time(self, file):
-        # TODO API could support a field filter here
-        return int(get(self.creds, file_uri(file)+"?fields=last_modified")['last_modified'])
+        return int(self.store.get(file_uri(file), fields=["last_modified"])['last_modified'])
 
     def get_local_files(self):
         return [file for file in os.listdir(self.paperbox) if os.path.isfile(Path(self.paperbox, file))]
 
     def get_remote_files(self):
-        items = get(self.creds, "api/paperbox?keys=1")['keys']
+        items = self.store.keys()
         return [unquote(item[5:]) for item in items if item.startswith("file_")]
 
     def download_file(self, file):
         logging.info(f"Downloading file {file}")
-        file_data = get(self.creds, file_uri(file))
+        file_data = self.store.get(file_uri(file))
         last_modified = self.cap(file_data['last_modified'])
         with open(Path(self.paperbox, file), mode="w") as fp:
             fp.write(file_data['contents'])
@@ -171,11 +161,11 @@ class Paperbox:
         with open(Path(self.paperbox, file), mode='r') as fp:
             contents = fp.read()
         last_modified = self.cap(os.stat(Path(self.paperbox, file)).st_mtime)
-        put(self.creds, file_uri(file), {'last_modified': last_modified, 'contents': contents})
+        self.store.put(file_uri(file), {'last_modified': last_modified, 'contents': contents})
 
-        remote_last = get(self.creds, LAST_MODIFIED)
+        remote_last = self.store.get(LAST_MODIFIED)
         if not remote_last or remote_last['last_modified'] < last_modified:
-            put(self.creds, LAST_MODIFIED, {'last_modified': last_modified, 'contents': ''})
+            self.store.put(LAST_MODIFIED, {'last_modified': last_modified, 'contents': ''})
 
     def delete_local(self, file):
         logging.info(f"Delete local file {file}")
@@ -183,7 +173,7 @@ class Paperbox:
 
     def delete_remote(self, file):
         logging.info(f"Delete remote file {file}")
-        delete(self.creds, file_uri(file))
+        self.store.delete(file_uri(file))
 
     # sanity check cap for modification times
     def cap(self, modified_time):
@@ -201,34 +191,6 @@ def load(filename, default=None):
 def save(filename, data):
     with open(filename, mode="w") as fp:
         return json.dump(data, fp)
-
-def get(creds, url):
-    return request(creds, url)
-
-def put(creds, url, data):
-    return request(creds, url, method="PUT", data=data)
-
-def delete(creds, url):
-    return request(creds, url, method="DELETE")
-
-def request(creds, url, method="GET", data=None):
-    try:
-        full_url = creds['host'] + "/" + url
-        logging.debug(f"{method} {full_url}")
-        req = Request(full_url)
-        req.add_header('X-Session-Id', creds['session'])
-        req.method = method
-        if data is not None:
-            req.add_header('Content-Type', 'application/json')
-            req.data = json.dumps(data).encode('utf-8')
-        content = urlopen(req).read().decode()
-
-        logging.debug(f"Result {content}")
-        return json.loads(content)
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        logging.error(f"Request error: {body}")
-        raise
 
 
 if __name__ == '__main__':

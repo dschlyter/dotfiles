@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import logging
+import json
+import sys
+from getpass import getpass
+
+from dotlib.jstore import JStore, CREDS_PATH
+from dotlib.fzf import fzf_match
+
+log_level = logging.INFO
+logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s', level=log_level)
+
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    global_parser = argparse.ArgumentParser(description='Jau - japp autil')
+    global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
+    global_parser.add_argument('--local', action='store_true', help='run against a local store')
+    global_parser.add_argument('--app', help='the app to query')
+    sub_ps = global_parser.add_subparsers()
+
+    # TODO list apps, update backend to support a list for dumb crud
+
+    cli = Cli()
+
+    sp = sub_ps.add_parser('keys', help='list keys')
+    sp.set_defaults(handler=cli.keys)
+
+    sp = sub_ps.add_parser('get', help='get value')
+    sp.set_defaults(handler=cli.get)
+    sp.add_argument('key', nargs="?", help='key')
+
+    sp = sub_ps.add_parser('put', help='put value')
+    sp.set_defaults(handler=cli.put)
+    sp.add_argument('key', help='key')
+    sp.add_argument('data', help='data to store')
+
+    # TODO update method, for subkeys ??
+
+    sp = sub_ps.add_parser('delete', help='delete key')
+    sp.set_defaults(handler=cli.delete)
+    sp.add_argument('key', nargs="?", help='key')
+
+    sp = sub_ps.add_parser('get-raw', help='read db')
+    sp.set_defaults(handler=cli.get_raw)
+    sp.add_argument('path', help='path')
+
+    sp = sub_ps.add_parser('apps', help='list apps')
+    sp.set_defaults(handler=cli.apps)
+
+    sp = sub_ps.add_parser('auth', help='setup auth')
+    sp.set_defaults(handler=cli.auth_cmd)
+
+    parsed_args = global_parser.parse_args()
+    cli.app = parsed_args.app
+    cli.local = parsed_args.local
+    # Note: All handlers must have **kwargs to handle global args
+    parsed_args.handler(**parsed_args.__dict__)
+
+
+class Cli:
+    def __init__(self) -> None:
+        self.app = None
+        self.local = False
+
+    def apps(self, **kwargs):
+        store = self._get_store(need_app=False)
+        res = store.get_raw("/api/kv-apps")
+        for a in res['apps']:
+            print(a)
+
+    def keys(self, **kwargs):
+        store = self._get_store()
+        self._show(store.keys())
+
+    def get(self, key, **kwargs):
+        store = self._get_store()
+        if key is None:
+            key = fzf_match(store.keys(), or_exit=True)
+        self._show(store.get(key))
+
+    def put(self, key, data, **kwargs):
+        if isinstance(data, str):
+            msg = {"value": data}
+        else:
+            print(f"Unsupported data type {type(data)}")
+        store = self._get_store()
+        self._show(store.put(key, msg))
+
+    def delete(self, key, **kwargs):
+        store = self._get_store()
+        if key is None:
+            key = fzf_match(store.keys(), or_exit=True)
+        self._show(store.delete(key))
+
+    def get_raw(self, path, **kwargs):
+        store = self._get_store(need_app=False)
+        self._show(store.get_raw(path))
+
+    def auth_cmd(self, **kwargs):
+        if os.path.exists(CREDS_PATH):
+            print(f"Warning! {CREDS_PATH} exists and will be overwritten!")
+
+        host = input("host: ")
+        if "://" not in host:
+            host = "https://" + host
+        user = input("user: ")
+        password = getpass("password: ")
+
+        self._get_store(need_app=False).auth(host, user, password)
+
+        print("Saved new session!")
+
+    def _get_store(self, need_app=True):
+        # TODO store last app used ??
+        if need_app and self.app is None:
+            print("--app arg required")
+            sys.exit(1)
+        return JStore(self.app, local=self.local)
+
+    def _show(self, data):
+        if isinstance(data, dict):
+            print(json.dumps(data, indent=4))
+        else:
+            print(data)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,332 @@
+#!/usr/bin/env python3
+
+import argparse
+import random
+import sys
+from datetime import datetime, timedelta
+from typing import Dict
+
+from dotlib.jstore import JStore
+from dotlib.fzf import fzf_match
+from dotlib.util import print_table
+
+APP_NAME = 'qq'
+store = JStore(APP_NAME)
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    global_parser = argparse.ArgumentParser(description='Script for spaced repetition from markdown notes')
+
+    global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
+    global_parser.add_argument('--local', action='store_true')
+    sub_ps = global_parser.add_subparsers()
+
+    sp = sub_ps.add_parser('parse', help="""parses a markdown file for q: lines as prompts, and any indented following lines as the answer""")
+    sp.set_defaults(handler=parse)
+    sp.add_argument('file', help='the file to parse, will create a question bank with the same name')
+
+    sp = sub_ps.add_parser('answer', help='add a round of answers')
+    sp.set_defaults(handler=answer)
+    sp.add_argument('name', nargs="?", help='the name of the question bank')
+
+    sp = sub_ps.add_parser('next', help='practice the question bank next up for practice')
+    sp.set_defaults(handler=next_cmd)
+
+    sp = sub_ps.add_parser('list', help='list question banks (and the recommendation for next)')
+    sp.set_defaults(handler=list_cmd)
+
+    sp = sub_ps.add_parser('show', help='show questions and answers')
+    sp.set_defaults(handler=show)
+    sp.add_argument('name', nargs="?", help='the name of the question bank')
+
+    sp = sub_ps.add_parser('stats', help='show stats for answer attempts')
+    sp.set_defaults(handler=stats)
+    sp.add_argument('name', nargs="?", help='the name of the question bank')
+
+    parsed_args = global_parser.parse_args()
+    if parsed_args.local:
+        global store
+        store = JStore(APP_NAME, local=True)
+
+    # Note: All handlers must have **kwargs to handle global args
+    parsed_args.handler(**parsed_args.__dict__)
+
+
+def parse(file, **kwargs):
+    questions = []
+
+    with open(file) as fp:
+        lines = [line.rstrip() for line in fp]
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if line.lstrip().lower().startswith("q:"):
+            q = {
+                'id': len(questions)+1, 
+                'line': i, 
+                'q': line.strip()
+            }
+            q_indent = _indent_of(line)
+            a_lines = []
+
+            i += 1
+            while i < len(lines) and lines[i].strip() != "" and _indent_of(lines[i]) > q_indent:
+                a_lines.append(lines[i][q_indent:])
+                i += 1
+            q['a'] = a_lines
+
+            if not a_lines:
+                raise Exception(f"Failed to match answers for question on line {q['line']}: {q['q']}")
+            questions.append(q)
+        else:
+            i += 1
+    print(f"Parsed file {file}")
+
+    print("Found", len(questions), "questions in the doc")
+    if len(questions) == 0:
+        sys.exit(1)
+
+    name = file.split("/")[-1].split(".")[0]
+    key = name + "-q"
+    if existing := store.get(name + "-q", null_ok=True):
+        questions = _merge_questions(existing['q'], questions)
+    store.put(key, {'q': questions})
+    print("Stored as", name)
+
+    return questions
+
+
+def show(name, **kwargs):
+    if not name:
+        name = fzf_match(_list(), or_exit=True)
+
+    q_key = name + "-q"
+    questions = store.get(q_key)['q']
+
+    for q in questions:
+        print(q['q'])
+        for line in q['a']:
+            print(line)
+        print()
+
+
+def _indent_of(line):
+    i = 0
+    while i < len(line) and line[i] == " ":
+        i += 1
+    return i
+
+
+def answer(name, **kwargs):
+    if not name:
+        name = fzf_match(_list(), or_exit=True)
+
+    q_key = name + "-q"
+    questions = store.get(q_key)['q']
+
+    random.shuffle(questions)
+    answers = []
+    correct_count = 0
+    
+    for q in questions:
+        input(q['q'] + " ")
+        for line in q['a']:
+            print(line)
+        correct = input("correct? (y/n): ").lower() == 'y'
+        answers.append({'id': q['id'], 'correct': correct})
+        if correct:
+            correct_count += 1
+        print("")
+
+    print(f"{correct_count}/{len(answers)} correct!")
+
+    time = _dt_str(datetime.now())
+    a_key = f"{name}-a"
+    ans = store.get(a_key, null_ok=True)
+    ans = ans or {'a': {}}
+    ans['a'][time] = answers
+    store.put(a_key, ans)
+
+    print()
+    _show_stats(questions, ans['a'])
+
+
+def _dt_str(dt):
+    return dt.isoformat().split(".")[0]
+
+
+def _show_stats(questions, answers):
+    print("Per question results:")
+    all_answers = [a for answer_list in answers.values() for a in answer_list]
+    for q in questions:
+        q_answers = list(filter(lambda a: a['id'] == q['id'], all_answers))
+        print(_correct_ratio(q_answers), q['q'], sep="\t")
+    print()
+    print("Per session results:")
+    for ts in answers.keys():
+        answer_list = answers[ts]
+        print(_correct_ratio(answer_list), ts, sep="\t")
+
+
+def _correct_ratio(answer_list):
+    correct = _correct(answer_list)
+    total = len(answer_list)
+    return f"{correct}/{total}"
+
+
+def _correct(answer_list):
+    return len(list(filter(lambda a: a['correct'], answer_list)))
+
+
+def list_cmd(**kwargs):
+    table = []
+    table.append(["Tries", "Last Answer", "Score", "Next Up", "Question Bank"])
+    for name in _list():
+        if ans := _get_answers(name):
+            answered = len(ans.keys())
+            last_answer = sorted(ans.keys())[-1]
+            ratio = _correct_ratio(ans[last_answer])
+            next_up = _dt_str(_next_time(ans))
+            table.append([answered, last_answer, ratio, next_up, name])
+        else:
+            table.append([0, "", "", _dt_str(_next_time(None)), name])
+    print_table(table)
+
+
+def _list():
+    keys = store.keys()
+    return [k[:-2] for k in keys if k.endswith("-q")]
+
+
+def _get_answers(key):
+    a_key = f"{key}-a"
+    lookup = store.get(a_key, null_ok=True) or {}
+    return lookup.get('a')
+
+
+def next_cmd(**kwargs):
+    candidates = [(_next_time(_get_answers(name)), name) for name in _list()]
+    s = sorted(candidates)
+    if s:
+        scheduled = s[0][0]
+        name = s[0][1]
+        if scheduled < datetime.now():
+            print("Next up is", name, "scheduled at", scheduled)
+            answer(name)
+        else:
+            print("Nothing is due for practice")
+    else:
+        print("Nothing to answer")
+
+
+def _next_time(answers) -> datetime:
+    if answers is not None:
+        # formula: last answer + 2^tries * correct_pct
+        last_answer = sorted(answers.keys())[-1]
+        tries = len(answers)
+        last_answer_list = answers[last_answer]
+        correct_pct = _correct(last_answer_list) / len(last_answer_list)
+        dt = datetime.fromisoformat(last_answer)
+        return dt + timedelta(days=7 * min(52, tries * tries) * correct_pct) 
+    else:
+        return datetime.now()
+
+
+def stats(name, **kwargs):
+    if not name:
+        name = fzf_match(_list(), or_exit=True)
+
+    q_key = name + "-q"
+    questions = store.get(q_key)['q']
+    if answers := _get_answers(name):
+        _show_stats(questions, answers)
+    else:
+        print("No answers for these questions")
+
+# Overly complicated logic that allows for updating the doc and have questions remain somewhat stable
+# To test this, export JSTORE_LOCAL=1 and play around with a temporary file
+def _merge_questions(old_questions, new_questions):
+    q_mapping = {}
+    # We will attempt to match old and new questions using matching rules with different priorities
+    # Once a question has been matched it can no longer be matched by another rule, or with another question
+    _map_questions(old_questions, new_questions, q_mapping, lambda q1, q2: q1['q'] == q2['q'])
+    _map_questions(old_questions, new_questions, q_mapping, lambda q1, q2: q1['line'] == q2['line'])
+    _map_questions(old_questions, new_questions, q_mapping, lambda q1, q2: q1['q'].startswith(q2['q']) or q2['q'].startswith(q1['q']))
+
+    merged_questions = []
+    l1 = {q['id']: q for q in old_questions}
+    l2 = {q['id']: q for q in new_questions}
+    # update questions
+    update_count = 0
+    for old_id, new_id in q_mapping.items():
+        old_q = l1[old_id]
+        new_q = l2[new_id]
+        updated_q = {
+            # question ids should be stable, the rest can be replaced
+            **new_q,
+            'id': old_q['id']
+        }
+
+        if updated_q['q'] != old_q['q'] or updated_q['a'] != old_q['a']:
+            update_count += 1
+            print("Question", old_q['id'], "has changed")
+            print(old_q['q'])
+            print("\n".join(old_q['a']))
+            print("--->")
+            print(updated_q['q'])
+            print("\n".join(updated_q['a']))
+            print()
+        merged_questions.append(updated_q)
+
+    removed_count = len(old_questions) - len(q_mapping)
+    if removed_count > 0:
+        for q in old_questions:
+            if q['id'] not in q_mapping.keys():
+                print("Question will be removed", q['q'])
+                print()
+    
+    added_count = len(new_questions) - len(q_mapping)
+    next_id = max([q['id'] for q in old_questions]) + 1
+    for q in new_questions:
+        if q['id'] in q_mapping.values():
+            continue
+        added_q = {
+            # question ids should be stable, the rest can be replaced
+            **q,
+            'id': next_id
+        }
+        next_id += 1
+        merged_questions.append(added_q)
+        print("Question will be added", added_q['q'])
+        print()
+
+    merged_questions = sorted(merged_questions, key=lambda q: q['id'])
+    if len({q['id'] for q in merged_questions}) != len(merged_questions):
+        print("ERROR! Sanity check failed, ids are not unique")
+        print(merged_questions)
+        sys.exit(1)
+
+    if update_count == 0 and removed_count == 0 and added_count == 0:
+        print("DB and document is in sync")
+        sys.exit(0)
+    print("Question changes:", update_count, "updates,", removed_count, "removals,", added_count, "additions")
+    if input("confirm? (y/N): ").lower() != "y":
+        sys.exit(1)
+
+    return merged_questions
+
+
+def _map_questions(q_list_1, q_list_2, mapping: Dict[int, int], matcher):
+    for q1 in q_list_1:
+        if q1['id'] in mapping.keys():
+            continue
+        for q2 in q_list_2:
+            if q2['id'] in mapping.values():
+                continue
+            if matcher(q1, q2):
+                mapping[q1['id']] = q2['id']
+
+
+if __name__ == '__main__':
+    main()
