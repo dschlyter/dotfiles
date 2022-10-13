@@ -22,8 +22,6 @@ def main():
     global_parser.add_argument('--app', help='the app to query')
     sub_ps = global_parser.add_subparsers()
 
-    # TODO list apps, update backend to support a list for dumb crud
-
     cli = Cli()
 
     sp = sub_ps.add_parser('keys', help='list keys')
@@ -47,6 +45,9 @@ def main():
     sp = sub_ps.add_parser('get-raw', help='read db')
     sp.set_defaults(handler=cli.get_raw)
     sp.add_argument('path', help='path')
+
+    sp = sub_ps.add_parser('nuke', help='delete everything')
+    sp.set_defaults(handler=cli.nuke)
 
     sp = sub_ps.add_parser('apps', help='list apps')
     sp.set_defaults(handler=cli.apps)
@@ -99,6 +100,15 @@ class Cli:
     def get_raw(self, path, **kwargs):
         store = self._get_store(need_app=False)
         self._show(store.get_raw(path))
+
+    def nuke(self, **kwargs):
+        store = self._get_store()
+        if not self.local:
+            if input(f"Type the name of the app to confirm deletion: {self.app}").lower() != self.app:
+                sys.exit(1)
+        for key in store.keys():
+            print("Deleting", key)
+            store.delete(key)
 
     def auth_cmd(self, **kwargs):
         if os.path.exists(CREDS_PATH):

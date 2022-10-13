@@ -26,3 +26,9 @@ def get(list, i, default=None):
     if i < 0 or i >= len(list):
         return default
     return list[i]
+
+
+def get_in(nested_dict, *keys, default=None):
+    if not keys or not nested_dict:
+        return default
+    return get_in(nested_dict[keys[0]], keys[1:])
