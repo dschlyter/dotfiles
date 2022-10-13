@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+
+import argparse
+import subprocess
+from typing import List
+
+from dotlib.api import RestApi
+
+api = RestApi()
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    global_parser = argparse.ArgumentParser(description='TODO describe script')
+
+    global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
+    sub_ps = global_parser.add_subparsers()
+
+    sp = sub_ps.add_parser('read', help='read time')
+    sp.set_defaults(handler=read)
+
+    sp = sub_ps.add_parser('start', help='start new')
+    sp.set_defaults(handler=start)
+    sp.add_argument('minutes', nargs="?", type=int)
+
+    sp = sub_ps.add_parser('end', help='finish')
+    sp.set_defaults(handler=end)
+    sp.add_argument('activity', nargs="?")
+
+    sp = sub_ps.add_parser('delay', help='')
+    sp.set_defaults(handler=delay)
+    sp.add_argument('minutes', type=int)
+
+    sp = sub_ps.add_parser('split', help='')
+    sp.set_defaults(handler=split)
+    sp.add_argument('minutes', type=int)
+
+    parsed_args = global_parser.parse_args()
+    # Note: All handlers must have **kwargs to handle global args
+    parsed_args.handler(**parsed_args.__dict__)
+
+
+def read(**global_args):
+    print(api.get("api/time/read"))
+
+
+def start(minutes, **global_args):
+    if minutes:
+        print(api.get(f"api/time/start/{minutes}"))
+    else:
+        print(api.get(f"api/time/start"))
+
+
+def end(activity, **global_args):
+    if activity:
+        print(api.get(f"api/time/end/{activity}"))
+    else:
+        print(api.get("api/time/end"))
+
+
+def delay(minutes, **global_args):
+    print(api.get(f"api/time/shorten/{minutes}"))
+
+
+def split(minutes, **global_args):
+    print(api.get(f"api/time/split/{minutes}"))
+
+
+if __name__ == '__main__':
+    main()
