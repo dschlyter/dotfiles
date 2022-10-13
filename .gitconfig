@@ -58,7 +58,6 @@
     pp = !git pull --rebase && git pu
     pufl = push --force-with-lease
     br = branch -vv
-    par = pull --autostash --rebase
     rb = rebase
     rba = rebase --autostash
     sw = switch
@@ -70,6 +69,7 @@
     cp = cherry-pick
     sa = stash --include-untracked
     ski = stash --keep-index
+    nuke = reset --hard
 
     # entry point for custom scripts (for things that are too large to define inline here)
     # list contibutors with number of commits
@@ -101,7 +101,6 @@
 
     # repo checks (reusable in aliases below)
     is-clean = !test -z \"$(git status --porcelain)\"
-    # --show-current requires git 2.22+ (released summer 2019)
     curr-br = branch --show-current
     branch-exists = !git rev-parse $1 > /dev/null 2>&1 "#"
     on = !test \"$(git curr-br 2> /dev/null)\" == \"$1\" "#"
@@ -114,7 +113,6 @@
     # lg shows all branches
     lg = !git lh --all
     lh = log --color --graph --date='format:%Y-%m-%d %H:%M' --pretty=format:'%C(red)%h%C(reset) %C(green)%ad%C(reset): %s%C(reset)%C(yellow)%d%C(reset) - %C(bold blue)%an%C(reset)' --abbrev-commit -n 15
-    lst = !git lh --stat
     ln = !git lh --no-merges
     ll = !git lg -n 9999
     lhl = !git lh -n 9999
@@ -144,16 +142,8 @@
     ws = wip-stash
     # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
     blacklist = !echo \"$@\" >> .gitblacklist "#"
-    # import matched global ignores into repo .gitignore
-    import-ignore = !git status -sb --ignored | grep '^!!' | cut -d' ' -f 2- | xargs git check-ignore -v | grep $HOME/.gitignore | cut -d':' -f 3 | cut -f 1 | sort | uniq >> .gitignore
-    # named stashes
-    sshow = !git stash show stash^{/$*} -p
-    sapply = !git stash apply stash^{/$*}
-    srevert = !git sshow \"$@\" | git apply --reverse
     # remove all whitespace changes
     rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git restore "${@:-.}" && git reset'
-    bc = !git switch -b \"$1\" && git commit -p
-    empty = !git commit --allow-empty -m "empty"
 
     # amend and rebase
     # amend without changing git commit message
@@ -165,7 +155,6 @@
     # automatically fixup the last commit where added files where changed (no stash change since this never conflicts)
     fixup-unsafe = !COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1 "#"
     fixup-last = !git fixup-unsafe $(git log -n 1 --pretty=format:%H -- $(git diff --cached --name-only))
-    sfupp = !git ski && git fup-auto && git stash pop
     select = !git log --pretty --oneline --decorate --color | fzf --ansi | awk '{print ""$""1}'
     cps = !git cherry-pick $(git select)
     amend-date = !GIT_COMMITTER_DATE=\"$1\" git commit --amend --date=\"$1\" "#"
@@ -191,32 +180,20 @@
     fe = !sh -c 'PRE=${1:-$(git rev-parse origin/master)} && git fetch --tags --prune && git lh $PRE..$(git rev-parse origin/master) || true' -
     # get remote updates even with local uncommited changes (but abort on conflicts)
     ff = !sh -c 'git lazy-fe && git merge --ff-only'
-    fr = !sh -c 'git lazy-fe && git rb --autostash'
-    # forward to develop or master if current branch is merged
-    fwd = !git behind origin/develop && if git on develop";" then git merge";" else git dup";" git co develop";" fi
-    fwm = !git behind origin/master && if git on master";" then git merge";" else git mup";" git co master";" fi
-    fw = !git fe";" git ff 2> /dev/null";" if git branch-exists develop";" then git fwd";" else git fwm";" fi || true
-    # combined update all the things command
-    u = !git fw && git brc
     # fast forward branch without checking them out
     up = !git lazy-fe $1 && git merge-base --is-ancestor $1 origin/$1 && (! git same $1 origin/$1 && git branch -f $1 origin/$1 || true)"#"
     urb = !git up $1 && git rebase --autostash $1 "#"
     mup = !git up master
     mur = !git urb master
-    ur = !git urb $(git branch-exists develop && echo develop || echo master)
     # lazy fetch, for having fetch in commands that may be chained together, without fetching multiple times
     last-fetch = !echo $(( $(date +%s) - $(${GNU_PREFIX}stat -c %Y .git/FETCH_HEAD) )) "#"
     lazy-fe = !test $(git last-fetch) -gt 20 && git fe || true
-    lazy-pu = !br=$(git curr-br) && git same \"$br\" origin/\"$br\" 2> /dev/null || git pu
 
     # branch management
     # when done with branch after squash (this will do a hard delete of the branch)
     done = !git switch master && git pull --prune && git brc
-    nuke = reset --hard
-    # try merge and print conflicts if merge fails
-    merge-dry = !git merge --no-commit "$1" || git diff ";" git merge --abort "#"
-    brl = branch --sort=committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
     # list all branches - but local last
+    brl = branch --sort=committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
     bra = !git --no-pager brl --color --remotes && git --no-pager brl --color
     braf = !git bra --color | fzf --tac --ansi --exact | awk '{print $5}' "#"
     s = !git braf | sed 's,origin/,,' | xargs git sw "#"
@@ -247,24 +224,10 @@
 
     # github
     github-url = !echo \"$(git config --get remote.origin.url | sed -e 's,:,/,' -e 's,https///,https://,' -e 's,git@,https://,' -e 's/[.]git$//')\"
-    web = !path="$(realpath --relative-to=./$(git rev-parse --show-cdup) $1)" && open \"$(git github-url)/blob/master/$path\" "#"
+    web = !path="$(realpath --relative-to=./$(git rev-parse --show-cdup) ${1:-.})" && open \"$(git github-url)/tree/master/$path\" "#"
     github-use-ssh = !git remote set-url origin \"git@github.com:$(git config --get remote.origin.url | sed -e 's,github.com[/],,' -e 's,.*[:][/]*,,')\"
-    pr = !git same origin/$(git curr-br) $(git curr-br) || git pu && open \"$(git github-url)/compare/$(git curr-br)?expand=1\"
     pr-winner = !git log --oneline --since='1 week' --pretty=format:'%an: %s' | grep 'Merge pull request' | sed 's/:.*//' | sort | uniq -c | sort -nr
     fetch-pr = !git fetch origin "pull/$1/head:pr-$1" "#"
-
-    # gitflow stuff (for those unfortunate enough to use gitflow)
-    mmd = !git sw develop && git merge --ff-only && git sw master && git merge --ff-only && git merge develop
-    # check unreleased features on develop branch
-    features = !git lh master..develop --merges -n 9999
-    # check failures to merge changes into develop
-    fail = !git lh develop..master
-    local = !git lg --branches --not --remotes
-    dup = !git up develop
-    dur = !git urb develop
-    durp = !git dir && git pufl
-    # fast forward another branch and push both that and current (ie. double push develop+master)
-    f2p = !BRANCH=\"$(git symbolic-ref --short -q HEAD)\"";" git sw $1 && git merge --ff-only \"$BRANCH\" && git push origin \"$1\" \"$BRANCH\" "#"
 
     # multi-repo stuff
     # everything i have done the last month. there is an echo and inverse grep empty lines to make sure newlines are properly inserted
