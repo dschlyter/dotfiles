@@ -24,23 +24,31 @@ def main():
 
     for i, line in enumerate(file_content):
         if line.rstrip() == start_token:
-            start_token_idx = i
-        if line.rstrip() == end_token:
-            end_token_idx = i
+            if start_token_idx is None:
+                start_token_idx = i
+            else:
+                print("Multiple matches for start token", start_token)
+                sys.exit(1)
+        if end_token != '--after' and line.rstrip() == end_token:
+            if end_token_idx is None:
+                end_token_idx = i
+            else:
+                print("Multiple matches for end token", end_token)
+                sys.exit(1)
+
+    if start_token_idx is None:
+        print("Start token not found", start_token)
+        sys.exit(1)
 
     if end_token == "--after":
         end_token_idx = start_token_idx+1
 
-    if start_token_idx is None:
-        print("Start token not found")
-        sys.exit(1)
-
     if end_token_idx is None:
-        print("End token not found")
+        print("End token not found", end_token)
         sys.exit(1)
 
     if end_token_idx <= start_token_idx:
-        print("End token must be after start token")
+        print("End token must be after start token", start_token, end_token)
         sys.exit(1)
 
     insertion_content = [line for line in sys.stdin]

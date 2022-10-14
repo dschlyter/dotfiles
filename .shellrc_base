@@ -196,6 +196,17 @@ encd() {
     openssl enc -aes-256-cbc -d -in "$in" -out "$out"
 }
 
+t() {
+    # Add a TODO for later follow up with minimal overhead
+    file="$HOME/.now.txt"
+    if [[ -f "$file" ]]; then
+        echo "    ""$@" | between "# TODO" --after "$file"
+    else
+        echo "Please symlink $file to be able to add todos"
+        return 1
+    fi
+}
+
 p() {
     DOC=$1
     if [ -n "$(echo ~/docs/plans/"$DOC"*)" ]; then
