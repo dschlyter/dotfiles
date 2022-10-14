@@ -27,19 +27,8 @@ conf = Conf(APP_NAME)
 store = JStore(APP_NAME)
 DOMAIN = conf.cursor("domain")
 
-# TODO NOCOMMIT
-# x convert to new argparse
-# x convert to use jstore !
-# x clean up some weird file endings
-# x capture removed lines ?? (maybe doc should be last_update,added,removed)
+# TODO left to fix
 #   fix so updates are skipped on old repos
-# - fzf match where it makes sense
-# - raw dump data - can be done with jau
-# - delete a repo from the db - can also be done with jau ??
-# x domain or repo filtering
-#   table with repo and lang
-#   table with repo and time
-# x global --lang flag?
 
 # Data model:
 # - There are different domains, typically a domain is captured per machine. A domain must be set before data can be dumped.
@@ -50,6 +39,7 @@ ctx = SimpleNamespace(
     target_author=None,
     metric="added",
     lang=None,
+    dates=None,
 )
 
 def main():
@@ -57,13 +47,12 @@ def main():
     global_parser = argparse.ArgumentParser(description='Utility to calculate locs added to git repos. Can calculate for current repo "." or for the local db after running "dump".')
     global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
 
-    global_parser.add_argument('--author', help='email of target author, default to you')
+    global_parser.add_argument('--author', help='email of target author (only when dumping or reading from disk), default to you')
     global_parser.add_argument('-a', '--all', help='show all authors, not just you', action='store_true')
     global_parser.add_argument('--deleted', help='show deleted lines instead of added', action='store_true')
     global_parser.add_argument('--lang', help='only show a specific language')
+    global_parser.add_argument('--dates', help='date prefix filter like 2022-10, or a range 2022-01,2022-07')
     subs = global_parser.add_subparsers()
-
-    # TODO convert to new style of argparse
 
     sp = subs.add_parser('show', help='draw a graph over contributions')
     sp.set_defaults(handler=show)
@@ -80,10 +69,17 @@ def main():
     sp = subs.add_parser('langs', help='stats over which languages (filetypes) commited')
     sp.set_defaults(handler=langs)
     sp.add_argument('db_or_repo', nargs="?", help='directory of repo database, or directory of a single git repo')
+    sp.add_argument('-y', '--years', help='show yearly breakdown', action='store_true')
+    sp.add_argument('-q', '--quarters', help='show quarterly breakdown', action='store_true')
+    sp.add_argument('-m', '--months', help='show monthly breakdown', action='store_true')
 
     sp = subs.add_parser('repos', help='list all repos in database with loc count')
     sp.set_defaults(handler=repos)
     sp.add_argument('db_or_repo', nargs="?", help='directory of repo database, or directory of a single git repo')
+    sp.add_argument('-y', '--years', help='show yearly breakdown', action='store_true')
+    sp.add_argument('-q', '--quarters', help='show quarterly breakdown', action='store_true')
+    sp.add_argument('-m', '--months', help='show monthly breakdown', action='store_true')
+    sp.add_argument('-l', '--langs', help='show language usage breakdown', action='store_true')
 
     sp = subs.add_parser('list', help='list without any data')
     sp.set_defaults(handler=list_cmd)
@@ -93,8 +89,6 @@ def main():
     sp.add_argument('repo_dirs', nargs='+', help='directories of repositories, comma separated')
     sp.add_argument('-d', '--depth', type=int, help='depth of recursion', default=2)
     sp.add_argument('--no-cache', help='update everything', action='store_true')
-
-    # TODO raw data command
 
     sp = subs.add_parser('domain', help='view or set domain')
     sp.set_defaults(handler=domain)
@@ -111,6 +105,8 @@ def main():
         ctx.metric = "deleted"
     if args.lang:
         ctx.lang = args.lang
+    if args.dates:
+        ctx.dates = args.dates
     args.handler(**args.__dict__)
 
 
@@ -155,25 +151,50 @@ def time_cmd(db_or_repo, full, **kwargs):
     print_dict(collapse_keys(group_by_all_time(data)))
 
 
-def langs(db_or_repo, **kwargs):
+def langs(db_or_repo, years, quarters, months, **kwargs):
     data = load_repo_or_db(db_or_repo)
 
     data = union_repos(data)
-    data = group_by_anytime(data)
-    data = collapse_keys(data)
+    if years or quarters or months:
+        if years:
+            data = group_by_year(data)
+        elif quarters:
+            data = group_by_quarter(data)
+        elif months:
+            data = group_by_month(data)
+        data = collapse_to_table(data, transpose=True, reverse_cols=True)
+        print_table(data, fit=True)
+    else:
+        data = group_by_anytime(data)
+        data = collapse_keys(data)
 
-    res = [(loc, name) for name, loc in data.items()]
-    print_table(sorted(res))
+        res = [(loc, name) for name, loc in data.items()]
+        print_table(sorted(res))
 
 
-def repos(db_or_repo, **kwargs):
+def repos(db_or_repo, years, quarters, months, langs, **kwargs):
     data = load_repo_or_db(db_or_repo)
 
-    data = sum_langs(data)
-    data = group_by_anytime(data)
-    data = collapse_keys(data)
+    if years or quarters or months:
+        data = sum_langs(data)
+        if years:
+            data = group_by_year(data)
+        elif quarters:
+            data = group_by_quarter(data)
+        elif months:
+            data = group_by_month(data)
+        data = collapse_to_table(data, reverse_cols=True)
+        print_table(data, fit=True)
+    elif langs:
+        data = group_by_anytime(data)
+        data = collapse_to_table(data, sort_by_colsum=True, reverse_cols=True)
+        print_table(data, fit=True)
+    else:
+        data = sum_langs(data)
+        data = group_by_anytime(data)
+        data = collapse_keys(data)
 
-    print_table([(loc, name) for name, loc in data.items()])
+        print_table([(loc, name) for name, loc in data.items()])
 
 
 def list_cmd(**kwargs):
@@ -183,7 +204,6 @@ def list_cmd(**kwargs):
 
 def domain(new_domain, **kwargs):
     print("Currect domain is", DOMAIN.get())
-    # TODO list domains from db
 
     if new_domain:
         DOMAIN.put(new_domain)
@@ -200,12 +220,22 @@ def refine(repo_data):
     for repo_name, repo_data in repo_data.items():
         for time, langs, in repo_data[ctx.metric].items():
             for lang, loc in langs.items():
-                key = (repo_name, time, lang)
                 if ctx.lang and ctx.lang != lang:
                     continue
+                if ctx.dates and "," in ctx.dates:
+                    a, b = ctx.dates.split(",")
+                    if time < a or time > b:
+                        continue
+                elif ctx.dates:
+                    if not time.startswith(ctx.dates):
+                        continue
                 if loc > MAX_LOC_PER_COMMIT:
                     loc = 0
+                key = (repo_name, time, lang)
                 ret[key] = max(loc, ret.get(key, 0))
+    if not ret:
+        print("Filters removed all data")
+        sys.exit(1)
     return ret
 
 
@@ -263,17 +293,44 @@ def group_by_anytime(flat_data):
 
 # collapse keys and remove None
 def collapse_keys(flat_data):
+    return {key[0]: value for key, value in collapse_to(flat_data, 1).items()}
+
+def collapse_to(flat_data, key_len):
     ret = {}
 
     for key, loc in flat_data.items():
-        collapsed = list(filter(lambda x: x is not None, key))
-        if len(collapsed) != 1:
-            raise Exception(f"Expected key collapse of {key} to resolve to one value")
-        new_key = collapsed[0]
-        if new_key in ret:
-            raise Exception(f"Expected collapsed key {new_key} to be unique")
-        ret[new_key] = loc
+        collapsed = tuple(filter(lambda x: x is not None, key))
+        if len(collapsed) != key_len:
+            raise Exception(f"Expected key collapse of {key} to resolve to {key_len} value, but found {collapsed}")
+        if collapsed in ret:
+            raise Exception(f"Expected collapsed key {collapsed} to be unique")
+        ret[collapsed] = loc
 
+    return ret
+
+
+def collapse_to_table(flat_data, transpose=False, reverse_rows=False, reverse_cols=False, sort_by_colsum=False):
+    collapsed = collapse_to(flat_data, 2)
+    if transpose:
+        collapsed = {(k[1],k[0]):v for k,v in collapsed.items()}
+
+    rowkeys = sorted({k[0] for k in collapsed}, reverse=reverse_rows)
+    colkeys = sorted({k[1] for k in collapsed}, reverse=reverse_cols)
+
+    if sort_by_colsum:
+        colsum = {}
+        for k,v in collapsed.items():
+            colsum[k[1]] = colsum.get(k[1], 0) + v
+        colkeys = sorted([k for k in colkeys], key=lambda k: colsum[k], reverse=reverse_cols)
+
+    ret = [[""]]
+    # Header row
+    for kx in colkeys:
+        ret[-1].append(kx)
+    for ky in rowkeys:
+        ret.append([ky])
+        for kx in colkeys:
+            ret[-1].append(collapsed.get((ky, kx), 0))
     return ret
 
 
@@ -297,10 +354,11 @@ def load_repo_or_db(path=None):
 def load_data(repo_pattern=None):
     ret = {}
     # fetch in a single batch to avoid chatty exchange with the api
-    for key, data in store.get_all().items():
+    all_data = store.get_all()
+    for key in sorted(all_data.keys()):
+        data = all_data[key]
         if repo_pattern and repo_pattern not in key:
             continue
-        # TODO need batch fetch opt???
         ret[key] = data
     if not ret:
         if repo_pattern:
@@ -434,7 +492,7 @@ def print_dict(d):
 
 
 def graph_dict(d, log_scale=False):
-    cols = int(shutil.get_terminal_size((80, 20)).columns / 2)
+    cols = int(shutil.get_terminal_size().columns / 2)
     entries = [(key, d[key]) for key in sorted(d.keys())]
     if len(entries) > cols:
         print("Warning: capping", len(entries), "to columns to maximum of", cols)

@@ -1,8 +1,14 @@
+import math
+import shutil
 from typing import List
 
 
-def print_table(table: List[List[str]], sep="\t"):
-    for row in printable(table):
+def print_table(table: List[List[str]], sep="\t", fit=False):
+    p = printable(table)
+    if fit:
+        trim_to_terminal(p, sep)
+
+    for row in p:
         print(*row, sep=sep)
 
 # Pad strings to be equal width by column and thus nicely printable
@@ -19,6 +25,23 @@ def printable(table: List[List[str]]):
             row[i] = row[i].ljust(col_width[i])
 
     return str_table
+
+
+def trim_to_terminal(table, sep):
+    if table:
+        max_cols = 0
+        term_width = int(shutil.get_terminal_size().columns)
+        sum_width = 0
+        for i in range(len(table[0])):
+            l = len(table[0][i]) + 1
+            if sep == "\t":
+                l = math.ceil(l / 8.0) * 8
+            if sum_width + l > term_width:
+                break
+            sum_width += l
+            max_cols += 1
+        for i in range(len(table)):
+            table[i] = table[i][0:max_cols]
 
 
 # the function missing from python
