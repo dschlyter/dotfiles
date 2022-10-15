@@ -15,6 +15,12 @@ class Conf:
             return j.get(key, default)
         return default
 
+    def get_or_raise(self, key, e):
+        r = self.get(key)
+        if r is None:
+            raise e
+        return r
+
     def put(self, key, value):
         if os.path.exists(self.path):
             with open(self.path) as fp:
@@ -35,6 +41,9 @@ class ConfCursor:
 
     def get(self, default=None):
         return self.conf.get(self.key, default=default)
+
+    def get_or_raise(self, e):
+        return self.conf.get_or_raise(self.key, e)
 
     def put(self, data):
         return self.conf.put(self.key, data)
