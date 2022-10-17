@@ -95,6 +95,7 @@ class Paperbox:
         update_count = 0
 
         for file in local_files | remote_files:
+            updated = True
             if file in local_files and file in remote_files:
                 lt = self.local_time(file)
                 rt = self.remote_time(file)
@@ -103,16 +104,14 @@ class Paperbox:
 
                 if ls is None or (lt > ls and rt > ls):
                     logging.warning(f"{file} needs repair! " +
-                                    f"Remote ts: {rt} > local ts: {lt} > sync ts: {ls}")
+                                    f"Remote ts: {rt} & local ts: {lt} > sync ts: {ls}")
                     self.repair_file(file, last_sync_ts)
-                    update_count += 1
                 elif lt > rt:
                     self.upload_file(file, last_sync_ts)
-                    update_count += 1
                 elif rt > lt:
                     self.download_file(file, last_sync_ts)
-                    update_count += 1
                 else:
+                    updated = False
                     logging.debug(f"{file} is up to date")
             elif file not in local_files:
                 if file in index_files:
@@ -121,7 +120,6 @@ class Paperbox:
                 else:
                     # remote create
                     self.download_file(file, last_sync_ts)
-                update_count += 1
             elif file not in remote_files:
                 if file not in index_files:
                     # local create
@@ -129,6 +127,8 @@ class Paperbox:
                 else:
                     # remote delete
                     self.delete_local(file, last_sync_ts)
+
+            if updated:
                 update_count += 1
 
         save(STATE_PATH, config)
