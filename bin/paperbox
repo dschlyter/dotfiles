@@ -4,10 +4,11 @@
 
 import json
 import os
+import shutil
+import subprocess
 import sys
 import time
 import logging
-from urllib.request import Request, urlopen
 from urllib.parse import quote, unquote
 from pathlib import Path
 from dotlib.jstore import JStore
@@ -22,25 +23,39 @@ STATE_PATH = HOME + "/.cache/paperbox.json"
 UPDATE_INTERVAL = 60
 
 LAST_MODIFIED = "last_modified"
+REPAIR_SUFFIX = "paperbox_conflict"
+
 
 def file_uri(file):
     return "file_"+quote(file)
 
+
 def main():
     paperbox_state = load(STATE_PATH, default={})
-    if len(sys.argv) > 1:
-        paperbox = sys.argv[1]
-        if len(sys.argv) > 2 and sys.argv[2] == "--save":
-            paperbox_state['paperbox'] = os.path.abspath(paperbox)
-            save(STATE_PATH, paperbox_state)
-    elif 'paperbox' in paperbox_state:
-        paperbox = paperbox_state['paperbox']
-        logging.info(f"Using default paperbox location {paperbox}")
-    else:
-        logging.error(f"No default paperbox path configured, set with: paperbox PATH --save")
-        sys.exit(1)
 
-    Path(paperbox).mkdir(parents=True, exist_ok=True)
+    if len(sys.argv) <= 1:
+        if 'paperbox' in paperbox_state:
+            paperbox = paperbox_state['paperbox']
+        else:
+            logging.error(f"No paperbox path configured, set with: paperbox PATH")
+            sys.exit(1)
+    elif len(sys.argv) >= 2:
+        overwrite = (len(sys.argv) > 2 and sys.argv[2] == "--overwrite")
+        if sys.argv[1].startswith("-"):
+            print("Usage: paperbox [path] [--overwrite]")
+            sys.exit(0)
+        elif 'paperbox' in paperbox_state and not overwrite:
+            print("There is already a paperbox configured in", paperbox_state['paperbox'],
+                  "Stop existing processes and start a new one with --overwrite")
+            sys.exit(1)
+        paperbox = sys.argv[1]
+        paperbox_state = dict()
+        paperbox_state['paperbox'] = os.path.abspath(paperbox)
+        save(STATE_PATH, paperbox_state)
+
+    if not os.path.isdir(paperbox):
+        print(f"Paperbox dir {paperbox} does not exist, please create it yourself")
+        sys.exit(1)
 
     p = Paperbox(paperbox)
     p.sync_loop()
@@ -62,16 +77,17 @@ class Paperbox:
                     logging.debug("No sync needed")
             except Exception as e:
                 logging.error("Exception when syncing, will retry. " + str(e))
-                raise
 
             time.sleep(UPDATE_INTERVAL)
 
     def sync_all(self):
         # We maintain an index of files seen remotely to distinguish create and delete
+        # And also to check for modification both locally and remotely
         config = load(STATE_PATH, default={})
         config['index'] = config.get('index', {})
 
-        index_files = set(config['index'].keys())
+        last_sync_ts = config['index']
+        index_files = last_sync_ts.keys()
 
         local_files = set(self.get_local_files())
         remote_files = set(self.get_remote_files())
@@ -82,40 +98,39 @@ class Paperbox:
             if file in local_files and file in remote_files:
                 lt = self.local_time(file)
                 rt = self.remote_time(file)
-                if lt > rt:
-                    self.upload_file(file)
+
+                ls = last_sync_ts.get(file, None)
+
+                if ls is None or (lt > ls and rt > ls):
+                    logging.warning(f"{file} needs repair! " +
+                                    f"Remote ts: {rt} > local ts: {lt} > sync ts: {ls}")
+                    self.repair_file(file, last_sync_ts)
+                    update_count += 1
+                elif lt > rt:
+                    self.upload_file(file, last_sync_ts)
                     update_count += 1
                 elif rt > lt:
-                    self.download_file(file)
+                    self.download_file(file, last_sync_ts)
                     update_count += 1
                 else:
                     logging.debug(f"{file} is up to date")
-
-                if file not in index_files:
-                    logging.warning(f"Repairing file missing from index {file}")
-                    index_files.add(file)
             elif file not in local_files:
                 if file in index_files:
                     # local delete
-                    self.delete_remote(file)
-                    index_files.remove(file)
+                    self.delete_remote(file, last_sync_ts)
                 else:
                     # remote create
-                    self.download_file(file)
-                    index_files.add(file)
+                    self.download_file(file, last_sync_ts)
                 update_count += 1
             elif file not in remote_files:
                 if file not in index_files:
                     # local create
-                    self.upload_file(file)
-                    index_files.add(file)
+                    self.upload_file(file, last_sync_ts)
                 else:
                     # remote delete
-                    self.delete_local(file)
-                    index_files.remove(file)
+                    self.delete_local(file, last_sync_ts)
                 update_count += 1
 
-        config['index'] = {key: 1 for key in index_files}
         save(STATE_PATH, config)
 
         self.last_update = time.time()
@@ -142,38 +157,70 @@ class Paperbox:
         return int(self.store.get(file_uri(file), fields=["last_modified"])['last_modified'])
 
     def get_local_files(self):
-        return [file for file in os.listdir(self.paperbox) if os.path.isfile(Path(self.paperbox, file))]
+        r = []
+        for file in os.listdir(self.paperbox):
+            if REPAIR_SUFFIX in file:
+                logging.warning(f"Ignoring file {file}")
+            elif os.path.isfile(Path(self.paperbox, file)):
+                r.append(file)
+            else:
+                # ignore dirs
+                pass
+        return r
 
     def get_remote_files(self):
         items = self.store.keys()
         return [unquote(item[5:]) for item in items if item.startswith("file_")]
 
-    def download_file(self, file):
+    def download_file(self, file, last_sync_ts):
         logging.info(f"Downloading file {file}")
         file_data = self.store.get(file_uri(file))
         last_modified = self.cap(file_data['last_modified'])
         with open(Path(self.paperbox, file), mode="w") as fp:
             fp.write(file_data['contents'])
         os.utime(Path(self.paperbox, file), (last_modified, last_modified))
+        last_sync_ts[file] = last_modified
 
-    def upload_file(self, file):
+    def upload_file(self, file, last_sync_ts):
         logging.info(f"Uploading file {file}")
         with open(Path(self.paperbox, file), mode='r') as fp:
             contents = fp.read()
         last_modified = self.cap(os.stat(Path(self.paperbox, file)).st_mtime)
         self.store.put(file_uri(file), {'last_modified': last_modified, 'contents': contents})
+        last_sync_ts[file] = last_modified
 
         remote_last = self.store.get(LAST_MODIFIED)
         if not remote_last or remote_last['last_modified'] < last_modified:
             self.store.put(LAST_MODIFIED, {'last_modified': last_modified, 'contents': ''})
 
-    def delete_local(self, file):
+    def repair_file(self, file, last_sync_ts):
+        file_path = str(Path(self.paperbox, file))
+        bak_path = file_path + "." + REPAIR_SUFFIX
+        shutil.copy(file_path, bak_path)
+
+        self.download_file(file, last_sync_ts)
+
+        if subprocess.call(["diff", "-u", file_path, bak_path]) == 0:
+            logging.info("OK - Local file is identical with remote")
+        else:
+            logging.warning("Files will be union merged with git merge-file")
+            # note: with two changes close to each other non-changed lines can be duplicated
+            # use git to merge, the common base is set to empty file since it is unknown
+            subprocess.call(["git", "merge-file", "--union", file_path, "/dev/null", bak_path])
+            self.upload_file(file, last_sync_ts)
+        os.remove(bak_path)
+
+    def delete_local(self, file, last_sync_ts):
         logging.info(f"Delete local file {file}")
         os.remove(Path(self.paperbox, file))
+        if file in last_sync_ts:
+            del last_sync_ts[file]
 
-    def delete_remote(self, file):
+    def delete_remote(self, file, last_sync_ts):
         logging.info(f"Delete remote file {file}")
         self.store.delete(file_uri(file))
+        if file in last_sync_ts:
+            del last_sync_ts[file]
 
     # sanity check cap for modification times
     def cap(self, modified_time):
