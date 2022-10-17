@@ -442,6 +442,7 @@ _script_template() {
 
 alias ss="_script_template script_template.sh"
 alias pys="_script_template script_template.py"
+alias pyt="_script_template script_template_test.py"
 
 venv() {
     python3 -m venv "${1:-"venv"}"

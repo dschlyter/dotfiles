@@ -35,6 +35,8 @@ for repo in $GIT_AUTOUPDATE_REPOS; do
             ORIGIN="$(git remote get-url origin | sed -E 's,git@github.com:(.*)[.]git,https://github.com/\1,')"
             git fetch -f "$ORIGIN" master:autoupdate
             git merge --ff-only autoupdate
+            # make sure origin/master ref is up to date
+            git fetch "$ORIGIN"
         ) || true
     else
         echo Skipping $repo - no such repo
