@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+
+import argparse
+import sys
+import json
+from typing import List
+from dotlib.util import print_table
+
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    global_parser = argparse.ArgumentParser(description='Print nested json as a table. First layer is rows, second cols.')
+
+    global_parser.set_defaults(handler=json_to_table)
+    global_parser.add_argument('file', nargs='?', default='-', help='file to print (stdin by default)')
+    global_parser.add_argument('--path', nargs='?', help='print a sub-structure, e.g. tasks.0.events')
+
+    parsed_args = global_parser.parse_args()
+    # Note: All handlers must have **kwargs to handle global args
+    parsed_args.handler(**parsed_args.__dict__)
+
+
+def json_to_table(file: str, path, **global_args):
+    if file == "-":
+        j = json.load(sys.stdin)
+    else:
+        with open(file) as fp:
+            j = json.load(fp)
+
+    if path:
+        j = get_path(j, path.strip(".").split("."))
+    else:
+        # Convenience drilldown, because APIs often return a single field dict wrapper
+        while len(j) == 1 and depth(j) > 2:
+            k = pairs(j)[0][0]
+            print("Drilling down into", k)
+            j = j[k]
+
+    # j should now be a 2D structure, first layer may be array, inner should be dict
+    row_keys = [k for k,v in pairs(j)]
+    col_keys = sorted({k2 for k,v in pairs(j) for k2 in v.keys()})
+
+    table = [[""]]
+    # Header row
+    for ck in col_keys:
+        table[-1].append(ck)
+    for rk in row_keys:
+        line = []
+        line.append(rk)
+        for ck in col_keys:
+            line.append(j[rk].get(ck, ""))
+        table.append(line)
+
+    print_table(table)
+
+
+def get_path(j, path):
+    if not path or path == ['']:
+        return j
+    key, rest = path[0], path[1:]
+
+    if isinstance(j, dict):
+        return get_path(j[key], rest)
+    elif isinstance(j, list):
+        return get_path(j[int(key)], rest)
+    else:
+        raise Exception(f"Cannot get key {key} in data {j}")
+
+
+def pairs(j):
+    if isinstance(j, dict):
+        return list(j.items())
+    elif isinstance(j, list):
+        return list(enumerate(j))
+    else:
+        raise Exception("Upsupported pair type {j}")
+
+
+def depth(j):
+    if isinstance(j, dict) and len(j) > 0:
+        return 1 + depth(pairs(j)[0][1])
+    elif isinstance(j, list) and len(j) > 0:
+        return 1 + depth(j[0])
+    else:
+        return 0
+
+
+
+def get(d, i, default=None):
+    if isinstance(d, list):
+        if i < 0 or i >= len(d):
+            return default
+        return d[i]
+    else:
+        d.get(i, default)
+
+
+if __name__ == '__main__':
+    main()

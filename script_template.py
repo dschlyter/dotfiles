@@ -49,10 +49,10 @@ def sh_read(command):
     return subprocess.check_output(['/bin/bash', '-o', 'pipefail', '-c', command]).decode("utf-8").strip()
 
 
-def get(list, i, default=None):
-    if i < 0 or i >= len(list):
+def get(li, i, default=None):
+    if i < 0 or i >= len(li):
         return default
-    return list[i]
+    return li[i]
 
 
 if __name__ == '__main__':

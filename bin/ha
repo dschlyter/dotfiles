@@ -15,14 +15,14 @@ def main():
     global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
     sub_ps = global_parser.add_subparsers()
 
-    sp = sub_ps.add_parser('read', help='read time')
+    sp = sub_ps.add_parser('read', aliases=['r'], help='read time')
     sp.set_defaults(handler=read)
 
-    sp = sub_ps.add_parser('start', help='start new')
+    sp = sub_ps.add_parser('start', aliases=['s'], help='start new')
     sp.set_defaults(handler=start)
     sp.add_argument('minutes', nargs="?", type=int)
 
-    sp = sub_ps.add_parser('end', help='finish')
+    sp = sub_ps.add_parser('end', aliases=['e'], help='finish')
     sp.set_defaults(handler=end)
     sp.add_argument('activity', nargs="?")
 

@@ -169,12 +169,18 @@ class Pomo:
             subprocess.check_call(['osascript', '-e' f'''tell application "Spotify"
                 play track "{DONE_SONG}"
             end tell'''])
-        elif shutil.which("open"):
-            subprocess.check_call(['open', DONE_SONG])
-        elif shutil.which("xdg-open"):
-            subprocess.check_call(['xdg-open', DONE_SONG])
+        elif open_with(["open", "xdg-open", "wslview"], [DONE_SONG]):
+            pass
         else:
             self.display.println("Error: Could not play sound, did not find open executable")
+
+
+def open_with(programs, args):
+    for p in programs:
+        if shutil.which(p):
+            subprocess.check_call([p] + args)
+            return True
+    return False
 
 
 def to_clock(dt):

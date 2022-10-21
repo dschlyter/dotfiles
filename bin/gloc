@@ -102,6 +102,7 @@ def main():
         ctx.lang = args.lang
     if args.dates:
         ctx.dates = args.dates
+    ctx.max_loc = args.max_loc
     args.handler(**args.__dict__)
 
 # Data model:
