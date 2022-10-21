@@ -21,19 +21,15 @@ def main():
     global_parser.add_argument('--local', action='store_true')
     sub_ps = global_parser.add_subparsers()
 
-    sp = sub_ps.add_parser('parse', help="""parses a markdown file for q: lines as prompts, and any indented following lines as the answer""")
-    sp.set_defaults(handler=parse)
-    sp.add_argument('file', help='the file to parse, will create a question bank with the same name')
-
-    sp = sub_ps.add_parser('answer', help='add a round of answers')
-    sp.set_defaults(handler=answer)
-    sp.add_argument('name', nargs="?", help='the name of the question bank')
-
     sp = sub_ps.add_parser('next', help='practice the question bank next up for practice')
     sp.set_defaults(handler=next_cmd)
 
     sp = sub_ps.add_parser('list', help='list question banks (and the recommendation for next)')
     sp.set_defaults(handler=list_cmd)
+
+    sp = sub_ps.add_parser('answer', help='add a round of answers')
+    sp.set_defaults(handler=answer)
+    sp.add_argument('name', nargs="?", help='the name of the question bank')
 
     sp = sub_ps.add_parser('show', help='show questions and answers')
     sp.set_defaults(handler=show)
@@ -42,6 +38,19 @@ def main():
     sp = sub_ps.add_parser('stats', help='show stats for answer attempts')
     sp.set_defaults(handler=stats)
     sp.add_argument('name', nargs="?", help='the name of the question bank')
+
+    sp = sub_ps.add_parser('parse', help="""parses a markdown file for q: lines as prompts, and any indented following lines as the answer""")
+    sp.set_defaults(handler=parse)
+    sp.add_argument('file', help='the file to parse, will create a question bank with the same name')
+
+    sp = sub_ps.add_parser('add', help="manually add a question")
+    sp.set_defaults(handler=add_cmd)
+    sp.add_argument('name', nargs="?", help='the name of the question bank')
+
+    sp = sub_ps.add_parser('remove', help="remove question by id")
+    sp.set_defaults(handler=remove_cmd)
+    sp.add_argument('name', help='the name of the question bank')
+    sp.add_argument('question_id', type=int, help='id of the question')
 
     parsed_args = global_parser.parse_args()
     if parsed_args.local:
@@ -88,13 +97,70 @@ def parse(file, **kwargs):
         sys.exit(1)
 
     name = file.split("/")[-1].split(".")[0]
-    key = name + "-q"
-    if existing := store.get(name + "-q", null_ok=True):
-        questions = _merge_questions(existing['q'], questions)
-    store.put(key, {'q': questions})
-    print("Stored as", name)
+    existing = store.get(name + "-q", null_ok=True)
+    if existing:
+        max_id = existing['max_id']
+        questions = _merge_questions(existing['q'], questions, max_id)
+    _save(name, questions, existing)
 
     return questions
+
+
+def _save(name, questions, previous_data=None):
+    key = name + "-q"
+
+    # we want to store the maximum id, even when questions get removed
+    max_q_id = max([q['id'] for q in questions])
+    max_previous = previous_data['max_id'] if previous_data else 1
+    store.put(key, {'q': questions, 'max_id': max(max_q_id, max_previous)})
+
+    print("Stored as", name)
+
+
+def add_cmd(name, **kwargs):
+    if not name:
+        name = fzf_match(_list(), or_exit=True)
+
+    data = store.get(name + "-q", null_ok=True)
+    if not data:
+        if input(f"{name} does not exist, add new bank? y/N ") != "y":
+            sys.exit(1)
+        questions = []
+        next_id = 1
+    else:
+        questions = data['q']
+        next_id = data['max_id'] + 1
+
+    q = input("question: ").strip()
+
+    a = []
+    while True:
+        a_in = input("answer [end with empty]: ").strip()
+        if a_in:
+            a.append(a_in)
+        else:
+            break
+
+    if not q or not a:
+        print("q and a cannot be empty")
+        sys.exit(1)
+
+    questions.append({
+        'id': next_id,
+        'line': -1,
+        'q': q,
+        'a': a,
+    })
+    _save(name, questions, data)
+
+
+def remove_cmd(name, question_id, **kwargs):
+    data = store.get(name + "-q")
+    questions = list(filter(lambda q: q['id'] != question_id, data['q']))
+    if len(questions) == data['q']:
+        print(f"Did not find question with index {question_id} to remove")
+        sys.exit(1)
+    _save(name, questions, data)
 
 
 def show(name, **kwargs):
@@ -105,7 +171,7 @@ def show(name, **kwargs):
     questions = store.get(q_key)['q']
 
     for q in questions:
-        print(q['q'])
+        print(q['id'], q['q'])
         for line in q['a']:
             print(line)
         print()
@@ -246,7 +312,7 @@ def stats(name, **kwargs):
 
 # Overly complicated logic that allows for updating the doc and have questions remain somewhat stable
 # To test this, export JSTORE_LOCAL=1 and play around with a temporary file
-def _merge_questions(old_questions, new_questions):
+def _merge_questions(old_questions, new_questions, max_id):
     q_mapping = {}
     # We will attempt to match old and new questions using matching rules with different priorities
     # Once a question has been matched it can no longer be matched by another rule, or with another question
@@ -287,7 +353,7 @@ def _merge_questions(old_questions, new_questions):
                 print()
     
     added_count = len(new_questions) - len(q_mapping)
-    next_id = max([q['id'] for q in old_questions]) + 1
+    next_id = max_id + 1
     for q in new_questions:
         if q['id'] in q_mapping.values():
             continue
