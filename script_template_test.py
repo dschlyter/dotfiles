@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import script_template
 
@@ -10,19 +10,16 @@ class Testing(unittest.TestCase):
     def test_math(self):
         self.assertEqual(2, 1+1)
 
-    def test_files(self):
-        script_template.subprocess = MagicMock()
-        script_template.subprocess.check_call = MagicMock()
-
+    @patch("script_template.subprocess.check_call")
+    def test_files(self, check_call_mock):
         script_template.list_files(["hej"], dry_run=False)
-        script_template.subprocess.check_call.assert_called_with(["ls", "-la", "hej"])
+        check_call_mock.assert_called_with(["ls", "-la", "hej"])
 
-    def test_hello(self):
-        script_template.print = MagicMock()
-
+    @patch("script_template.print")
+    def test_hello(self, print_mock):
         script_template.hello("world", None, None, 1)
 
-        script_template.print.assert_called_with("Hello", "world!")
+        print_mock.assert_called_with("Hello", "world!")
 
     def test_mock_side_lookup(self):
         add_one = MagicMock(side_effect={1: 2, 2: 3}.__getitem__)
