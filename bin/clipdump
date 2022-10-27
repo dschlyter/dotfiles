@@ -1,0 +1,56 @@
+#!/bin/bash
+
+usage() {
+    echo "A hacky way to copy a bunch of things. As long as the program is running, print every string copied to clipboard"
+    echo "Usage: $0"
+}
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+# If running os MacOS, make sure to use GNU utils and not BSD (brew install coreutils moreutils)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    alias xargs="gxargs"
+    alias sed="gsed"
+fi
+
+while getopts ":h" opt; do
+    case $opt in
+        h)
+            usage
+            exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [[ -n "${1:-}" ]]; then
+    usagev
+    exit 0
+fi
+
+# TODO support non-mac
+PASTE="pbpaste"
+if [[ "$(uname -s)" == "linux" ]]; then
+    PASTE='xclip -out -selection clipboard'
+    if [[ $(grep microsoft /proc/version) ]]; then
+        PASTE='powershell.exe Get-Clipboard'
+    fi
+fi
+
+s="$($PASTE)"
+while true; do
+    s2="$($PASTE)"
+    if [[ "$s2" != "$s" ]]; then
+        echo "$s2"
+    fi
+    s="$s2"
+    sleep 0.1
+done
+
+
