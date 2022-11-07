@@ -87,7 +87,11 @@ def main():
     if args.author:
         ctx.target_author = args.author
     else:
+        # change to home directory to avoid dir local config overrides
+        orig_cwd = os.getcwd()
+        os.chdir(str(Path.home()))
         ctx.target_author = sh_read("git config --get user.email")
+        os.chdir(orig_cwd)
 
     if args.domain:
         ctx.domain = args.domain
@@ -307,6 +311,7 @@ def group_by_anytime(flat_data):
 def collapse_keys(flat_data):
     return {key[0]: value for key, value in collapse_to(flat_data, 1).items()}
 
+
 def collapse_to(flat_data, key_len):
     ret = {}
 
@@ -353,7 +358,7 @@ def collapse_to_table(flat_data, transpose=False, reverse_rows=False, reverse_co
 def load_repo_or_db(path=None):
     if path is not None and os.path.exists(path):
         res = crawl(path, depth=2, skip_cache=True)
-        data = {repo:data for repo,data,abs_path in res}
+        data = {repo: data for repo, data, abs_path in res}
     else:
         data = load_data(path)
     
@@ -390,7 +395,9 @@ def dump(repo_dirs, depth, no_cache, force_update, **kwargs):
         sys.exit(1)
     dp = _get_key_prefix(domain)
 
-    existing_db = {k.replace(dp,""):v for k,v in store.get_all().items() if dp in k}
+    print("Using author", ctx.target_author)
+
+    existing_db = {k.replace(dp, ""): v for k, v in store.get_all().items() if dp in k}
 
     res = [
         res
@@ -402,24 +409,30 @@ def dump(repo_dirs, depth, no_cache, force_update, **kwargs):
     for r in res:
         grouped[r[0]] = grouped.get(r[0], []) + [r]
 
-    for name,r in grouped.items():
+    for name, r in grouped.items():
         if len(r) >= 2:
             paths = [v[2] for v in r]
             print(f"Warning! Multiple repos with name {name} {paths}")
 
-    updated_count, up_to_date_count, out_out_date = 0,0,0
+    updated_count, up_to_date_count, out_out_date = 0, 0, 0
     res_by_name = {}
+    up_to_date = set()
     for (name, data, abs_path) in res:
         if data is None:
             up_to_date_count += 1
+            up_to_date.add(name)
             continue
+
+        new_len = len(data["added"])
+        existing_len = 0
         if name in existing_db:
-            new_len = len(data["added"])
             existing_len = len(existing_db[name]["added"])
             if existing_len >= new_len and not force_update:
-                print(f"Warning! Skipping out of date {name} at {abs_path} since history not longer than in db: {new_len} <= {existing_len}")
+                print(f"Warning! Skipping out of date {name} at {abs_path} since history not longer than in db: {new_len} <= {existing_len}. Use --force-update to override.")
                 out_out_date += 1
                 continue
+            else:
+                print(f"Updated {name}, added {new_len - existing_len} commits")
         res_by_name[name] = data
 
     for (repo_name, data) in res_by_name.items():
@@ -428,7 +441,7 @@ def dump(repo_dirs, depth, no_cache, force_update, **kwargs):
     print(f"Dump complete! {updated_count} updated, {up_to_date_count} up to date, {out_out_date} out of date")
 
     already_in_domain = set([k.replace(dp, "") for k in store.keys() if dp in k])
-    repos_not_found = already_in_domain - res_by_name.keys()
+    repos_not_found = already_in_domain - up_to_date - res_by_name.keys()
     if repos_not_found:
         print("Warning: Some repos are in db but were not found:", repos_not_found)
         print("You can use 'jau --app gloc delete' to clean up")
@@ -449,11 +462,8 @@ def crawl(crawl_dir, existing_db={}, depth=1, skip_cache=False):
             if skip_cache or master_sha != existing_db.get(repo_name, {}).get("master_sha", None):
                 data = get_repo_loc()
                 data["master_sha"] = master_sha
-                if data["added"]:
-                    ret.append((repo_name, data, abs_path))
-                    print("added", len(data["added"]), "commits")
-                else:
-                    print("no commits found, skipping")
+                ret.append((repo_name, data, abs_path))
+                print("found", len(data["added"]), "commits")
             else:
                 print("db in sync")
                 ret.append((repo_name, None, abs_path))
