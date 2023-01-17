@@ -46,11 +46,11 @@ Some flags [explained here](https://stackoverflow.com/questions/18860020/executi
 
 Multicursors are awesome!
 
+* `v` to select multiple lines, and then <Alt-n> to fix a cursor per line. Use `_` to align all if you want.
 * <Shift-Alt-Click> to add/remove multicursors anywhere
 * <Alt-n> to select current word and add a multicursor, or under visual mode select the next match
 * <Alt-x> to skip this match
 * g<Alt-n> for case insensitive match
-* `v` to select multiple lines, and then <Alt-n> to fix a cursor per line. Use `_` to align all if you want.
 
 * `aa` and `ia` for argument text-objects
 * Use `cxia` (twice)

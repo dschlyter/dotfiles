@@ -8,8 +8,7 @@
 .gitblacklist
 gitignored*
 .gign*
-gign
-gign_
+gign*
 
 nocommit_*
 

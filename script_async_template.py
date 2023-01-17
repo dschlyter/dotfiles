@@ -7,13 +7,17 @@ import subprocess
 
 
 async def main():
-    x = await asyncio.gather(
+    x = await gather_with_concurrency(
+        2,
         sh_read('ls -la | grep rw'),
-        sh_read('ls -l / | grep r')
+        sh_read('ls -l / | grep r'),
+        sh_read('ls -l / | grep x'),
     )
     print(x[0])
     print("---")
     print(x[1])
+    print("---")
+    print(x[2])
 
 
 def get(list, i, default=None):
@@ -45,6 +49,15 @@ async def async_sh_exec(cmd):
         raise subprocess.SubprocessError(f"Command {cmd} returned {p.returncode}")
 
     return stdout.decode('utf-8').strip(), stderr.decode("utf-8").strip()
+
+
+async def gather_with_concurrency(n, *coroutines):
+    semaphore = asyncio.Semaphore(n)
+
+    async def with_semaphore(coroutine):
+        async with semaphore:
+            return await coroutine
+    return await asyncio.gather(*(with_semaphore(c) for c in coroutines))
 
 
 if __name__ == '__main__':

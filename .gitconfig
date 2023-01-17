@@ -85,6 +85,7 @@
     filter-repo = !$HOME/.git-scripts/filter-repo
     repo-barf = !$HOME/.git-scripts/entry repo-barf
     repo-slurp = !$HOME/.git-scripts/entry repo-slurp
+    rewrite-email = !$HOME/.git-scripts/entry rewrite-email
 
     # notes:
     # add "#" to the end to prevent alias from consuming input, useful with $1 args
@@ -94,6 +95,7 @@
     edit = !$EDITOR $HOME/.gitconfig_base
     al = !git config alias.\"$1\" "#"
     alias = !git config alias.\"$1\" "#"
+    alc = !cat \"$HOME/.gitconfig_base\" | grep \"^ *$1\" "#"
 
     # diff with selection
     df = !git status --porcelain | awk '{print $2}' | fzf | xargs git diff "#"
