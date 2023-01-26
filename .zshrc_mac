@@ -57,13 +57,6 @@ function handlemail() {
     sudo rm /var/mail/$USER
 }
 
-# multi-user spotify can be buggy
-# TODO remove one of these?
-alias claimspotify2="(cd /Applications; sudo find Spotify.app -exec chmod 775 {} \;)"
-alias cliamspotify='sudo find /Applications/Spotify.app -perm "+u+x" ! -perm "+o+x" -exec chmod og+x {} ;'
-alias fix-spotlight='sudo mdutil -E /'
-
-
 #
 # GNU utils
 #

@@ -3,6 +3,7 @@
 import argparse
 import random
 import sys
+import textwrap
 from datetime import datetime, timedelta
 from typing import Dict
 
@@ -12,6 +13,7 @@ from dotlib.util import print_table
 
 APP_NAME = 'qq'
 store = JStore(APP_NAME)
+
 
 def main():
     # https://docs.python.org/3/library/argparse.html
@@ -39,9 +41,18 @@ def main():
     sp.set_defaults(handler=stats)
     sp.add_argument('name', nargs="?", help='the name of the question bank')
 
-    sp = sub_ps.add_parser('parse', help="""parses a markdown file for q: lines as prompts, and any indented following lines as the answer""")
+    sp = sub_ps.add_parser('parse', help="adds or updates a markdown file with Q&A to the db, --help for more info",
+                           formatter_class=argparse.RawDescriptionHelpFormatter,
+                           description=textwrap.dedent("""
+                           There are three supported formats, the first matching one will be used.
+
+                           1. Explicit, questions are prefixed by 'Q:' and answers are indented on following lines
+                           2. Quick single line, question followed by '::' and then answer on the rest of the line
+                           3. Markdown headings, all the lowest level headings become questions
+                           """), )
     sp.set_defaults(handler=parse)
     sp.add_argument('file', help='the file to parse, will create a question bank with the same name')
+    sp.add_argument('--dry-run', action='store_true', help='just print output, and skip add to db')
 
     sp = sub_ps.add_parser('add', help="manually add a question")
     sp.set_defaults(handler=add_cmd)
@@ -61,12 +72,36 @@ def main():
     parsed_args.handler(**parsed_args.__dict__)
 
 
-def parse(file, **kwargs):
-    questions = []
-
+def parse(file, dry_run=False, **kwargs):
     with open(file) as fp:
         lines = [line.rstrip() for line in fp]
 
+    questions = _parse_explicit(lines)
+    if not questions:
+        questions = _parse_single_line(lines)
+    if not questions:
+        questions = _parse_markdown_headings(lines)
+
+    print("Found", len(questions), "questions in the doc")
+    if len(questions) == 0:
+        sys.exit(1)
+
+    if dry_run:
+        _show(questions)
+        return
+
+    name = file.split("/")[-1].split(".")[0]
+    existing = store.get(name + "-q", null_ok=True)
+    if existing:
+        max_id = existing['max_id']
+        questions = _merge_questions(existing['q'], questions, max_id)
+    _save(name, questions, existing)
+
+    return questions
+
+
+def _parse_explicit(lines):
+    questions = []
     i = 0
     while i < len(lines):
         line = lines[i]
@@ -83,26 +118,79 @@ def parse(file, **kwargs):
             while i < len(lines) and lines[i].strip() != "" and _indent_of(lines[i]) > q_indent:
                 a_lines.append(lines[i][q_indent:])
                 i += 1
-            q['a'] = a_lines
 
             if not a_lines:
                 raise Exception(f"Failed to match answers for question on line {q['line']}: {q['q']}")
+
+            q['a'] = a_lines
             questions.append(q)
         else:
             i += 1
-    print(f"Parsed file {file}")
+    return questions
 
-    print("Found", len(questions), "questions in the doc")
-    if len(questions) == 0:
-        sys.exit(1)
 
-    name = file.split("/")[-1].split(".")[0]
-    existing = store.get(name + "-q", null_ok=True)
-    if existing:
-        max_id = existing['max_id']
-        questions = _merge_questions(existing['q'], questions, max_id)
-    _save(name, questions, existing)
+def _parse_single_line(lines):
+    questions = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        i += 1
+        if "::" in line:
+            s = line.strip().split("::")
+            q = s[0].strip()
+            a = s[1].strip()
 
+            if not q or not a:
+                raise Exception(f"Failed to match answers for question on line {i}: {q} :: {a}")
+
+            questions.append({
+                'id': len(questions)+1,
+                'line': i,
+                'q': s[0].strip(),
+                'a': [s[1].strip()]
+            })
+    return questions
+
+
+def _parse_markdown_headings(lines):
+    max_heading = 1
+    for line in lines:
+        while line.startswith((max_heading + 1) * "#"):
+            max_heading += 1
+
+    questions = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if line.lstrip().lower().startswith(max_heading * "#"):
+            q = {
+                'id': len(questions)+1,
+                'line': i,
+                'q': line.strip("# ")
+            }
+            a_lines = []
+
+            i += 1
+            while i < len(lines) and not lines[i].startswith("#"):
+                a_lines.append(lines[i])
+                i += 1
+
+            # Strip heading and trailing empty lines to avoid ugliness
+            start_i = len(a_lines)
+            end_i = 0
+            for j, ans in enumerate(a_lines):
+                if ans.strip() != "":
+                    start_i = min(start_i, j)
+                    end_i = j
+            a_lines = a_lines[start_i:end_i+1]
+
+            if not a_lines:
+                raise Exception(f"Failed to match answers for question on line {q['line']}: {q['q']}")
+
+            q['a'] = a_lines
+            questions.append(q)
+        else:
+            i += 1
     return questions
 
 
@@ -169,7 +257,10 @@ def show(name, **kwargs):
 
     q_key = name + "-q"
     questions = store.get(q_key)['q']
+    _show(questions)
 
+
+def _show(questions):
     for q in questions:
         print(q['id'], q['q'])
         for line in q['a']:
@@ -336,20 +427,21 @@ def _merge_questions(old_questions, new_questions, max_id):
 
         if updated_q['q'] != old_q['q'] or updated_q['a'] != old_q['a']:
             update_count += 1
-            print("Question", old_q['id'], "has changed")
+            print("Question", old_q['id'], "has changed:")
+            print("==== In DB =====")
             print(old_q['q'])
             print("\n".join(old_q['a']))
-            print("--->")
+            print("==== Updated =====")
             print(updated_q['q'])
             print("\n".join(updated_q['a']))
-            print()
+            print("====")
         merged_questions.append(updated_q)
 
     removed_count = len(old_questions) - len(q_mapping)
     if removed_count > 0:
         for q in old_questions:
             if q['id'] not in q_mapping.keys():
-                print("Question will be removed", q['q'])
+                print("Question will be removed:", q['q'])
                 print()
     
     added_count = len(new_questions) - len(q_mapping)
@@ -364,7 +456,7 @@ def _merge_questions(old_questions, new_questions, max_id):
         }
         next_id += 1
         merged_questions.append(added_q)
-        print("Question will be added", added_q['q'])
+        print("Question will be added:", added_q['q'])
         print()
 
     merged_questions = sorted(merged_questions, key=lambda q: q['id'])

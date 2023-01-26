@@ -2,6 +2,7 @@
 
 import argparse
 import subprocess
+import textwrap
 from typing import List
 
 
@@ -13,7 +14,12 @@ def main():
     global_parser.add_argument('--dry-run', '-d', action='store_true')
     sub_ps = global_parser.add_subparsers()
 
-    sp = sub_ps.add_parser('list', help='list some files')
+    sp = sub_ps.add_parser('list', help='list some files',
+                           formatter_class=argparse.RawDescriptionHelpFormatter,
+                           description=textwrap.dedent("""
+                            A more detailed explanation of the list command
+                            This command will call ls -la with the files provided as arguments
+                            """))
     sp.set_defaults(handler=list_files)
     sp.add_argument('files', nargs='*', help='files to list')
 

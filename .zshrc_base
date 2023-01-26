@@ -111,11 +111,6 @@ function lh {
     (nohup tmux-merge-log > /dev/null) &> /dev/null &
 }
 
-function ssh-nokrypton {
-    cat "$HOME/.ssh/config" | sed 's/Host krypton.hosts [*]/Host krypton.hosts/' > "$HOME/.ssh/config_nokrypton"
-    ssh -F "$HOME/.ssh/config_nokrypton" "$@"
-}
-
 # quickly save the previous command
 function save {
     if [[ -n "$1" ]]; then
@@ -128,60 +123,6 @@ function save {
     fi
 }
 
-function unsave {
-    rm "$HOME/commands/$1"
-}
-
-# quickly save a set of the previous commands
-function save-hist {
-    if [[ -n "$1" ]]; then
-        _quicksave_empty "$1" || return 1
-        _quicksave_command "$1" "$(history -10 | sed -E 's/[ 0-9*]+//' | fzf -m --tac)"
-    else
-        echo "Name required as first arg"
-    fi
-}
-
-function _quicksave_command {
-    _quicksave_empty "$1" || return 1
-    mkdir -p "$HOME/commands"
-    filename="$HOME/commands/$1"
-
-    shift
-    echo "#!/bin/zsh
-
-    set -e
-
-    " | sed -E 's/^ +//' > "$filename"
-    echo "$@" >> "$filename"
-    chmod +x "$filename"
-}
-
-_quicksave_empty() {
-    filename="$HOME/commands/$1"
-    if [[ -f "$filename" ]]; then
-        echo "Command already exists, delete with unsave $1"
-        return 1
-    fi
-}
-
-# quickly redefine local functions in editor
-# for real scripts it is probably better with vim =command
-function redef {
-    test -n "$1" || return 1
-    where "$1" > /tmp/redef
-    test $? -eq 0 || return 1
-
-    cat /tmp/redef > /tmp/redef-orig
-    $EDITOR /tmp/redef
-    if ! diff -q /tmp/redef /tmp/redef-edit; then
-        eval "$(cat /tmp/redef)"
-    else
-        echo "No changes"
-    fi
-}
-
-
 # poor mans watch, but with access to shell functions
 function shell-watch {
     while true; do
@@ -190,52 +131,6 @@ function shell-watch {
         echo "$output"
         sleep 2
     done
-}
-
-function eachdir {
-    local depth=1
-    local quiet=""
-
-    while getopts ":d:q" opt; do
-        case $opt in
-            d)
-                depth="$OPTARG"
-                ;;
-            q)
-                quiet="yes"
-                ;;
-            \?)
-                echo "Invalid option: -$OPTARG" >&2
-                exit 1
-                ;;
-        esac
-    done
-    shift $((OPTIND-1))
-
-    max_ret=0
-
-    for dir in $(find -L . -maxdepth $depth -type d -not -path '*/\.*'); do
-        test "$dir" "==" "." && continue
-        test -d "$dir" || continue
-        (cd $dir
-        result="$(eval "$@" 2>&1)"
-        ret=$?
-        max_ret=$((ret > max_ret ? ret : max_ret))
-
-        if [ "$ret" -ne 0 ]; then
-            if [ -z "$quiet" ]; then
-                cecho -b 9 "--- $dir ---"
-            fi
-            echo "$result"
-        elif [ -n "$result" ]; then
-            if [ -z "$quiet" ]; then
-                cecho -b 12 "--- $dir ---"
-            fi
-            echo "$result"
-        fi)
-    done
-
-    return $max_ret
 }
 
 profiling_log "aliases loaded"
