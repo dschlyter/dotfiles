@@ -36,6 +36,7 @@ def main():
     if len(sys.argv) <= 1:
         if 'paperbox' in paperbox_state:
             paperbox = paperbox_state['paperbox']
+            print(f"Using paperbox at {paperbox}")
         else:
             logging.error(f"No paperbox path configured, set with: paperbox PATH")
             sys.exit(1)

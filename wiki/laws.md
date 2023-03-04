@@ -89,6 +89,9 @@ The amount of energy needed to refute bullshit is an order of magnitude bigger t
 ## Sayre's law
 In any dispute the intensity of feeling is inversely proportional to the value of the issues at stake
 
+## Wadsworth Constant
+You can safely skip the first 30% of any youtube video without missing any important content
+
 
 # Funny / Misc
 

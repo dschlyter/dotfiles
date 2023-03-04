@@ -33,7 +33,6 @@ cmake*
 node_modules
 
 # python
-.envrc
 __pycache__
 venv
 
