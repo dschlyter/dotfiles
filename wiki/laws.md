@@ -9,6 +9,9 @@ Any piece of software reflects the organizational structure that produced it. Na
 ## Gall's law
 A complex system that works is invariably found to have evolved from a simple system that worked. A complex system designed from scratch never works and cannot be patched up to make it work. You have to start over with a working simple system
 
+## Hyrum's law
+With a sufficient number of users of an API, it does not matter what you promise in the contract: all observable behaviors of your system will be depended on by somebody.
+
 
 # Data
 

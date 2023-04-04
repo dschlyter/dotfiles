@@ -45,6 +45,7 @@ git-of-theseus-data
 
 # jenv
 .java-version
+.sdkmanrc
 
 # pyenv
 .python-version

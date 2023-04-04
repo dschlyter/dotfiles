@@ -65,10 +65,10 @@
     sm = switch master
     smm = switch master --merge
     smc = switch master -c
-    rep = restore -p
     cp = cherry-pick
     sa = stash --include-untracked
     ski = stash --keep-index
+    np = restore -p
     nuke = reset --hard
 
     # entry point for custom scripts (for things that are too large to define inline here)
@@ -100,6 +100,13 @@
     # diff with selection
     df = !git status --porcelain | awk '{print $2}' | fzf | xargs git diff "#"
     dg = !git status --porcelain | awk '{print $2}' | grep -i \"$1\" | xargs git diff "#"
+
+    # ignore without .gitignore, but for tracked files
+    ignore = update-index --assume-unchanged
+    unignore = update-index --no-assume-unchanged
+    ignored = !git ls-files -v | grep "^[[:lower:]]"
+    # ignore but only locally (will not be pushed)
+    exclude = !mkdir -p .git/info && vim .git/info/exclude "#"
 
     # repo checks (reusable in aliases below)
     is-clean = !test -z \"$(git status --porcelain)\"
@@ -142,8 +149,6 @@
     wip-stash = !git add -A";" git wipa-stash
     wipa-stash = !git commit --no-verify -m 'wip-stash'
     ws = wip-stash
-    # blacklist, prevent files from getting commited (different from .gitignore in that they might already be tracked)
-    blacklist = !echo \"$@\" >> .gitblacklist "#"
     # remove all whitespace changes
     rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git restore "${@:-.}" && git reset'
 
