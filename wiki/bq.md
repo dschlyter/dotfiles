@@ -5,6 +5,11 @@
 
 Note: If you are doing a LEFT JOIN, make sure to do this filtering in a subquery or WITH statement.
 
+## Variables
+
+To fix duplication.
+
+    DECLARE target_partition DATE DEFAULT "2023-05-02";
 # Arrays
 
 ## Arrays select

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+FILE="${1:-.}"
+LINE="${2:-}"
+
+# cd to allow this from anywhere with absolue paths
+cd "$(dirname "$FILE")"
+
+relative_path="$(${GNU_PREFIX}realpath --relative-to="./$(git rev-parse --show-cdup)" "$(basename "$FILE")")"
+uri="$(git github-url)/tree/master/$relative_path"
+
+if [[ -n "$LINE" ]]; then
+    uri="${uri}#L${LINE}"
+fi
+
+open "$uri"

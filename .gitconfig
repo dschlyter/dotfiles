@@ -80,6 +80,7 @@
     wsreset = !$HOME/.git-scripts/entry wsreset
     update-hooks = !$HOME/.git-scripts/entry update-hooks
     alex = !$HOME/.git-scripts/entry alias-export
+    web = !$HOME/.git-scripts/entry web
 
     # easy merge and split of repos, with preserved history (hash-identical roundtrip when testing)
     filter-repo = !$HOME/.git-scripts/filter-repo
@@ -231,7 +232,6 @@
 
     # github
     github-url = !echo \"$(git config --get remote.origin.url | sed -e 's,:,/,' -e 's,https///,https://,' -e 's,git@,https://,' -e 's/[.]git$//')\"
-    web = !path="$(realpath --relative-to=./$(git rev-parse --show-cdup) ${1:-.})" && open \"$(git github-url)/tree/master/$path\" "#"
     github-use-ssh = !git remote set-url origin \"git@github.com:$(git config --get remote.origin.url | sed -e 's,github.com[/],,' -e 's,.*[:][/]*,,')\"
     pr-winner = !git log --oneline --since='1 week' --pretty=format:'%an: %s' | grep 'Merge pull request' | sed 's/:.*//' | sort | uniq -c | sort -nr
     fetch-pr = !git fetch origin "pull/$1/head:pr-$1" "#"

@@ -4,6 +4,10 @@ Because the postgres CLI is the epitome of obviousness
 
     \dn
 
+### Set schema
+
+    SET SEARCH_PATH = some_db_schema;
+
 ## List tables
 
     \dt

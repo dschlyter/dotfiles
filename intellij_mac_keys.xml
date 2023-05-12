@@ -237,4 +237,6 @@
   <action id="Tool_External Tools_pipeline jump">
     <keyboard-shortcut first-keystroke="shift meta j" />
   </action>
+  <action id="Vcs.Log.GoToChild" />
+  <action id="Vcs.Log.GoToParent" />
 </keymap>

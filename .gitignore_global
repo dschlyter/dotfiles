@@ -6,9 +6,10 @@
 .gitconfig_local
 .gitautofetch
 .gitblacklist
-gitignored*
-.gign*
-gign*
+
+# custom prefix to ignore files - for temporary stuff
+GEX*
+.GEX*
 
 nocommit_*
 .envrc
