@@ -1,3 +1,7 @@
+## Jupyter stuff
+
+See jupyter.md
+
 ## Shell scripting
 
 Any bash script >10 LoC should be replaced with python.

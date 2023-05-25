@@ -28,7 +28,15 @@ class JStore:
     def get(self, key, null_ok=False, fields=None):
         try:
             fields_query = f"?fields={','.join(fields)}" if fields else ""
-            return self.api.get(f"api/{self.app}/{quote(key)}{fields_query}")
+            uri = f"api/{self.app}/{quote(key)}{fields_query}"
+            r = self.api.get(uri)
+            # hacky workaround
+            if r == "null":
+                if null_ok:
+                    return None
+                else:
+                    raise Exception("Returned null string")
+            return r
         except urllib.error.HTTPError as e:
             if null_ok and e.code == 404:
                 return None

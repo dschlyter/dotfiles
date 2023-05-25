@@ -63,6 +63,10 @@ def main():
     sp.add_argument('name', help='the name of the question bank')
     sp.add_argument('question_id', type=int, help='id of the question')
 
+    sp = sub_ps.add_parser('drop', help="drop entire question bank")
+    sp.set_defaults(handler=drop_cmd)
+    sp.add_argument('name', help='the name of the question bank')
+
     parsed_args = global_parser.parse_args()
     if parsed_args.local:
         global store
@@ -249,6 +253,16 @@ def remove_cmd(name, question_id, **kwargs):
         print(f"Did not find question with index {question_id} to remove")
         sys.exit(1)
     _save(name, questions, data)
+
+
+def drop_cmd(name, **kwargs):
+    key = name + "-q"
+    data = store.get(key)
+    if not data:
+        raise Exception("Question bank does not exist")
+    store.delete(name + "-q")
+    store.delete(name + "-a")
+    print("Question bank dropped")
 
 
 def show(name, **kwargs):
