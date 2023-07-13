@@ -15,7 +15,7 @@ def usage():
 
 def main():
     cmd = list(sys.argv)[1:]
-    if not cmd:
+    if not cmd or cmd[0] in ("-h", "--help"):
         usage()
         sys.exit(1)
 
@@ -28,7 +28,13 @@ def main():
         return
 
     # clean files older than 1h
-    subprocess.check_call(["find", cache_dir, '-mindepth', "1", '-mtime', '+3600s', '-delete'])
+    # TODO see if this works on mac
+    # if sys.platform in ("linux", "linux2")
+    # works on linux, MAY work on mac
+    subprocess.check_call(["find", cache_dir, '-mindepth', "1", '-mmin', '+59', '-delete'])
+    # else:
+        # works on mac
+        # subprocess.check_call(["find", cache_dir, '-mindepth', "1", '-mtime', '+3600s', '-delete'])
 
     cmd_hash = hashlib.md5(":SEP:".join(cmd).encode("utf-8")).hexdigest()
     cache_file = cache_dir / f"cmd-{cmd_hash}.txt"

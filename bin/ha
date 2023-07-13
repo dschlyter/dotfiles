@@ -10,7 +10,7 @@ api = RestApi()
 
 def main():
     # https://docs.python.org/3/library/argparse.html
-    global_parser = argparse.ArgumentParser(description='TODO describe script')
+    global_parser = argparse.ArgumentParser(description='')
 
     global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
     sub_ps = global_parser.add_subparsers()
@@ -26,8 +26,12 @@ def main():
     sp.set_defaults(handler=end)
     sp.add_argument('activity', nargs="?")
 
-    sp = sub_ps.add_parser('delay', help='')
+    sp = sub_ps.add_parser('delay', help='shorten current segment')
     sp.set_defaults(handler=delay)
+    sp.add_argument('minutes', type=int)
+
+    sp = sub_ps.add_parser('extend', help='extend current segment')
+    sp.set_defaults(handler=extend)
     sp.add_argument('minutes', type=int)
 
     sp = sub_ps.add_parser('split', help='')
@@ -59,6 +63,10 @@ def end(activity, **global_args):
 
 def delay(minutes, **global_args):
     print(api.get(f"api/time/shorten/{minutes}"))
+
+
+def extend(minutes, **global_args):
+    print(api.get(f"api/time/lengthen/{minutes}"))
 
 
 def split(minutes, **global_args):
