@@ -1,0 +1,400 @@
+#!/usr/bin/env python3
+
+import argparse
+import math
+import os
+import queue
+import sys
+import unittest
+from typing import List
+
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    global_parser = argparse.ArgumentParser(description='Rubiks cube solver and helper')
+
+    global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
+    global_parser.add_argument('--proper', '-p', action='store_true', help='Use proper notation')
+    sub_ps = global_parser.add_subparsers()
+
+    sp = sub_ps.add_parser('scramble', help='solve from scramble')
+    sp.set_defaults(handler=cmd_scramble)
+    sp.add_argument('move_seq', help='A sequence of moves in the notation fruRUF')
+
+    # TODO declare a scramble
+    # TODO declare a cube position - option to only declare corners (empty is solved)
+    # TODO handle or autodetect proper notation
+
+    parsed_args = global_parser.parse_args()
+    # Note: All handlers must have **kwargs to handle global args
+    parsed_args.handler(**parsed_args.__dict__)
+
+    main2()
+
+
+def cmd_scramble(move_seq: str, **global_args):
+    cube = default_cube
+    move_seq = _parse_seq(move_seq, **global_args)
+    for move in move_seq:
+        cube = do_move(cube, move)
+        # TODO add verbose option
+        # print_cube(cube)
+
+    print("Scrambled state")
+    print_cube(cube)
+
+    cube_solved, steps = solve(cube)
+    if cube_solved:
+        print_cube(cube_solved)
+        print("Steps to solve:", show_steps(steps))
+    else:
+        print("Did not find solution")
+        sys.exit(1)
+
+
+# Convert "proper" notation to our internal one
+def _parse_seq(move_seq, **global_args):
+    move_seq = move_seq.strip().replace(" ", "")
+    if global_args.get('proper') or "'" in move_seq or "2" in move_seq:
+        ret = ""
+        for i, c in enumerate(move_seq.lower()):
+            if c == "2":
+                ret += ret[-1]
+            elif c == "'":
+                ret = ret[:-1] + ret[-1].upper()
+            else:
+                ret += c
+        return ret
+    else:
+        return move_seq
+
+
+def main2():
+    c2 = default_cube
+    m1, m2, m3, m4 = [find_move(c) for c in "RULU"]
+    for i in range(250_000 * 0):
+        # not parsing moves is faster!!
+        # c2 = do_moves(c2, "RULU")
+        c2 = rotation(c2, m1)
+        c2 = rotation(c2, m2)
+        c2 = rotation(c2, m3)
+        c2 = rotation(c2, m4)
+    print_cube(c2)
+    print("Is solved:", c2 == default_cube)
+    # top should be: red, blue, blue, green
+
+    # search(solved_cube, max_steps=5)
+
+
+# Representing the cube:
+# Yellow is up, blue is forward
+# Each piece is a string, with top/bottom and then clockwise like "yrb", or left-to-right "br"
+# Also track the clockwise rotation for each piece. 3 states for corners, 2 for edges
+cube_pieces = [
+    # top and bottom corners - clockwise from top left
+    "yog", "ygr", "yrb", "ybo",
+    "wgo", "wrg", "wbr", "wob",
+    # top, middle and bottom edges - clockwise from top left
+    "yg", "yr", "yb", "yo",
+    "go", "rg", "br", "ob",
+    "wg", "wr", "wb", "wo",
+]
+# To store state efficiently we store the index in the list, the upper two bits store parity
+solved_cube = bytearray(range(len(cube_pieces)))
+PARITY_BASE = 1 << 6
+# We use uppercase R for r prime (r') - may clash with regular notation
+moves = "rludfbRLUDFB"
+# Moves are a cycle of changing corner pieces, and another for edge pieces, with parity changes
+rotations = [
+    bytearray([1, 5, 6, 2, 2, 1, 2, 1]) + bytearray([9, 13, 17, 14, 1, 1, 0, 0]),
+    bytearray([0, 3, 7, 4, 1, 2, 1, 2]) + bytearray([11, 15, 19, 12, 1, 1, 0, 0]),
+    bytearray([0, 1, 2, 3, 0, 0, 0, 0]) + bytearray([8, 9, 10, 11, 0, 0, 0, 0]),
+    bytearray([4, 5, 6, 7, 0, 0, 0, 0]) + bytearray([16, 17, 18, 19, 0, 0, 0, 0]),
+    bytearray([3, 2, 6, 7, 1, 2, 1, 2]) + bytearray([10, 14, 18, 15, 1, 1, 0, 0]),
+    bytearray([0, 4, 5, 1, 2, 1, 2, 1]) + bytearray([8, 12, 16, 13, 1, 1, 0, 0])
+    # prime moves added later
+]
+
+
+def create_prime_moves():
+    def transform(regular_move):
+        i1, i2, i3, i4, p1, p2, p3, p4 = regular_move
+        mod = (3 if i1 < 8 else 2)
+        return bytearray([i1, i4, i3, i2, mod-p4, mod-p3, mod-p2, mod-p1])
+
+    half = int(len(rotations[0]) / 2)
+    prime_moves = [transform(rot[0:half]) + transform(rot[half:])
+                   for rot in rotations]
+    return prime_moves
+
+
+rotations.extend(create_prime_moves())
+
+
+def find_move(char):
+    return rotations[moves.index(char)]
+
+
+def do_move(cube, char):
+    return rotation(cube, find_move(char))
+
+
+def do_moves(cube, move_str):
+    for char in move_str:
+        cube = do_move(cube, char)
+    return cube
+
+
+# Movement primitive: Rotates four pieces along a cycle, also updates their parity/rotation
+def rotation(cube, barr):
+    cube = cube.copy()
+
+    s = cube
+    # Unrolled both move steps to make it faster
+    # First is corner movement, parity mod 3
+    i1, i2, i3, i4, p1, p2, p3, p4 = barr[0:8]
+    mod = 3 * PARITY_BASE
+
+    tmp = s[i4]
+    s[i4] = (s[i3] + p3 * PARITY_BASE) % mod
+    s[i3] = (s[i2] + p2 * PARITY_BASE) % mod
+    s[i2] = (s[i1] + p1 * PARITY_BASE) % mod
+    s[i1] = (tmp + p4 * PARITY_BASE) % mod
+
+    # Second is edge movement, parity mod 2
+    i1, i2, i3, i4, p1, p2, p3, p4 = barr[8:]
+    mod = 2 * PARITY_BASE
+
+    tmp = s[i4]
+    s[i4] = (s[i3] + p3 * PARITY_BASE) % mod
+    s[i3] = (s[i2] + p2 * PARITY_BASE) % mod
+    s[i2] = (s[i1] + p1 * PARITY_BASE) % mod
+    s[i1] = (tmp + p4 * PARITY_BASE) % mod
+
+    return cube
+
+
+def solve(cube):
+    solution_order = [
+        # first the cross, two pieces at a time - because performance
+        [16, 17],
+        [18, 19],
+        # F2L one corner, at a time
+        [14, 6],
+        [13, 5],
+        [12, 4],
+        [15, 7],
+        # TODO need to partially solve pieces here - maybe!
+        # yellow cross
+        [8, 9, 10, 11],
+        # yellow edges
+        [0, 1, 2, 3],
+    ]
+    one_at_a_time = [[piece] for targets in solution_order for piece in targets]
+    target_pieces = []
+    full_steps = []
+
+    for new_targets in one_at_a_time:
+        target_pieces.extend(new_targets)
+        cube, steps = search(cube, target_pieces=target_pieces, max_steps=7)
+        if not cube:
+            return cube, ""
+        full_steps.extend(steps)
+        print_cube(cube)
+        print("Solution:", show_steps(full_steps))
+
+    return cube, full_steps
+
+
+def search(start_cube, target_pieces=None, target_cube=solved_cube, max_steps=9000):
+    seen = set()
+    # TODO try simple queue
+    q = queue.Queue()
+    q.put((start_cube, []))
+
+    count = 0
+
+    # TODO make bidirectional
+
+    while not q.empty():
+        count += 1
+        cube, steps = q.get()
+
+        # check success here
+
+        if not target_pieces:
+            if cube == target_cube:
+                return cube, steps
+        else:
+            match = True
+            for p in target_pieces:
+                if cube[p] != target_cube[p]:
+                    match = False
+                    break
+            if match:
+                return cube, steps
+
+        if len(steps) > max_steps:
+            continue
+
+        b = bytes(cube)
+        if b in seen:
+            continue
+        seen.add(b)
+
+        for index, rot in enumerate(rotations):
+            q.put((rotation(cube, rot), steps + [index]))
+
+    print(count, "processed nodes")
+    print(len(seen), "seen states")
+
+    return None, ""
+
+
+def show_steps(steps):
+    return " ".join([moves[i] for i in steps])
+
+
+def print_cube(cube):
+    print(show_cube(cube))
+    print()
+
+
+def show_cube(cube):
+    # cube = handle(cube)
+    def p(index, side):
+        return _show_side(get_piece(cube, index), get_parity(cube, index), side)
+    pc = _show_color
+    # start of edges index
+    e = 8
+
+    t1 = p(0, 0) + p(e+0, 0) + p(1, 0)
+    t2 = p(e+3, 0) + pc("y") + p(e+1, 0)
+    t3 = p(3, 0) + p(e+2, 0) + p(2, 0)
+
+    l1 = p(0, 1) + p(e+3, 1) + p(3, 2)
+    l2 = p(e+4, 1) + pc("o") + p(e+7, 0)
+    l3 = p(4, 2) + p(e+11, 1) + p(7, 1)
+
+    f1 = p(3, 1) + p(e+2, 1) + p(2, 2)
+    f2 = p(e+7, 1) + pc("b") + p(e+6, 0)
+    f3 = p(7, 2) + p(e+10, 1) + p(6, 1)
+
+    d1 = p(7, 0) + p(e+10, 0) + p(6, 0)
+    d2 = p(e+11, 0) + pc("w") + p(e+9, 0)
+    d3 = p(4, 0) + p(e+8, 0) + p(5, 0)
+
+    r1 = p(2, 1) + p(e+1, 1) + p(1, 2)
+    r2 = p(e+5, 0) + pc("r") + p(e+6, 1)
+    r3 = p(6, 2) + p(e+9, 1) + p(5, 1)
+
+    b1 = p(1, 1) + p(e, 1) + p(0, 2)
+    b2 = p(e+5, 1) + pc("g") + p(e+4, 0)
+    b3 = p(5, 2) + p(e+8, 1) + p(4, 1)
+
+    i = "  " * 3
+    return "\n".join([
+        i+t1, i+t2, i+t3,
+        l1 + f1 + r1 + b1, l2 + f2 + r2 + b2, l3 + f3 + r3 + b3,
+        i+d1, i+d2, i+d3
+    ])
+
+
+def get_piece(cube, index):
+    return cube_pieces[cube[index] % PARITY_BASE]
+
+
+def get_parity(cube, index):
+    return math.floor(cube[index] / PARITY_BASE)
+
+
+def _show_side(piece, parity, side_index):
+    color = shift(piece, parity)[side_index]
+    return _show_color(color)
+
+
+COLORS = {
+    "w": "\033[1;0m",
+    "y": "\033[1;33m",
+    "b": "\033[1;34m",
+    "r": "\033[0;31m",
+    "g": "\033[1;32m",
+    # https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
+    "o": '\033[38;5;166m'
+}
+RESET_COLOR = "\033[0;0m"
+
+
+def _show_color(color):
+    return COLORS[color] + "##" + RESET_COLOR
+
+
+def shift(s, shift_len):
+    shift_len = shift_len % len(s)
+    return s[len(s)-shift_len:] + s[0:len(s)-shift_len]
+
+
+default_cube = solved_cube
+
+
+# perf - 1M rotations
+# baseline: 3.5 seconds
+# separated lists: 2.9s
+# abstraction layer: 5.677
+# abstraction layer with fewer fn calls: 3.7 - interesting, prime operations are a lot slower
+# changing the benchmark to use prime moves 4.4
+# using a list with indices 4.2 - just a small improvement, within error margin
+# using byte arrays 4.2
+# sending the move as byte arrays 3.6
+# hardcoded method 2.9
+# simplifying again, removing the methods 3.3
+# inlining the parity bit 2.5 - wohoo - something improves !!!
+# tmp variable 2.4
+# unrolled both moves 2.3
+# removed abstractions 1.7
+
+# TODO performance - 1M cube rotations in 3s
+# estimated need for 120 B for 21 move bidirectional search
+# maybe numpy is faster ??
+
+# Inline tests
+# Run by setting UNITTEST=1
+class Tests(unittest.TestCase):
+    def test_one_rotation(self):
+        c = default_cube
+        c = do_move(c, "r")
+        self.assertEqual('yrb', get_piece(c, 1))
+        self.assertEqual(1, get_parity(c, 1))
+        self.assertEqual('br', get_piece(c, 9))
+        self.assertEqual(0, get_parity(c, 9))
+
+    def test_rotates_back(self):
+        for move in moves:
+            self._assert_identity(lambda cube: do_move(cube, move), 4)
+
+    def test_algo_identity(self):
+        # fru
+        self._assert_identity(lambda cube: do_moves(cube, "fruRUF"), 6)
+
+        # oll
+        self._assert_identity(lambda cube: do_moves(cube, "ruRuruuR"), 6)
+
+    # TODO TEST solver
+
+    def _assert_identity(self, fn, iterations):
+        c = default_cube
+        states = show_cube(c)
+        for i in range(iterations):
+            c = fn(c)
+            states += f"\nStep {i+1}:\n" + show_cube(c)
+            if i+1 < iterations:
+                self.assertNotEqual(default_cube, c,
+                                    f"cube solved faster than in {iterations} steps:\n" + states)
+        self.assertEqual(default_cube, c, "expected solved but found seq:\n" + states)
+
+
+if __name__ == '__main__':
+    if os.environ.get("UNITTEST") == "1":
+        unittest.main()
+    else:
+        main()
