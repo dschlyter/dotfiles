@@ -29,7 +29,7 @@ def main():
     # Note: All handlers must have **kwargs to handle global args
     parsed_args.handler(**parsed_args.__dict__)
 
-    main2()
+    # main2()
 
 
 def cmd_scramble(move_seq: str, **global_args):
@@ -37,13 +37,14 @@ def cmd_scramble(move_seq: str, **global_args):
     move_seq = _parse_seq(move_seq, **global_args)
     for move in move_seq:
         cube = do_move(cube, move)
-        # TODO add verbose option
+        # TODO add verbose option for each step
+        # print(move)
         # print_cube(cube)
 
     print("Scrambled state")
     print_cube(cube)
 
-    cube_solved, steps = solve(cube)
+    cube_solved, steps = cfop_solve(cube, print_steps=True)
     if cube_solved:
         print_cube(cube_solved)
         print("Steps to solve:", show_steps(steps))
@@ -102,6 +103,7 @@ cube_pieces = [
 # To store state efficiently we store the index in the list, the upper two bits store parity
 solved_cube = bytearray(range(len(cube_pieces)))
 PARITY_BASE = 1 << 6
+WILDCARD = len(cube_pieces) + 1
 # We use uppercase R for r prime (r') - may clash with regular notation
 moves = "rludfbRLUDFB"
 # Moves are a cycle of changing corner pieces, and another for edge pieces, with parity changes
@@ -156,6 +158,7 @@ def rotation(cube, barr):
     mod = 3 * PARITY_BASE
 
     tmp = s[i4]
+    # TODO inline PARITY_BASE into the move array ??
     s[i4] = (s[i3] + p3 * PARITY_BASE) % mod
     s[i3] = (s[i2] + p2 * PARITY_BASE) % mod
     s[i2] = (s[i1] + p1 * PARITY_BASE) % mod
@@ -174,81 +177,124 @@ def rotation(cube, barr):
     return cube
 
 
-def solve(cube):
+def cfop_solve(cube, print_steps=False):
+    # 0 - ignore piece, 1 - just care about parity, 2 - piece in right place
+    target_lookup = [0] * len(cube)
+
     solution_order = [
-        # first the cross, two pieces at a time - because performance
-        [16, 17],
-        [18, 19],
-        # F2L one corner, at a time
-        [14, 6],
-        [13, 5],
-        [12, 4],
-        [15, 7],
-        # TODO need to partially solve pieces here - maybe!
-        # yellow cross
-        [8, 9, 10, 11],
-        # yellow edges
-        [0, 1, 2, 3],
+        # first the cross
+        (2, [16, 17, 18, 19]),
+        # F2L one corner at a time
+        (2, [14, 6]),
+        (2, [13, 5]),
+        (2, [12, 4]),
+        (2, [15, 7]),
+        # oll - yellow cross - only care about parity (1)
+        (1, [8, 9, 10, 11]),
+        # oll - yellow corners - only parity (1)
+        (1, [0, 1, 2, 3]),
+        # pll - yellow edges fully solved, start with back piece
+        (2, [0]),
+        (2, [1, 2, 3]),
+        # pll - cross fully solved, start with back piece
+        (2, [8]),
+        (2, [9, 10, 11]),
     ]
-    one_at_a_time = [[piece] for targets in solution_order for piece in targets]
-    target_pieces = []
+    # one_at_a_time = [[piece] for targets in solution_order for piece in targets]
     full_steps = []
 
-    for new_targets in one_at_a_time:
-        target_pieces.extend(new_targets)
-        cube, steps = search(cube, target_pieces=target_pieces, max_steps=7)
+    for (target_mode, new_targets) in solution_order:
+        for piece in new_targets:
+            target_lookup[piece] = target_mode
+        cube, steps = bidirectional_search(cube, target_lookup=target_lookup, max_steps=7)
         if not cube:
             return cube, ""
         full_steps.extend(steps)
-        print_cube(cube)
-        print("Solution:", show_steps(full_steps))
+        if print_steps:
+            print_cube(cube)
+            print("Solution:", show_steps(full_steps))
 
     return cube, full_steps
 
 
-def search(start_cube, target_pieces=None, target_cube=solved_cube, max_steps=9000):
-    seen = set()
-    # TODO try simple queue
-    q = queue.Queue()
-    q.put((start_cube, []))
+def key_for_target(cube, target_lookup):
+    if target_lookup:
+        key = []
+        for c in cube:
+            t = target_lookup[c % PARITY_BASE]
+            if t == 0:
+                key.append(WILDCARD)
+            if t == 1:
+                key.append(WILDCARD + math.floor(c / PARITY_BASE))
+            if t == 2:
+                key.append(c)
+        return bytes(key)
+    else:
+        return bytes(cube)
 
-    count = 0
 
-    # TODO make bidirectional
+def bidirectional_search(start_cube, target_cube=solved_cube, target_lookup=None, max_steps=9000):
+    # TODO allow for setting wildcard bits based on target pieces, these are ignored
+    # - have a parity enabled bit, the lowest bit ??
+    # - have a one-indexed list, set everything to zero for wildcard
+    # BUT FIRST - just mask things when looking them up ??
+    key_start = key_for_target(start_cube, target_lookup)
+    key_target = key_for_target(target_cube, target_lookup)
 
-    while not q.empty():
-        count += 1
-        cube, steps = q.get()
+    if key_start == key_target:
+        # pass
+        return start_cube, []
 
-        # check success here
+    forward = [(start_cube, [])]
+    backward = [(target_cube, [])]
+    seen_f = dict(key_start=[])
+    seen_b = dict(key_target=[])
 
-        if not target_pieces:
-            if cube == target_cube:
-                return cube, steps
-        else:
-            match = True
-            for p in target_pieces:
-                if cube[p] != target_cube[p]:
-                    match = False
-                    break
-            if match:
-                return cube, steps
+    solution = None
 
-        if len(steps) > max_steps:
+    for step in range(max_steps):
+        solution_f, forward = expand_direction(forward, seen_f, seen_b, target_lookup)
+        if solution_f:
+            solution = solution_f[0] + reverse_steps(solution_f[1])
+            break
+
+        solution_b, backward = expand_direction(backward, seen_b, seen_f, target_lookup)
+        if solution_b:
+            solution = solution_b[1] + reverse_steps(solution_b[0])
+            break
+
+    if solution:
+        cube = start_cube
+        print(show_steps(solution))
+        for move_index in solution:
+            cube = rotation(cube, rotations[move_index])
+        return cube, solution
+
+    return None, None
+
+
+def expand_direction(q, seen, other_seen, target_lookup):
+    next_q = []
+
+    for (cube, steps) in q:
+        key = key_for_target(cube, target_lookup)
+        if key in seen:
             continue
+        seen[key] = steps
 
-        b = bytes(cube)
-        if b in seen:
-            continue
-        seen.add(b)
+        other_steps = other_seen.get(key)
+        if other_steps:
+            return (steps, other_steps), []
 
         for index, rot in enumerate(rotations):
-            q.put((rotation(cube, rot), steps + [index]))
+            next_q.append((rotation(cube, rot), steps + [index]))
 
-    print(count, "processed nodes")
-    print(len(seen), "seen states")
+    return None, next_q
 
-    return None, ""
+
+def reverse_steps(steps):
+    l = len(rotations)
+    return [(idx + int(l/2)) % l for idx in reversed(steps)]
 
 
 def show_steps(steps):
