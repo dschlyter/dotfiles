@@ -4,6 +4,8 @@
 
 import asyncio
 import subprocess
+import os
+import unittest
 
 
 async def main():
@@ -60,5 +62,15 @@ async def gather_with_concurrency(n, *coroutines):
     return await asyncio.gather(*(with_semaphore(c) for c in coroutines))
 
 
+# Inline tests
+# Run by setting UNITTEST=1
+class Tests(unittest.TestCase):
+    def test_upper(self):
+        self.assertEqual('foo'.upper(), 'FOO')
+
+
 if __name__ == '__main__':
-    asyncio.run(main())
+    if os.environ.get("UNITTEST") == "1":
+        unittest.main()
+    else:
+        asyncio.run(main())

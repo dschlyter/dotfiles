@@ -3,6 +3,8 @@
 import argparse
 import subprocess
 import textwrap
+import os
+import unittest
 from typing import List
 
 
@@ -61,5 +63,15 @@ def get(li, i, default=None):
     return li[i]
 
 
+# Inline tests
+# Run by setting UNITTEST=1
+class Tests(unittest.TestCase):
+    def test_upper(self):
+        self.assertEqual('foo'.upper(), 'FOO')
+
+
 if __name__ == '__main__':
-    main()
+    if os.environ.get("UNITTEST") == "1":
+        unittest.main()
+    else:
+        main()
