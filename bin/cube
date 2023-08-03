@@ -19,13 +19,13 @@ def main():
     sp = sub_ps.add_parser('scramble', help='solve from scramble')
     sp.set_defaults(handler=cmd_scramble)
     sp.add_argument('move_seq', help='A sequence of moves in the notation fruRUF')
-    sp.add_argument('-q', action='store_true', help='quiet, do not solve after scramble')
+    sp.add_argument('--quiet', '-q', action='store_true', help='do not solve after scramble')
 
     sp = sub_ps.add_parser('bench', help='benchmark with 30 solves')
     sp.set_defaults(handler=cmd_bench)
 
     # TODO declare a cube position - option to only declare corners (empty is solved)
-    # TODO handle or autodetect proper notation
+    # TODO validate cube parity - must be a multiple of 3 for corners or 2 for edges
 
     parsed_args = global_parser.parse_args()
     # Note: All handlers must have **kwargs to handle global args
@@ -34,7 +34,7 @@ def main():
     # main2()
 
 
-def cmd_scramble(move_seq: str, q: bool, **global_args):
+def cmd_scramble(move_seq: str, q: bool = False, **global_args):
     cube = solved_cube
     move_seq = _parse_seq(move_seq, **global_args)
     for move in move_seq:
@@ -119,9 +119,7 @@ def create_prime_moves():
         return bytearray([i1, i4, i3, i2, mod-p4, mod-p3, mod-p2, mod-p1])
 
     half = int(len(rotations[0]) / 2)
-    prime_moves = [transform(rot[0:half]) + transform(rot[half:])
-                   for rot in rotations]
-    return prime_moves
+    return [transform(rot[0:half]) + transform(rot[half:]) for rot in rotations]
 
 
 rotations.extend(create_prime_moves())
@@ -171,12 +169,13 @@ def rotation(cube, barr):
     return cube
 
 
+# Solve the cube using intermediate steps, since a full search would take too long
 def cfop_solve(cube, print_steps=False):
     # 0 - ignore piece, 1 - just care about parity, 2 - piece in right place
     target_lookup = [0] * len(cube)
 
     solution_order = [
-        # first the cross
+        # first the white cross
         (2, [16, 17, 18, 19]),
         # F2L one corner at a time
         (2, [14, 6]),
@@ -194,9 +193,8 @@ def cfop_solve(cube, print_steps=False):
         (2, [8]),
         (2, [9, 10, 11]),
     ]
-    # one_at_a_time = [[piece] for targets in solution_order for piece in targets]
-    full_steps = []
 
+    full_steps = []
     for (target_mode, new_targets) in solution_order:
         for piece in new_targets:
             target_lookup[piece] = target_mode
@@ -269,7 +267,7 @@ def expand_direction(i, q, seen, other_seen, target_lookup, target_key):
     for search_node in q:
         key, prev_cube, prev_steps = search_node
         # A star like search - delay search nodes that are far from the key
-        if len(prev_steps) + best_case_between(key, target_key) > i+1:
+        if len(prev_steps) + lower_bound_between(key, target_key) > i+1:
             next_q.append(search_node)
             continue
 
@@ -292,8 +290,8 @@ def expand_direction(i, q, seen, other_seen, target_lookup, target_key):
     return None, next_q
 
 
-# each step can only change 8 pieces, which gives a best-case number of steps to solution
-def best_case_between(key, target_key):
+# each step can only change 8 pieces, which gives a lower bound of steps to solution
+def lower_bound_between(key, target_key):
     matches = 0
     for i, value in enumerate(key):
         if value == target_key[i]:
@@ -469,4 +467,4 @@ if __name__ == '__main__':
 
 # bench 30 - seed 42
 # 3. 7:42
-# 4.
+# 4. 6:06 (a smaller improvement, weird)
