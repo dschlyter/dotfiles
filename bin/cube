@@ -14,6 +14,7 @@ def main():
 
     global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
     global_parser.add_argument('--proper', '-p', action='store_true', help='Use proper notation')
+    global_parser.add_argument('--brute', '-b', action='store_true', help='Brute force solve instead of CFOP, may fail')
     sub_ps = global_parser.add_subparsers()
 
     sp = sub_ps.add_parser('scramble', help='solve from scramble')
@@ -21,11 +22,14 @@ def main():
     sp.add_argument('move_seq', help='A sequence of moves in the notation fruRUF')
     sp.add_argument('--quiet', '-q', action='store_true', help='do not solve after scramble')
 
+    sp = sub_ps.add_parser('set', help='Set cube state, omitted are considered solved, or use "-" for wildcard')
+    sp.set_defaults(handler=cmd_set)
+    sp.add_argument('corner_pieces', help='Space separated sequence of corners like "yo yg -" (two chars is enough)')
+    sp.add_argument('edge_pieces', nargs="?", default="",
+                    help='Space separated sequence of edges like "yg rg -"')
+
     sp = sub_ps.add_parser('bench', help='benchmark with 30 solves')
     sp.set_defaults(handler=cmd_bench)
-
-    # TODO declare a cube position - option to only declare corners (empty is solved)
-    # TODO validate cube parity - must be a multiple of 3 for corners or 2 for edges
 
     parsed_args = global_parser.parse_args()
     # Note: All handlers must have **kwargs to handle global args
@@ -43,10 +47,15 @@ def cmd_scramble(move_seq: str, q: bool = False, **global_args):
     print("Scrambled state")
     print_cube(cube)
 
-    if q:
-        return
+    if not q:
+        _cmd_solve(cube, **global_args)
 
-    cube_solved, steps = cfop_solve(cube, print_steps=True)
+
+def _cmd_solve(cube, **global_args):
+    if not global_args.get('brute'):
+        cube_solved, steps = solve_cfop(cube, print_steps=True)
+    else:
+        cube_solved, steps = solve_brute(cube, print_steps=True)
     print("Positions searched", diagnostics['search_steps'])
     if cube_solved:
         print(f"Solved in {len(steps)} moves: {show_steps(steps)}")
@@ -54,6 +63,17 @@ def cmd_scramble(move_seq: str, q: bool = False, **global_args):
     else:
         print("Did not find solution")
         sys.exit(1)
+
+
+def cmd_set(corner_pieces: str, edge_pieces: str, **global_args):
+    def split(s):
+        if s:
+            return s.split(" ")
+        return []
+
+    cube = read_cube(split(corner_pieces), split(edge_pieces))
+
+    _cmd_solve(cube, **global_args)
 
 
 def cmd_bench(**global_args):
@@ -81,6 +101,9 @@ def _parse_seq(move_seq, **global_args):
         return move_seq
 
 
+#
+# Section: Cube representation and movement
+#
 # Representing the cube:
 # Yellow is up, blue is forward
 # Each piece is a string, with top/bottom and then clockwise like "yrb", or left-to-right "br"
@@ -94,6 +117,10 @@ cube_pieces = [
     "go", "rg", "br", "ob",
     "wg", "wr", "wb", "wo",
 ]
+# Certain pieces can be considered to be wildcards when solving
+WILDCARD_KEY = "-"
+CORNER_PIECES = 8
+EDGE_PIECES = 12
 # To store state efficiently we store the index in the list, the upper two bits store parity
 solved_cube = bytearray(range(len(cube_pieces)))
 PARITY_BASE = 1 << 6
@@ -115,7 +142,7 @@ rotations = [
 def create_prime_moves():
     def transform(regular_move):
         i1, i2, i3, i4, p1, p2, p3, p4 = regular_move
-        mod = (3 if i1 < 8 else 2)
+        mod = (3 if i1 < CORNER_PIECES else 2)
         return bytearray([i1, i4, i3, i2, mod-p4, mod-p3, mod-p2, mod-p1])
 
     half = int(len(rotations[0]) / 2)
@@ -150,7 +177,6 @@ def rotation(cube, barr):
     mod = 3 * PARITY_BASE
 
     tmp = s[i4]
-    # TODO inline PARITY_BASE into the move array ??
     s[i4] = (s[i3] + p3 * PARITY_BASE) % mod
     s[i3] = (s[i2] + p2 * PARITY_BASE) % mod
     s[i2] = (s[i1] + p1 * PARITY_BASE) % mod
@@ -169,8 +195,11 @@ def rotation(cube, barr):
     return cube
 
 
+#
+# Section: Solving the cube
+#
 # Solve the cube using intermediate steps, since a full search would take too long
-def cfop_solve(cube, print_steps=False):
+def solve_cfop(cube, print_steps=False):
     # 0 - ignore piece, 1 - just care about parity, 2 - piece in right place
     target_lookup = [0] * len(cube)
 
@@ -210,24 +239,52 @@ def cfop_solve(cube, print_steps=False):
     return cube, full_steps
 
 
+def solve_brute(cube, print_steps=False):
+    return bidirectional_search(cube, target_lookup=None, max_steps=10)
+
+
+# TODO kill off this logic? - unify this with the wildcard in the cube logic
+# 1. modify the cube with wildcards on setup
+# 2. post-process cube to remove parity for wildcards
+# TODO - how to deal with parity tracking - can I have a WILDCARD_WITH_PARITY
 def key_for_target(cube, target_lookup):
     if target_lookup:
-        key = []
+        key = bytearray()
         for c in cube:
-            t = target_lookup[c % PARITY_BASE]
+            piece = c % PARITY_BASE
+            t = target_lookup[piece] if piece != WILDCARD else 0
             if t == 0:
                 key.append(WILDCARD)
-            if t == 1:
+            elif t == 1:
                 key.append(WILDCARD + math.floor(c / PARITY_BASE))
-            if t == 2:
+            elif t == 2:
                 key.append(c)
+            else:
+                raise Exception("Invalid t" + str(t))
         return bytes(key)
     else:
-        return bytes(cube)
+        key = bytearray()
+        for c in cube:
+            piece = c % PARITY_BASE
+            if piece == WILDCARD:
+                key.append(WILDCARD)
+            else:
+                key.append(c)
+        return bytes(key)
+
+
+# modify a target cube to set all non-existing pieces to wildcards
+def match_wildcards(target_cube, start_cube):
+    used_pieces = set([p % PARITY_BASE for p in start_cube])
+    return bytearray([(p if (p % PARITY_BASE) in used_pieces else WILDCARD) for p in target_cube])
 
 
 # To find solutions we use a bidirectional search with A star optimizations
 def bidirectional_search(start_cube, target_cube=solved_cube, target_lookup=None, max_steps=9000):
+    has_wildcards = WILDCARD in start_cube
+    if has_wildcards:
+        target_cube = match_wildcards(target_cube, start_cube)
+
     key_start = key_for_target(start_cube, target_lookup)
     key_target = key_for_target(target_cube, target_lookup)
 
@@ -296,18 +353,81 @@ def lower_bound_between(key, target_key):
     for i, value in enumerate(key):
         if value == target_key[i]:
             matches += 1
-    return math.floor((len(target_key)-matches)/8)
+    return math.floor((len(target_key) - matches) / 8)
 
 
 def reverse_steps(steps):
     l = len(rotations)
-    return [(idx + int(l/2)) % l for idx in reversed(steps)]
+    return [(idx + int(l / 2)) % l for idx in reversed(steps)]
 
 
 def show_steps(steps):
     return " ".join([moves[i] for i in steps])
 
 
+#
+# Section: Parsing cube state
+#
+def read_cube(corner_pieces, edge_pieces):
+    cube = bytearray()
+    for (pieces, start, stop) in [(corner_pieces, 0, CORNER_PIECES), (edge_pieces, CORNER_PIECES, len(cube_pieces))]:
+        for index in range(start, stop):
+            list_index = index - start
+            solved_piece = index
+            if list_index < len(pieces):
+                if pieces[list_index] == WILDCARD_KEY:
+                    cube.append(WILDCARD)
+                elif pieces[list_index] == "":
+                    cube.append(solved_piece)
+                else:
+                    cube.append(match_against_piece(pieces[list_index], start, stop))
+            elif len(pieces) > 0 and pieces[-1] == WILDCARD_KEY:
+                cube.append(WILDCARD)
+            else:
+                cube.append(solved_piece)
+
+    print("Parsed cube:")
+    print_cube(cube)
+
+    used, dups = set(), set()
+    for p in [get_piece(cube, i) for i in range(len(cube))]:
+        if p in used and p != WILDCARD_KEY:
+            dups.add(p)
+        used.add(p)
+    if dups:
+        raise Exception(f"Duplicate pieces in cube {dups}")
+
+    if WILDCARD not in cube[0:CORNER_PIECES]:
+        corner_parity = sum([get_parity(cube, i) for i in range(CORNER_PIECES)]) % 3
+        if corner_parity != 0:
+            raise Exception(f"Invalid parity, corner parity sum should divide by 3 but remainder was {corner_parity}")
+    if WILDCARD not in cube[CORNER_PIECES:]:
+        edge_parity = sum([get_parity(cube, i) for i in range(CORNER_PIECES, len(cube))]) % 2
+        if edge_parity != 0:
+            raise Exception(f"Invalid parity, corner parity sum should divide by 2 but remainder was {edge_parity}")
+
+    return cube
+
+
+def match_against_piece(str_key, start_index, end_index):
+    match = None
+    for index in range(start_index, end_index):
+        piece = cube_pieces[index]
+        for parity in range(len(piece)):
+            if shift(piece, parity).startswith(str_key):
+                if match is None:
+                    match = get_code(index, parity)
+                else:
+                    raise Exception("Ambigious match for " + str_key)
+
+    if match is None:
+        raise Exception("Failed to match key " + str_key)
+    return match
+
+
+#
+# Section: Printing cube state
+#
 def print_cube(cube):
     print(show_cube(cube))
     print()
@@ -317,9 +437,10 @@ def show_cube(cube):
     # cube = handle(cube)
     def p(index, side):
         return _show_side(get_piece(cube, index), get_parity(cube, index), side)
+
     pc = _show_color
     # start of edges index
-    e = 8
+    e = CORNER_PIECES
 
     t1 = p(0, 0) + p(e+0, 0) + p(1, 0)
     t2 = p(e+3, 0) + pc("y") + p(e+1, 0)
@@ -354,15 +475,25 @@ def show_cube(cube):
 
 
 def get_piece(cube, index):
-    return cube_pieces[cube[index] % PARITY_BASE]
+    piece = cube[index] % PARITY_BASE
+    if piece == WILDCARD:
+        return WILDCARD_KEY
+    return cube_pieces[piece]
 
 
 def get_parity(cube, index):
     return math.floor(cube[index] / PARITY_BASE)
 
 
+def get_code(piece, parity):
+    return parity * PARITY_BASE + piece
+
+
 def _show_side(piece, parity, side_index):
-    color = shift(piece, parity)[side_index]
+    if piece != WILDCARD_KEY:
+        color = shift(piece, parity)[side_index]
+    else:
+        color = WILDCARD_KEY
     return _show_color(color)
 
 
@@ -373,7 +504,8 @@ COLORS = {
     "r": "\033[0;31m",
     "g": "\033[1;32m",
     # https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
-    "o": '\033[38;5;166m'
+    "o": '\033[38;5;166m',
+    "-": "\033[1;30m",
 }
 RESET_COLOR = "\033[0;0m"
 
@@ -414,7 +546,7 @@ class Tests(unittest.TestCase):
         c = solved_cube
         c = do_moves(c, "frud")
         self.assertNotEqual(solved_cube, c)
-        c, steps = cfop_solve(c)
+        c, steps = solve_cfop(c)
         self.assertEqual(solved_cube, c)
         self.assertEqual("D R F f U F f u r U R F", show_steps(steps))
 
@@ -437,7 +569,6 @@ if __name__ == '__main__':
         unittest.main()
     else:
         main()
-
 
 # old notes about performance:
 
