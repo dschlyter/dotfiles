@@ -19,6 +19,7 @@ def main():
     sp = sub_ps.add_parser('scramble', help='solve from scramble')
     sp.set_defaults(handler=cmd_scramble)
     sp.add_argument('move_seq', help='A sequence of moves in the notation fruRUF')
+    sp.add_argument('-q', action='store_true', help='quiet, do not solve after scramble')
 
     sp = sub_ps.add_parser('bench', help='benchmark with 30 solves')
     sp.set_defaults(handler=cmd_bench)
@@ -33,17 +34,17 @@ def main():
     # main2()
 
 
-def cmd_scramble(move_seq: str, **global_args):
+def cmd_scramble(move_seq: str, q: bool, **global_args):
     cube = solved_cube
     move_seq = _parse_seq(move_seq, **global_args)
     for move in move_seq:
         cube = do_move(cube, move)
-        # TODO add verbose option for each step
-        # print(move)
-        # print_cube(cube)
 
     print("Scrambled state")
     print_cube(cube)
+
+    if q:
+        return
 
     cube_solved, steps = cfop_solve(cube, print_steps=True)
     print("Positions searched", diagnostics['search_steps'])
@@ -199,7 +200,7 @@ def cfop_solve(cube, print_steps=False):
     for (target_mode, new_targets) in solution_order:
         for piece in new_targets:
             target_lookup[piece] = target_mode
-        cube, steps = bidirectional_search(cube, target_lookup=target_lookup, max_steps=7)
+        cube, steps = bidirectional_search(cube, target_lookup=target_lookup, max_steps=10)
         if not cube:
             return cube, ""
         full_steps.extend(steps)
@@ -227,7 +228,7 @@ def key_for_target(cube, target_lookup):
         return bytes(cube)
 
 
-# TODO add a A* flavor to this - any move can solve at most 8 pieces
+# To find solutions we use a bidirectional search with A star optimizations
 def bidirectional_search(start_cube, target_cube=solved_cube, target_lookup=None, max_steps=9000):
     key_start = key_for_target(start_cube, target_lookup)
     key_target = key_for_target(target_cube, target_lookup)
@@ -235,20 +236,20 @@ def bidirectional_search(start_cube, target_cube=solved_cube, target_lookup=None
     if key_start == key_target:
         return start_cube, []
 
-    forward = [(start_cube, [])]
-    backward = [(target_cube, [])]
+    forward = [(key_start, start_cube, [])]
+    backward = [(key_target, target_cube, [])]
     seen_f = {key_start: []}
     seen_b = {key_target: []}
 
     solution = None
 
-    for step in range(max_steps):
-        solution_f, forward = expand_direction(forward, seen_f, seen_b, target_lookup)
+    for step_i in range(max_steps):
+        solution_f, forward = expand_direction(step_i, forward, seen_f, seen_b, target_lookup, key_target)
         if solution_f:
             solution = solution_f[0] + reverse_steps(solution_f[1])
             break
 
-        solution_b, backward = expand_direction(backward, seen_b, seen_f, target_lookup)
+        solution_b, backward = expand_direction(step_i, backward, seen_b, seen_f, target_lookup, key_start)
         if solution_b:
             solution = solution_b[1] + reverse_steps(solution_b[0])
             break
@@ -262,10 +263,16 @@ def bidirectional_search(start_cube, target_cube=solved_cube, target_lookup=None
     return None, None
 
 
-def expand_direction(q, seen, other_seen, target_lookup):
+def expand_direction(i, q, seen, other_seen, target_lookup, target_key):
     next_q = []
 
-    for (prev_cube, prev_steps) in q:
+    for search_node in q:
+        key, prev_cube, prev_steps = search_node
+        # A star like search - delay search nodes that are far from the key
+        if len(prev_steps) + best_case_between(key, target_key) > i+1:
+            next_q.append(search_node)
+            continue
+
         for index, rot in enumerate(rotations):
             cube = rotation(prev_cube, rot)
             steps = prev_steps + [index]
@@ -280,9 +287,18 @@ def expand_direction(q, seen, other_seen, target_lookup):
                 return (steps, other_steps), []
 
             diagnostics['search_steps'] += 1
-            next_q.append((cube, steps))
+            next_q.append((key, cube, steps))
 
     return None, next_q
+
+
+# each step can only change 8 pieces, which gives a best-case number of steps to solution
+def best_case_between(key, target_key):
+    matches = 0
+    for i, value in enumerate(key):
+        if value == target_key[i]:
+            matches += 1
+    return math.floor((len(target_key)-matches)/8)
 
 
 def reverse_steps(steps):
@@ -449,6 +465,8 @@ if __name__ == '__main__':
 # 1. first iteration: 1:58
 # 2. removing b/B moves (just for fun): 41s
 # 3. checking goal before list push: 25s (down to 2.5M search states)
+# 4. A star opt 6.5s
 
 # bench 30 - seed 42
 # 3. 7:42
+# 4.
