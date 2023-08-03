@@ -3,10 +3,9 @@
 import argparse
 import math
 import os
-import queue
 import sys
 import unittest
-from typing import List
+import random
 
 
 def main():
@@ -21,7 +20,9 @@ def main():
     sp.set_defaults(handler=cmd_scramble)
     sp.add_argument('move_seq', help='A sequence of moves in the notation fruRUF')
 
-    # TODO declare a scramble
+    sp = sub_ps.add_parser('bench', help='benchmark with 30 solves')
+    sp.set_defaults(handler=cmd_bench)
+
     # TODO declare a cube position - option to only declare corners (empty is solved)
     # TODO handle or autodetect proper notation
 
@@ -33,7 +34,7 @@ def main():
 
 
 def cmd_scramble(move_seq: str, **global_args):
-    cube = default_cube
+    cube = solved_cube
     move_seq = _parse_seq(move_seq, **global_args)
     for move in move_seq:
         cube = do_move(cube, move)
@@ -45,12 +46,21 @@ def cmd_scramble(move_seq: str, **global_args):
     print_cube(cube)
 
     cube_solved, steps = cfop_solve(cube, print_steps=True)
+    print("Positions searched", diagnostics['search_steps'])
     if cube_solved:
+        print(f"Solved in {len(steps)} moves: {show_steps(steps)}")
         print_cube(cube_solved)
-        print("Steps to solve:", show_steps(steps))
     else:
         print("Did not find solution")
         sys.exit(1)
+
+
+def cmd_bench(**global_args):
+    random.seed(43)
+    for i in range(30):
+        scramble_moves = "".join([random.choice(moves) for _ in range(30)])
+        print("Solution attempt", i+1, scramble_moves)
+        cmd_scramble(scramble_moves)
 
 
 # Convert "proper" notation to our internal one
@@ -68,23 +78,6 @@ def _parse_seq(move_seq, **global_args):
         return ret
     else:
         return move_seq
-
-
-def main2():
-    c2 = default_cube
-    m1, m2, m3, m4 = [find_move(c) for c in "RULU"]
-    for i in range(250_000 * 0):
-        # not parsing moves is faster!!
-        # c2 = do_moves(c2, "RULU")
-        c2 = rotation(c2, m1)
-        c2 = rotation(c2, m2)
-        c2 = rotation(c2, m3)
-        c2 = rotation(c2, m4)
-    print_cube(c2)
-    print("Is solved:", c2 == default_cube)
-    # top should be: red, blue, blue, green
-
-    # search(solved_cube, max_steps=5)
 
 
 # Representing the cube:
@@ -191,12 +184,12 @@ def cfop_solve(cube, print_steps=False):
         (2, [15, 7]),
         # oll - yellow cross - only care about parity (1)
         (1, [8, 9, 10, 11]),
-        # oll - yellow corners - only parity (1)
+        # oll - yellow corners - only care about parity (1)
         (1, [0, 1, 2, 3]),
-        # pll - yellow edges fully solved, start with back piece
-        (2, [0]),
-        (2, [1, 2, 3]),
-        # pll - cross fully solved, start with back piece
+        # pll - yellow corners fully solved, start with back piece
+        (2, [0, 1]),
+        (2, [2, 3]),
+        # pll - edges solved, start with back piece
         (2, [8]),
         (2, [9, 10, 11]),
     ]
@@ -210,9 +203,10 @@ def cfop_solve(cube, print_steps=False):
         if not cube:
             return cube, ""
         full_steps.extend(steps)
-        if print_steps:
+        if print_steps and steps and cube != solved_cube:
+            print("Positions searched", diagnostics['search_steps'])
+            print("Partial solution:", show_steps(full_steps))
             print_cube(cube)
-            print("Solution:", show_steps(full_steps))
 
     return cube, full_steps
 
@@ -233,22 +227,18 @@ def key_for_target(cube, target_lookup):
         return bytes(cube)
 
 
+# TODO add a A* flavor to this - any move can solve at most 8 pieces
 def bidirectional_search(start_cube, target_cube=solved_cube, target_lookup=None, max_steps=9000):
-    # TODO allow for setting wildcard bits based on target pieces, these are ignored
-    # - have a parity enabled bit, the lowest bit ??
-    # - have a one-indexed list, set everything to zero for wildcard
-    # BUT FIRST - just mask things when looking them up ??
     key_start = key_for_target(start_cube, target_lookup)
     key_target = key_for_target(target_cube, target_lookup)
 
     if key_start == key_target:
-        # pass
         return start_cube, []
 
     forward = [(start_cube, [])]
     backward = [(target_cube, [])]
-    seen_f = dict(key_start=[])
-    seen_b = dict(key_target=[])
+    seen_f = {key_start: []}
+    seen_b = {key_target: []}
 
     solution = None
 
@@ -265,7 +255,6 @@ def bidirectional_search(start_cube, target_cube=solved_cube, target_lookup=None
 
     if solution:
         cube = start_cube
-        print(show_steps(solution))
         for move_index in solution:
             cube = rotation(cube, rotations[move_index])
         return cube, solution
@@ -276,18 +265,22 @@ def bidirectional_search(start_cube, target_cube=solved_cube, target_lookup=None
 def expand_direction(q, seen, other_seen, target_lookup):
     next_q = []
 
-    for (cube, steps) in q:
-        key = key_for_target(cube, target_lookup)
-        if key in seen:
-            continue
-        seen[key] = steps
-
-        other_steps = other_seen.get(key)
-        if other_steps:
-            return (steps, other_steps), []
-
+    for (prev_cube, prev_steps) in q:
         for index, rot in enumerate(rotations):
-            next_q.append((rotation(cube, rot), steps + [index]))
+            cube = rotation(prev_cube, rot)
+            steps = prev_steps + [index]
+
+            key = key_for_target(cube, target_lookup)
+            if key in seen:
+                continue
+            seen[key] = steps
+
+            other_steps = other_seen.get(key)
+            if other_steps is not None:
+                return (steps, other_steps), []
+
+            diagnostics['search_steps'] += 1
+            next_q.append((cube, steps))
 
     return None, next_q
 
@@ -380,10 +373,61 @@ def shift(s, shift_len):
     return s[len(s)-shift_len:] + s[0:len(s)-shift_len]
 
 
-default_cube = solved_cube
+# Inline tests
+# Run by setting UNITTEST=1
+class Tests(unittest.TestCase):
+    def test_one_rotation(self):
+        c = solved_cube
+        c = do_moves(c, "r")
+        self.assertEqual('yrb', get_piece(c, 1))
+        self.assertEqual(1, get_parity(c, 1))
+        self.assertEqual('br', get_piece(c, 9))
+        self.assertEqual(0, get_parity(c, 9))
+
+    def test_rotates_back(self):
+        for move in moves:
+            self._assert_identity(lambda cube: do_move(cube, move), 4)
+
+    def test_algo_identity(self):
+        # fru, oll, pll corners, pll edges
+        self._assert_identity(lambda cube: do_moves(cube, "fruRUF"), 6)
+        self._assert_identity(lambda cube: do_moves(cube, "ruRuruuR"), 6)
+        self._assert_identity(lambda cube: do_moves(cube, "RuRddrURddrr"), 3)
+        self._assert_identity(lambda cube: do_moves(cube, "rUrururURUrr"), 3)
+
+    def test_solver(self):
+        # testing to solve a medium complicated scramble - to keep test fast
+        c = solved_cube
+        c = do_moves(c, "frud")
+        self.assertNotEqual(solved_cube, c)
+        c, steps = cfop_solve(c)
+        self.assertEqual(solved_cube, c)
+        self.assertEqual("D R F f U F f u r U R F", show_steps(steps))
+
+    def _assert_identity(self, fn, iterations):
+        c = solved_cube
+        states = show_cube(c)
+        for i in range(iterations):
+            c = fn(c)
+            states += f"\nStep {i+1}:\n" + show_cube(c)
+            if i+1 < iterations:
+                self.assertNotEqual(solved_cube, c,
+                                    f"cube solved faster than in {iterations} steps:\n" + states)
+        self.assertEqual(solved_cube, c, "expected solved but found seq:\n" + states)
 
 
-# perf - 1M rotations
+diagnostics = dict(search_steps=0)
+
+if __name__ == '__main__':
+    if os.environ.get("UNITTEST") == "1":
+        unittest.main()
+    else:
+        main()
+
+
+# old notes about performance:
+
+# perf - 1M rotations (a full solve (first iteration) seems to create 30M states)
 # baseline: 3.5 seconds
 # separated lists: 2.9s
 # abstraction layer: 5.677
@@ -399,48 +443,12 @@ default_cube = solved_cube
 # unrolled both moves 2.3
 # removed abstractions 1.7
 
-# TODO performance - 1M cube rotations in 3s
-# estimated need for 120 B for 21 move bidirectional search
-# maybe numpy is faster ??
+# solves:
+# benchmark:
+# "U  D2  F  B'  D2  R2  U  B  R2  U2  F  U'  D  B'  D2  L2  U'  F  B'  R  U2  D'  L  D2  L'"
+# 1. first iteration: 1:58
+# 2. removing b/B moves (just for fun): 41s
+# 3. checking goal before list push: 25s (down to 2.5M search states)
 
-# Inline tests
-# Run by setting UNITTEST=1
-class Tests(unittest.TestCase):
-    def test_one_rotation(self):
-        c = default_cube
-        c = do_move(c, "r")
-        self.assertEqual('yrb', get_piece(c, 1))
-        self.assertEqual(1, get_parity(c, 1))
-        self.assertEqual('br', get_piece(c, 9))
-        self.assertEqual(0, get_parity(c, 9))
-
-    def test_rotates_back(self):
-        for move in moves:
-            self._assert_identity(lambda cube: do_move(cube, move), 4)
-
-    def test_algo_identity(self):
-        # fru
-        self._assert_identity(lambda cube: do_moves(cube, "fruRUF"), 6)
-
-        # oll
-        self._assert_identity(lambda cube: do_moves(cube, "ruRuruuR"), 6)
-
-    # TODO TEST solver
-
-    def _assert_identity(self, fn, iterations):
-        c = default_cube
-        states = show_cube(c)
-        for i in range(iterations):
-            c = fn(c)
-            states += f"\nStep {i+1}:\n" + show_cube(c)
-            if i+1 < iterations:
-                self.assertNotEqual(default_cube, c,
-                                    f"cube solved faster than in {iterations} steps:\n" + states)
-        self.assertEqual(default_cube, c, "expected solved but found seq:\n" + states)
-
-
-if __name__ == '__main__':
-    if os.environ.get("UNITTEST") == "1":
-        unittest.main()
-    else:
-        main()
+# bench 30 - seed 42
+# 3. 7:42
