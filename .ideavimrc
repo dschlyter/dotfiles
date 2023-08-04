@@ -5,15 +5,21 @@ set ic
 
 let mapleader = "ö"
 
-" note to self: use :actionlist to find IDE commands to map
-noremap gr :source ~/.ideavimrc<CR>
-noremap gf :action ShowUsages<CR>
-noremap gi :action GotoImplementation<CR>
-nnoremap gj :action VcsShowNextChangeMarker<CR>
-nnoremap gk :action VcsShowPrevChangeMarker<CR>
+nnoremap <leader>R :source ~/.ideavimrc<CR>
+nnoremap <leader>e :edit ~/.ideavimrc<CR>
 
-nnoremap <leader>r :action Vcs.RollbackChangedLines<CR>
-nnoremap <leader>g :action Github.Open.In.Browser<CR>
+" note to self: use :actionlist to find IDE commands to map
+" or cmd-shift-a and enable "Track action ids"
+" note: noremap does not work with <Action>
+nmap gf <Action>(ShowUsages)
+nmap gi <Action>(GotoImplementation)
+nmap gj <Action>(VcsShowNextChangeMarker)
+nmap gk <Action>(VcsShowPrevChangeMarker)
+
+nmap <leader>r <Action>(Vcs.RollbackChangedLines)
+" nnoremap <leader>g :action Github.Open.In.Browser<CR>
+" above seems broken for private repos
+nnoremap <leader>g :execute "!git web % " . line('.')<CR>
 
 " use intellij C-j C-k shortcuts for this instead
 " nnoremap gn :action MethodDown<CR>
@@ -40,8 +46,6 @@ vnoremap <leader>_ :s,\([A-Z][a-z]\),_\l\1,g<cr>
 vnoremap <leader>C :s,_\(\l\),\u\1,g<cr>
 nnoremap <leader>_ viwö_
 nnoremap <leader>C viwö-
-
-nnoremap <leader>R :source ~/.ideavimrc<CR>
 
 " repeat last command and move down a line
 noremap - mt.`tj
