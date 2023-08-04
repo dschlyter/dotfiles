@@ -42,7 +42,7 @@ def cmd_scramble(move_seq: str, q: bool = False, **global_args):
     cube = solved_cube
     move_seq = _parse_seq(move_seq, **global_args)
     for move in move_seq:
-        cube = do_move(cube, move)
+        cube = do_moves(cube, move)
 
     print("Scrambled state")
     print_cube(cube)
@@ -152,17 +152,10 @@ def create_prime_moves():
 rotations.extend(create_prime_moves())
 
 
-def find_move(char):
-    return rotations[moves.index(char)]
-
-
-def do_move(cube, char):
-    return rotation(cube, find_move(char))
-
-
 def do_moves(cube, move_str):
     for char in move_str:
-        cube = do_move(cube, char)
+        rot = rotations[moves.index(char)]
+        cube = rotation(cube, rot)
     return cube
 
 
@@ -532,7 +525,7 @@ class Tests(unittest.TestCase):
 
     def test_rotates_back(self):
         for move in moves:
-            self._assert_identity(lambda cube: do_move(cube, move), 4)
+            self._assert_identity(lambda cube: do_moves(cube, move), 4)
 
     def test_algo_identity(self):
         # fru, oll, pll corners, pll edges
