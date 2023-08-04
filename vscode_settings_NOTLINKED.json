@@ -1,6 +1,39 @@
+// Cmd-Shift-P and Open user settings (JSON) - note, comments in file actually works!
 {
+    // These settings should be synced with dotfiles
+    // You can find names of commands with the command palette, and then clicking the cogwheel
+    "vim.leader": "ö",
+    "vim.normalModeKeyBindingsNonRecursive": [
+        {
+            "before": ["<leader>", "r"],
+            "commands": ["git.revertSelectedRanges"]
+        },
+        {
+            "before": ["g", "j"],
+            "commands": ["workbench.action.editor.nextChange"]
+        },
+        {
+            "before": ["g", "k"],
+            "commands": ["workbench.action.editor.previousChange"]
+        }
+    ],
+    "vim.visualModeKeyBindings": [
+        {
+            "before": ["<C-x>"],
+            "commands": ["editor.action.clipboardCutAction"]
+        },
+        {
+            "before": ["<C-c>"],
+            "commands": ["editor.action.clipboardCopyAction"]
+        },
+        {
+            "before": ["<C-v>"],
+            "commands": ["editor.action.clipboardPasteAction"]
+        }
+    ],
     "vim.handleKeys": {
         "<C-f>": false
     },
-    "vim.foldfix": true
+    "vim.foldfix": true,
+    "vim.vimrc.enable": true,
 }
