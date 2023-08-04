@@ -132,7 +132,7 @@ rotations = [
     bytearray([1, 5, 6, 2, 2, 1, 2, 1]) + bytearray([9, 13, 17, 14, 1, 1, 0, 0]),
     bytearray([0, 3, 7, 4, 1, 2, 1, 2]) + bytearray([11, 15, 19, 12, 1, 1, 0, 0]),
     bytearray([0, 1, 2, 3, 0, 0, 0, 0]) + bytearray([8, 9, 10, 11, 0, 0, 0, 0]),
-    bytearray([4, 5, 6, 7, 0, 0, 0, 0]) + bytearray([16, 17, 18, 19, 0, 0, 0, 0]),
+    bytearray([4, 7, 6, 5, 0, 0, 0, 0]) + bytearray([16, 19, 18, 17, 0, 0, 0, 0]),
     bytearray([3, 2, 6, 7, 1, 2, 1, 2]) + bytearray([10, 14, 18, 15, 1, 1, 0, 0]),
     bytearray([0, 4, 5, 1, 2, 1, 2, 1]) + bytearray([8, 12, 16, 13, 1, 1, 0, 0])
     # prime moves added later
@@ -223,11 +223,11 @@ def solve_cfop(cube, print_steps=False):
         cube, steps = bidirectional_search(cube, target_lookup=target_lookup, max_steps=10)
         if not cube:
             return cube, ""
-        full_steps.extend(steps)
         if print_steps and steps and cube != solved_cube:
             print("Positions searched", diagnostics['search_steps'])
-            print("Partial solution:", show_steps(full_steps))
+            print("Partial solution:", show_steps(full_steps), "->", show_steps(steps))
             print_cube(cube)
+        full_steps.extend(steps)
 
     return cube, full_steps
 
@@ -452,7 +452,7 @@ def show_cube(cube):
     d3 = p(4, 0) + p(e+8, 0) + p(5, 0)
 
     r1 = p(2, 1) + p(e+1, 1) + p(1, 2)
-    r2 = p(e+5, 0) + pc("r") + p(e+6, 1)
+    r2 = p(e+6, 1) + pc("r") + p(e+5, 0)
     r3 = p(6, 2) + p(e+9, 1) + p(5, 1)
 
     b1 = p(1, 1) + p(e, 1) + p(0, 2)
@@ -527,6 +527,12 @@ class Tests(unittest.TestCase):
         for move in moves:
             self._assert_identity(lambda cube: do_moves(cube, move), 4)
 
+    def test_mirror_moves(self):
+        for move in set(moves.lower()):
+            c = do_moves(solved_cube, move + move.upper())
+            self.assertEqual(solved_cube, c)
+
+
     def test_algo_identity(self):
         # fru, oll, pll corners, pll edges
         self._assert_identity(lambda cube: do_moves(cube, "fruRUF"), 6)
@@ -588,7 +594,10 @@ if __name__ == '__main__':
 # 2. removing b/B moves (just for fun): 41s
 # 3. checking goal before list push: 25s (down to 2.5M search states)
 # 4. A star opt 6.5s
+# 4. On PC 5.86
+# 4. With pypy3 1.4
 
 # bench 30 - seed 42
 # 3. 7:42
 # 4. 6:06 (a smaller improvement, weird)
+# 4. 4.47 (on pc with maybe some opts)
