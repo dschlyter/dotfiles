@@ -9,6 +9,10 @@
             "commands": ["git.revertSelectedRanges"]
         },
         {
+            "before": ["g", "f"],
+            "commands": ["references-view.findReferences"]
+        },
+        {
             "before": ["g", "j"],
             "commands": ["workbench.action.editor.nextChange"]
         },
