@@ -28,6 +28,10 @@ def main():
     sp.add_argument('edge_pieces', nargs="?", default="",
                     help='Space separated sequence of edges like "yg rg -"')
 
+    sp = sub_ps.add_parser('face', help='Set cube state based on faces on the cube, faces ybrgow clockwise from top left')
+    sp.set_defaults(handler=cmd_face)
+    sp.add_argument('faces', help='Space separated string of each face "yyyyyyyy bbbbbbbb ..."')
+
     sp = sub_ps.add_parser('bench', help='benchmark with 30 solves')
     sp.set_defaults(handler=cmd_bench)
 
@@ -76,6 +80,17 @@ def cmd_set(corner_pieces: str, edge_pieces: str, **global_args):
     _cmd_solve(cube, **global_args)
 
 
+def cmd_face(faces: str, **global_args):
+    f = faces.split(" ")
+    if len(f) != 6 or set(map(len, f)) != set([8]):
+        print("Should have 6 space separated spaces, with 8 chars each")
+        sys.exit(1)
+
+    cube = read_cube_faces(f, print_steps=True)
+
+    _cmd_solve(cube, **global_args)
+
+
 def cmd_bench(**global_args):
     random.seed(43)
     for i in range(30):
@@ -108,6 +123,7 @@ def _parse_seq(move_seq, **global_args):
 # Yellow is up, blue is forward
 # Each piece is a string, with top/bottom and then clockwise like "yrb", or left-to-right "br"
 # Also track the clockwise rotation for each piece. 3 states for corners, 2 for edges
+# Certain pieces can be considered to be wildcards when solving
 WILDCARD_KEY = "-"
 WILDCARD_WITH_PARITY_KEY = "P"
 cube_pieces = [
@@ -121,14 +137,15 @@ cube_pieces = [
     # wildcard pieces
     WILDCARD_KEY, WILDCARD_WITH_PARITY_KEY,
 ]
-# Certain pieces can be considered to be wildcards when solving
 CORNER_PIECES = 8
 EDGE_PIECES = 12
-# To store state efficiently we store the index in the list, the upper two bits store parity
-solved_cube = bytearray(range(CORNER_PIECES + EDGE_PIECES))
-PARITY_BASE = 1 << 6
+CUBE_PIECES = CORNER_PIECES + EDGE_PIECES
 WILDCARD = cube_pieces.index(WILDCARD_KEY)
 WILDCARD_WITH_PARITY = cube_pieces.index(WILDCARD_WITH_PARITY_KEY)
+# To store state efficiently we store the index in the list, the upper two bits store parity
+solved_cube = bytearray(range(CUBE_PIECES))
+PARITY_BASE = 1 << 6
+
 # We use uppercase R for r prime (r') - may clash with regular notation
 moves = "rludfbRLUDFB"
 # Moves are a cycle of changing corner pieces, and another for edge pieces, with parity changes
@@ -417,6 +434,32 @@ def match_against_piece(str_key, start_index, end_index):
     return match
 
 
+def read_cube_faces(faces, print_steps=False):
+    # convert from input clockwise order to matrix order
+    matrix_order = [[
+        [f[0], f[1], f[2]],
+        [f[7], "-", f[3]],
+        [f[6], f[5], f[4]],
+    ] for f in faces]
+    print(matrix_order)
+
+    piece_map = [dict() for i in range(CUBE_PIECES)]
+    for i, face in enumerate(get_face_mapping()):
+        for j, row in enumerate(face):
+            for k, label in enumerate(row):
+                if j == 1 and k == 1:
+                    # skip center piece
+                    continue
+                index, parity = label
+                piece_map[index][parity] = matrix_order[i][j][k]
+
+    pieces = ["".join([e[1] for e in sorted(piece.items())])
+              for piece in piece_map]
+    print(pieces)
+
+    return read_cube(pieces[0:CORNER_PIECES], pieces[CORNER_PIECES:], print_steps=print_steps)
+
+
 #
 # Section: Printing cube state
 #
@@ -425,45 +468,56 @@ def print_cube(cube):
     print()
 
 
-def show_cube(cube):
-    # cube = handle(cube)
-    def p(index, side):
-        return _show_side(get_piece(cube, index), get_parity(cube, index), side)
-
-    pc = _show_color
-    # start of edges index
+# get the position and parity in the internal representation for every face of the cube
+def get_face_mapping():
     e = CORNER_PIECES
+    return [[
+            [(0, 0), (e+0, 0), (1, 0)],
+            [(e+3, 0), "y", (e+1, 0)],
+            [(3, 0), (e+2, 0), (2, 0)],
+        ], [
+            [(3, 1), (e+2, 1), (2, 2)],
+            [(e+7, 1), "b", (e+6, 0)],
+            [(7, 2), (e+10, 1), (6, 1)],
+        ], [
+            [(2, 1),  (e+1, 1),  (1, 2)],
+            [(e+6, 1),  "r",  (e+5, 0)],
+            [(6, 2),  (e+9, 1),  (5, 1)],
+        ], [
+            [(1, 1),  (e, 1),  (0, 2)],
+            [(e+5, 1),  "g",  (e+4, 0)],
+            [(5, 2),  (e+8, 1),  (4, 1)],
+        ], [
+            [(0, 1), (e+3, 1), (3, 2)],
+            [(e+4, 1), "o", (e+7, 0)],
+            [(4, 2), (e+11, 1), (7, 1)],
+        ], [
+            [(7, 0),  (e+10, 0),  (6, 0)],
+            [(e+11, 0),  "w",  (e+9, 0)],
+            [(4, 0),  (e+8, 0),  (5, 0)],
+        ],
+    ]
 
-    t1 = p(0, 0) + p(e+0, 0) + p(1, 0)
-    t2 = p(e+3, 0) + pc("y") + p(e+1, 0)
-    t3 = p(3, 0) + p(e+2, 0) + p(2, 0)
 
-    l1 = p(0, 1) + p(e+3, 1) + p(3, 2)
-    l2 = p(e+4, 1) + pc("o") + p(e+7, 0)
-    l3 = p(4, 2) + p(e+11, 1) + p(7, 1)
+def show_cube(cube):
+    def lookup_label(label):
+        if isinstance(label, tuple):
+            index, side = label
+            return _show_side(get_piece(cube, index), get_parity(cube, index), side)
+        else:
+            return _show_color(label)
 
-    f1 = p(3, 1) + p(e+2, 1) + p(2, 2)
-    f2 = p(e+7, 1) + pc("b") + p(e+6, 0)
-    f3 = p(7, 2) + p(e+10, 1) + p(6, 1)
+    print_faces = [["".join([lookup_label(label) for label in row]) for row in face] for face in get_face_mapping()]
 
-    d1 = p(7, 0) + p(e+10, 0) + p(6, 0)
-    d2 = p(e+11, 0) + pc("w") + p(e+9, 0)
-    d3 = p(4, 0) + p(e+8, 0) + p(5, 0)
-
-    r1 = p(2, 1) + p(e+1, 1) + p(1, 2)
-    r2 = p(e+6, 1) + pc("r") + p(e+5, 0)
-    r3 = p(6, 2) + p(e+9, 1) + p(5, 1)
-
-    b1 = p(1, 1) + p(e, 1) + p(0, 2)
-    b2 = p(e+5, 1) + pc("g") + p(e+4, 0)
-    b3 = p(5, 2) + p(e+8, 1) + p(4, 1)
-
-    i = "  " * 3
-    return "\n".join([
-        i+t1, i+t2, i+t3,
-        l1 + f1 + r1 + b1, l2 + f2 + r2 + b2, l3 + f3 + r3 + b3,
-        i+d1, i+d2, i+d3
-    ])
+    ret = ""
+    indent = "  " * 3
+    for u_row in print_faces[0]:
+        ret += indent + u_row + "\n"
+    for i in range(3):
+        ret += print_faces[4][i] + print_faces[1][i] + print_faces[2][i] + print_faces[3][i] + "\n"
+    for b_row in print_faces[5]:
+        ret += indent + b_row + "\n"
+    return ret
 
 
 def get_piece(cube, index):
