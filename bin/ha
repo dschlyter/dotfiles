@@ -5,6 +5,7 @@ import subprocess
 from typing import List
 
 from dotlib.api import RestApi
+from dotlib.fzf import fzf_match
 
 api = RestApi()
 
@@ -57,9 +58,13 @@ def start(minutes, **global_args):
 def end(activity, **global_args):
     if activity:
         print(api.get(f"api/time/end/{activity}"))
-    else:
+    elif activity == "" or activity == "-":
         print(api.get("api/time/end"))
-
+    else:
+        activities = api.get("api/time/activities")
+        pick = fzf_match(activities.split("\n"))
+        if pick:
+            print(api.get(f"api/time/end/{pick}"))
 
 def delay(minutes, **global_args):
     print(api.get(f"api/time/shorten/{minutes}"))
