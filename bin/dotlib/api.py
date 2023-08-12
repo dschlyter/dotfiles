@@ -11,6 +11,7 @@ logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s', lev
 
 HOME = str(Path.home())
 CREDS_PATH = HOME + "/.config/jstore-creds.json"
+HOST_ENV_KEY = "API_HOST"
 
 
 class RestApi:
@@ -50,7 +51,7 @@ class RestApi:
         try:
             full_url = url
             if "https://" not in url:
-                full_url = auth['host'].rstrip("/") + "/" + url.lstrip("/")
+                full_url = self._get_host(auth).rstrip("/") + "/" + url.lstrip("/")
             logging.debug(f"{method} {full_url}")
             req = Request(full_url)
             if auth is not None:
@@ -69,3 +70,6 @@ class RestApi:
             body = e.read().decode()
             logging.error(f"Request error: {body}")
             raise
+
+    def _get_host(self, auth=None):
+        return os.environ.get(HOST_ENV_KEY) or auth['host']

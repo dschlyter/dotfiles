@@ -35,7 +35,7 @@ def main():
     sp.set_defaults(handler=extend)
     sp.add_argument('minutes', type=int)
 
-    sp = sub_ps.add_parser('split', help='')
+    sp = sub_ps.add_parser('split', help='split off part of the current segment')
     sp.set_defaults(handler=split)
     sp.add_argument('minutes', type=int)
 
