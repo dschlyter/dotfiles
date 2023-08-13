@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-import subprocess
+import time
 from typing import List
 
 from dotlib.api import RestApi
@@ -26,6 +26,7 @@ def main():
     sp = sub_ps.add_parser('end', aliases=['e'], help='finish')
     sp.set_defaults(handler=end)
     sp.add_argument('activity', nargs="?")
+    sp.add_argument('minutes', nargs="?")
 
     sp = sub_ps.add_parser('delay', help='shorten current segment')
     sp.set_defaults(handler=delay)
@@ -39,6 +40,9 @@ def main():
     sp.set_defaults(handler=split)
     sp.add_argument('minutes', type=int)
 
+    sp = sub_ps.add_parser('repl', help='start a repl')
+    sp.set_defaults(handler=repl)
+
     parsed_args = global_parser.parse_args()
     # Note: All handlers must have **kwargs to handle global args
     parsed_args.handler(**parsed_args.__dict__)
@@ -48,21 +52,24 @@ def read(**global_args):
     print(api.get("api/time/read"))
 
 
-def start(minutes, **global_args):
+def start(minutes=None, **global_args):
     if minutes:
         print(api.get(f"api/time/start/{minutes}"))
     else:
         print(api.get(f"api/time/start"))
 
 
-def end(activity, **global_args):
-    if activity:
-        print(api.get(f"api/time/end/{activity}"))
-    elif activity == "" or activity == "-":
+def end(activity=None, minutes=None, **global_args):
+    if minutes:
+        start(minutes)
+
+    if activity == "" or activity == "-":
         print(api.get("api/time/end"))
+    elif activity:
+        print(api.get(f"api/time/end/{activity}"))
     else:
-        activities = api.get("api/time/activities")
-        pick = fzf_match(activities.split("\n"))
+        activities = api.get("api/time/activities").split("\n")
+        pick = fzf_match(activities, sort=False)
         if pick:
             print(api.get(f"api/time/end/{pick}"))
 
@@ -76,6 +83,28 @@ def extend(minutes, **global_args):
 
 def split(minutes, **global_args):
     print(api.get(f"api/time/split/{minutes}"))
+
+
+def repl(**global_args):
+    cmds = {
+        "": lambda: print("-"),
+        "delay": lambda: delay(input("minutes: ")),
+        "extend": lambda: extend(input("minutes: ")),
+        "split": lambda: split(input("minutes: ")),
+        "report": lambda: start(input("minutes: ")),
+        "start": lambda: start(),
+        "end": lambda: end("-"),
+        "view": lambda: read(),
+    }
+    while True:
+        activities = api.get("api/time/activities").split("\n")
+        cmd_keys = list(cmds.keys())
+        pick = fzf_match(activities + cmd_keys, sort=False)
+        if pick in cmds:
+            cmds[pick]()
+            time.sleep(2)
+        else:
+            end(pick)
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@ import subprocess
 import shutil
 import sys
 
-def fzf_match(entries, multiple=False, hint_install_fzf=False, or_exit=False):
+def fzf_match(entries, multiple=False, hint_install_fzf=False, sort=True, or_exit=False):
     if not entries:
         if or_exit:
             print("Nothing to match on")
@@ -16,6 +16,8 @@ def fzf_match(entries, multiple=False, hint_install_fzf=False, or_exit=False):
         cmd = ["fzf", "--tac"]
         if multiple:
             cmd += ["-m"]
+        if not sort:
+            cmd += ["--no-sort", "--exact"]
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
         for entry in entries:
