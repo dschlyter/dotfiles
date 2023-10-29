@@ -13,7 +13,7 @@ def fzf_match(entries, multiple=False, hint_install_fzf=False, sort=True, or_exi
             return None
 
     if shutil.which("fzf"):
-        cmd = ["fzf", "--tac"]
+        cmd = ["fzf", "--tac", "--no-mouse"]
         if multiple:
             cmd += ["-m"]
         if not sort:

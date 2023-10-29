@@ -2,6 +2,8 @@
 
 import argparse
 import time
+import sys
+import signal
 from typing import List
 
 from dotlib.api import RestApi
@@ -102,10 +104,25 @@ def repl(**global_args):
         pick = fzf_match(activities + cmd_keys, sort=False)
         if pick in cmds:
             cmds[pick]()
-            time.sleep(2)
-        else:
+        elif pick:
             end(pick)
+        else:
+            quit()
+        wait_or_keypress()
 
+
+def wait_or_keypress():
+    def handler():
+        pass
+    try:
+        signal.signal(signal.SIGALRM, handler)
+        signal.alarm(5)
+        input("...")
+        print()
+        # disable the alarm
+        signal.alarm(0)
+    except:
+        pass
 
 if __name__ == '__main__':
     main()

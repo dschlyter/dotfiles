@@ -35,9 +35,10 @@
             "commands": ["editor.action.clipboardPasteAction"]
         }
     ],
+    "vim.vimrc.enable": true,
     "vim.handleKeys": {
-        "<C-f>": false
+        "<C-f>": false,
+        "<C-p>": false
     },
     "vim.foldfix": true,
-    "vim.vimrc.enable": true,
 }
