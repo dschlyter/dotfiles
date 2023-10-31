@@ -13,6 +13,7 @@ from dotlib.util import print_table
 
 APP_NAME = 'qq'
 store = JStore(APP_NAME)
+ACTIVE_KEY = 'active'
 
 
 def main():
@@ -23,7 +24,7 @@ def main():
     global_parser.add_argument('--local', action='store_true')
     sub_ps = global_parser.add_subparsers()
 
-    sp = sub_ps.add_parser('next', help='practice the question bank next up for practice')
+    sp = sub_ps.add_parser('next', aliases=['n'], help='practice the question bank next up for practice')
     sp.set_defaults(handler=next_cmd)
 
     sp = sub_ps.add_parser('list', help='list question banks (and the recommendation for next)')
@@ -67,6 +68,10 @@ def main():
     sp.set_defaults(handler=drop_cmd)
     sp.add_argument('name', help='the name of the question bank')
 
+    sp = sub_ps.add_parser('toggle', help="toggle bank from being eligible for next")
+    sp.set_defaults(handler=toggle_cmd)
+    sp.add_argument('name', nargs="?", help='the name of the question bank')
+
     parsed_args = global_parser.parse_args()
     if parsed_args.local:
         global store
@@ -81,6 +86,7 @@ def parse(file, dry_run=False, **kwargs):
         lines = [line.rstrip() for line in fp]
 
     questions = _parse_explicit(lines)
+    # TODO should I just drop support for this ??
     if not questions:
         questions = _parse_single_line(lines)
     if not questions:
@@ -111,8 +117,8 @@ def _parse_explicit(lines):
         line = lines[i]
         if line.lstrip().lower().startswith("q:"):
             q = {
-                'id': len(questions)+1, 
-                'line': i, 
+                'id': len(questions)+1,
+                'line': i,
                 'q': line.strip()
             }
             q_indent = _indent_of(line)
@@ -265,6 +271,21 @@ def drop_cmd(name, **kwargs):
     print("Question bank dropped")
 
 
+def toggle_cmd(name, **kwargs):
+    banks = _list()
+    if not name:
+        name = fzf_match(banks, or_exit=True)
+    if name not in banks:
+        raise Exception("No such question bank")
+
+    active = store.get(ACTIVE_KEY, null_ok=True) or {}
+    print(active)
+    new_active = not active.get(name, True)
+    active[name] = new_active
+    store.put(ACTIVE_KEY, active)
+    print("Active set to", new_active)
+
+
 def show(name, **kwargs):
     if not name:
         name = fzf_match(_list(), or_exit=True)
@@ -300,11 +321,11 @@ def answer(name, **kwargs):
     answers = []
     correct_count = 0
     
-    for q in questions:
-        input(q['q'] + " ")
+    for i, q in enumerate(questions):
+        input(f"{i+1}/{len(questions)} {q['q']} ")
         for line in q['a']:
             print(line)
-        correct = input("correct? (y/n): ").lower() == 'y'
+        correct = input("correct? (Y/n): ").lower() in ('y', '')
         answers.append({'id': q['id'], 'correct': correct})
         if correct:
             correct_count += 1
@@ -351,23 +372,29 @@ def _correct(answer_list):
 
 
 def list_cmd(**kwargs):
+    active = store.get(ACTIVE_KEY, null_ok=True) or {}
     table = []
     table.append(["Tries", "Last Answer", "Score", "Next Up", "Question Bank"])
     for name in _list():
-        if ans := _get_answers(name):
-            answered = len(ans.keys())
-            last_answer = sorted(ans.keys())[-1]
-            ratio = _correct_ratio(ans[last_answer])
-            next_up = _dt_str(_next_time(ans))
-            table.append([answered, last_answer, ratio, next_up, name])
+        is_active = active.get(name) != False
+        if not is_active:
+            table.append(["-", "", "", "(inactive)", name])
         else:
-            table.append([0, "", "", _dt_str(_next_time(None)), name])
+            ans = _get_answers(name)
+            next_up = _dt_str(_next_time(ans))
+            if ans:
+                answered = len(ans.keys())
+                last_answer = sorted(ans.keys())[-1]
+                ratio = _correct_ratio(ans[last_answer])
+                table.append([answered, last_answer, ratio, next_up, name])
+            else:
+                table.append([0, "", "", next_up, name])
     print_table(table)
 
 
 def _list():
     keys = store.keys()
-    return [k[:-2] for k in keys if k.endswith("-q")]
+    return sorted([k[:-2] for k in keys if k.endswith("-q")])
 
 
 def _get_answers(key):
@@ -377,7 +404,9 @@ def _get_answers(key):
 
 
 def next_cmd(**kwargs):
-    candidates = [(_next_time(_get_answers(name)), name) for name in _list()]
+    active = store.get(ACTIVE_KEY, null_ok=True) or {}
+    active_banks = [name for name in _list() if active.get(name) != False]
+    candidates = [(_next_time(_get_answers(name)), name) for name in active_banks]
     s = sorted(candidates)
     if s:
         scheduled = s[0][0]
