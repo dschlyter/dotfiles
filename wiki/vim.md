@@ -21,9 +21,9 @@ qQ - append to the macro - !!!
 Increment multiple lines by selecting them and doing `g C-a`
 
 `'.` - go back to last edited region
-`''` - go back to
+`''` - jump back and fourth with the last location (like `cd -`)
 
-`d2)` is a nice way to grab a code block
+`d2)` is a nice way to grab a code block (you need to be at the start of the block)
 
 ## Recursive macros
 
@@ -62,3 +62,10 @@ Multicursors are awesome!
 * <Ctrl-Alt-Down> to add multicursors on the next line
 * `C-d` or `gb` to select current word and add a multicursor
 * `v` to select multiple lines, and then `I` to insert at start of line map xe /^[ .,()]*e/e<CR>
+
+# ZIP!
+
+You can "zip" two blocks of texts with multicursors. Useful to set up for a macro modification of the lines.
+
+1. Bring the multicursor to one of the blocks, and yank with `yy`
+2. Go to the other block and `p`

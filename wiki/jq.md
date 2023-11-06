@@ -3,6 +3,20 @@ Cheatsheet
 
 [Cheatsheet](https://lzone.de/cheat-sheet/jq)
 
+Just extracting fields
+
+    head data.json | jq ".field1"
+    head data.json | jq "{field1, field2}"
+
+Extracting keys from array
+
+    head data.json | jq ".[].field1"
+    head data.json | jq ".[] | {field1, field2}"
+
+Transforming the array (output is also an array)
+
+    head data.json | jq 'map({title, label})'
+
 Keys
 
     head data.json | jq keys
@@ -22,7 +36,3 @@ Select
     jq '.results[] | select(.name | contains("Jo"))'           # Get complete records for all names with 'Jo'
     jq '.results[] | select(.name | test("Joe\s+Smith"))'      # Get complete records for all names matching PCRE regex 'Joe\+Smith'
 
-Extracting fields
-
-    head data.json | jq ".field1""
-    head data.json | jq ". | {field1, field2}"
