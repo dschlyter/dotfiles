@@ -331,20 +331,6 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     call vundle#rc()
     Bundle 'gmarik/vundle'
 
-    if has('python3')
-      Bundle 'maralla/completor.vim'
-      if has('python')
-        let g:completor_python_binary = '/Library/Python/2.7/site-packages/jedi'
-      endif
-    endif
-
-    " syntax error highlights and descriptions
-    Bundle 'scrooloose/syntastic'
-    let g:syntastic_mode_map = { 'passive_filetypes': ['python'] } " python check is too slow
-    let g:syntastic_check_on_open=1
-    let g:syntastic_enable_signs=1
-    let g:syntastic_always_populate_loc_list = 1
-
     " highlight bad trailing whitespace
     Plugin 'ntpeters/vim-better-whitespace'
 
@@ -400,12 +386,6 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
         let a:palette.visual.airline_a = visualColor
         let a:palette.visual.airline_z = visualColor
     endfunction
-
-    " search code with ag from vim
-    " ag.vim is deprecated, use ack.vim with ag as the search executable
-    Bundle 'mileszs/ack.vim'
-    let g:ackprg = 'ag --vimgrep --smart-case'
-    noremap <C-g> :Ack<space>
 
     " git / github commands, diff, blame, etc
     Bundle 'tpope/vim-fugitive'
