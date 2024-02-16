@@ -176,6 +176,10 @@ _slow_fs() {
     fi
 }
 
+
+# override this in your local .zshrc if needed
+GIT_MAX_DAYS_BEHIND=7
+
 _update_git_info() {
     GIT_PROMPT=""
 
@@ -185,17 +189,22 @@ _update_git_info() {
         return
     fi
 
-    git rev-parse --is-inside-work-tree &> /dev/null
-    if [ $? -eq 0 ]; then
+    profiling_log "git prompt start"
+
+    local GIT_ROOT="$(git rev-parse --show-toplevel 2> /dev/null)"
+    # fail means we are not in a work tree
+    if [ -n "$GIT_ROOT" ]; then
         local GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
         local GIT_STATUS=""
 
         if [ $GIT_BRANCH = "HEAD" ]; then
-            GIT_BRANCH=$(git rev-parse --short HEAD 2> /dev/null)
+            local GIT_BRANCH=$(git rev-parse --short HEAD 2> /dev/null)
         else
             local GIT_REMOTE=$(git config branch.$GIT_BRANCH.remote)
             local GIT_REMOTE_BRANCH="$GIT_REMOTE/$GIT_BRANCH"
             test -z "$GIT_REMOTE" && GIT_REMOTE_BRANCH="origin/master"
+
+            profiling_log "branch check"
 
             local GIT_AHEAD="$(git rev-list $GIT_REMOTE_BRANCH..HEAD 2> /dev/null | wc -l)"
             GIT_AHEAD=$((GIT_AHEAD)) # remove whitespace from wc
@@ -203,10 +212,23 @@ _update_git_info() {
                 GIT_STATUS="$GIT_STATUS%F{46}↑$GIT_AHEAD "
             fi
 
+            profiling_log "ahead"
+
             local GIT_BEHIND="$(git rev-list HEAD..$GIT_REMOTE_BRANCH 2> /dev/null | wc -l)"
             GIT_BEHIND=$((GIT_BEHIND)) # remove whitespace from wc
             if [ "$GIT_BEHIND" -gt 0 ]; then
                 GIT_STATUS="$GIT_STATUS%F{220}↓$GIT_BEHIND "
+            fi
+
+            profiling_log "behind"
+        fi
+
+        if [[ -f "$GIT_ROOT/.git/FETCH_HEAD" ]]; then
+            local NOW="$(date +%s)"
+            local FETCH_TIME="$(stat -c %Y "$GIT_ROOT/.git/FETCH_HEAD")"
+            local DAYS_SINCE_FETCH="$((($NOW - $FETCH_TIME) / (3600 * 24)))"
+            if [ "$DAYS_SINCE_FETCH" -gt $GIT_MAX_DAYS_BEHIND ]; then
+                GIT_STATUS="$GIT_STATUS%F{39}$DAYS_SINCE_FETCH "
             fi
         fi
 
@@ -220,6 +242,7 @@ _update_git_info() {
         fi
     fi
     _set_prompt
+    profiling_log "git prompt complete"
 }
 
 autoload -Uz add-zsh-hook
