@@ -181,6 +181,8 @@ _slow_fs() {
 GIT_MAX_DAYS_BEHIND=7
 
 _update_git_info() {
+    local profile_git=0
+    local git_start_time="$(test $profile_git -eq 1 && gdate +%s%3N)"
     GIT_PROMPT=""
 
     if _slow_fs; then
@@ -191,49 +193,73 @@ _update_git_info() {
 
     profiling_log "git prompt start"
 
-    local GIT_ROOT="$(git rev-parse --show-toplevel 2> /dev/null)"
-    # fail means we are not in a work tree
+    # fetch three values in one command to optimize runtime, will return 1 and have empty values if not a git dir
+    IFS=$'\n' local GIT_PARAMS_ARR=($(git rev-parse --show-toplevel --abbrev-ref HEAD --symbolic-full-name '@{u}' 2> /dev/null))
+    local GIT_ROOT="${GIT_PARAMS_ARR[1]}"
+    local GIT_BRANCH="${GIT_PARAMS_ARR[2]}"
+    local GIT_REMOTE_BRANCH="${GIT_PARAMS_ARR[3]}"
     if [ -n "$GIT_ROOT" ]; then
-        local GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
         local GIT_STATUS=""
 
-        if [ $GIT_BRANCH = "HEAD" ]; then
+        # optimize runtime, use subprocesses to check stuff in parallel
+        # set +m to not print crap when running and stopping subshells
+        set +m
+
+        # start checking for modified files in the background
+        (git ls-files --deleted --modified --others --exclude-standard -- | grep -q .) &
+        local UNTRACKED_PID="$!"
+
+        # start checking for ahead / behind status in the background
+        ahead_data="$(mktemp)"
+        behind_data="$(mktemp)"
+        if [ "$GIT_BRANCH" = "HEAD" ]; then
             local GIT_BRANCH=$(git rev-parse --short HEAD 2> /dev/null)
         else
-            local GIT_REMOTE=$(git config branch.$GIT_BRANCH.remote)
-            local GIT_REMOTE_BRANCH="$GIT_REMOTE/$GIT_BRANCH"
-            test -z "$GIT_REMOTE" && GIT_REMOTE_BRANCH="origin/master"
-
-            profiling_log "branch check"
-
-            local GIT_AHEAD="$(git rev-list $GIT_REMOTE_BRANCH..HEAD 2> /dev/null | wc -l)"
-            GIT_AHEAD=$((GIT_AHEAD)) # remove whitespace from wc
-            if [ "$GIT_AHEAD" -gt 0 ]; then
-                GIT_STATUS="$GIT_STATUS%F{46}↑$GIT_AHEAD "
-            fi
-
-            profiling_log "ahead"
-
-            local GIT_BEHIND="$(git rev-list HEAD..$GIT_REMOTE_BRANCH 2> /dev/null | wc -l)"
-            GIT_BEHIND=$((GIT_BEHIND)) # remove whitespace from wc
-            if [ "$GIT_BEHIND" -gt 0 ]; then
-                GIT_STATUS="$GIT_STATUS%F{220}↓$GIT_BEHIND "
-            fi
-
-            profiling_log "behind"
+            # yo dawg I heard you like subshells.
+            set +m
+            (
+              test -z "$GIT_REMOTE_BRANCH" && GIT_REMOTE_BRANCH="origin/master"
+              git rev-list $GIT_REMOTE_BRANCH..HEAD 2> /dev/null | wc -l > $ahead_data &
+              git rev-list HEAD..$GIT_REMOTE_BRANCH 2> /dev/null | wc -l > $behind_data &
+              wait
+            ) &
+            local REMOTE_PID="$!"
         fi
 
+        # there seems to be no fast single command for checking for both staged, unstaged and untracked changes
+        # "status --porcelain" works, but is slow
+        # so we check for unstaged and stages changes in parallel
+        git diff --cached --quiet
+        local DIFF_RET="$?"
+        wait "$UNTRACKED_PID"
+        local UNTRACKED_RET="$?"
+        if [ "$UNTRACKED_RET" -eq 0 ] || [ "$DIFF_RET" -eq 1 ]; then
+            GIT_STATUS="$GIT_STATUS%F{197}δ " # requires git 1.7+
+        fi
+
+        # Display days since last fetch was done - this is a pretty fast operation
         if [[ -f "$GIT_ROOT/.git/FETCH_HEAD" ]]; then
             local NOW="$(date +%s)"
             local FETCH_TIME="$(stat -c %Y "$GIT_ROOT/.git/FETCH_HEAD")"
             local DAYS_SINCE_FETCH="$((($NOW - $FETCH_TIME) / (3600 * 24)))"
             if [ "$DAYS_SINCE_FETCH" -gt $GIT_MAX_DAYS_BEHIND ]; then
-                GIT_STATUS="$GIT_STATUS%F{39}$DAYS_SINCE_FETCH "
+                GIT_STATUS="%F{39}$DAYS_SINCE_FETCH $GIT_STATUS"
             fi
         fi
 
-        if [ -n "$(git status --porcelain)" ]; then
-            GIT_STATUS="$GIT_STATUS%F{197}δ " # requires git 1.7+
+        # collect and display ahead / behind status
+        test -n "$REMOTE_PID" && wait "$REMOTE_PID"
+        set -m
+        local GIT_AHEAD="$(cat $ahead_data)"
+        local GIT_BEHIND="$(cat $behind_data)"
+        rm "$behind_data" "$ahead_data"
+        GIT_BEHIND=$((GIT_BEHIND)) # remove whitespace from wc
+        GIT_AHEAD=$((GIT_AHEAD)) # remove whitespace from wc
+        if [ "$GIT_BEHIND" -gt 0 ]; then
+            GIT_STATUS="%F{220}↓$GIT_BEHIND $GIT_STATUS"
+        fi
+        if [ "$GIT_AHEAD" -gt 0 ]; then
+            GIT_STATUS="%F{46}↑$GIT_AHEAD $GIT_STATUS"
         fi
 
         GIT_PROMPT="%F{69}%B$GIT_BRANCH%f%b "
@@ -243,6 +269,7 @@ _update_git_info() {
     fi
     _set_prompt
     profiling_log "git prompt complete"
+    test $profile_git -eq 1 && echo $(($(gdate +%s%3N) - git_start_time)) "git complete"
 }
 
 autoload -Uz add-zsh-hook
