@@ -221,6 +221,13 @@ else
     echo "Not installing/updating fzf, run with --fzf to enable"
 fi
 
+if [[ "$*" == *"--atuin"* ]]; then
+    /bin/bash -c "$(curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh)"
+else
+    echo "Not installing/updating atuin"
+fi
+
+
 if [[ "$*" == *"--vundle"* ]]; then
     if ! [ -d ~/.vim/bundle/vundle ]; then
         echo "Installing vim vundle plugins"

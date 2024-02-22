@@ -17,6 +17,7 @@ Hotkeys
 
 - Cmd-tab between tabs
 - Cmd-alt left/right switch tabs (Ctrl-Pageup/Pagedown on windows)
+    - Ctrl-h and ctrl-l also seems to work, it this a vim binding ??
 - `gt` or `gT` to navigate tabs in vim mode
 - Cmd-1,2,3 between splits
 - Cmd-0 (or Cmd-Shift-E) for file navigator
