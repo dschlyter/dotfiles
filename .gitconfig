@@ -69,7 +69,6 @@
     sa = stash --include-untracked
     ski = stash --keep-index
     np = restore -p
-    nuke = reset --hard
 
     # entry point for custom scripts (for things that are too large to define inline here)
     # list contibutors with number of commits
@@ -150,6 +149,7 @@
     wip-stash = !git add -A";" git wipa-stash
     wipa-stash = !git commit --no-verify -m 'wip-stash'
     ws = wip-stash
+    nuke = !git commit -am 'nuked repo' && git reset --hard 'HEAD~1' "#"
     # remove all whitespace changes
     rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git restore "${@:-.}" && git reset'
 
