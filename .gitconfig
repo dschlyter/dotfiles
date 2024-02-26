@@ -54,6 +54,8 @@
     au = add -u
     cm = commit -v
     cma = !git cm --amend
+    f = fetch
+    m = merge
     pu = push -u --follow-tags
     pp = !git pull --rebase && git pu
     pufl = push --force-with-lease

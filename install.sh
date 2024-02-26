@@ -205,7 +205,7 @@ if [[ "$*" == *"--zgen"* ]]; then
     test -d "$zg_dir" && rm -rf "$zg_dir"
     git clone https://github.com/tarjoilija/zgen.git "$zg_dir"
 else
-    echo "Not installing/updating zgen (zsh plugins), run with --zgen to enable" 
+    echo "Not installing/updating zgen (zsh plugins), run with --zgen to enable"
 fi
 
 if [[ "$*" == *"--fzf"* ]]; then
@@ -224,7 +224,7 @@ fi
 if [[ "$*" == *"--atuin"* ]]; then
     /bin/bash -c "$(curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh)"
 else
-    echo "Not installing/updating atuin"
+    echo "Not installing/updating atuin, run with --atuin to enable"
 fi
 
 
