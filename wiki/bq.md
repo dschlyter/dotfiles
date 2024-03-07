@@ -5,11 +5,16 @@
 
 Note: If you are doing a LEFT JOIN, make sure to do this filtering in a subquery or WITH statement.
 
+### Select a range but limit to specific weekdays to process less data
+
+    t._TABLE_SUFFIX BETWEEN "20240201" AND "20240228" AND FORMAT_TIMESTAMP("%A", TIMESTAMP(PARSE_DATE('%Y%m%d', t._TABLE_SUFFIX))) = "Wednesday"
+
 ## Variables
 
 To fix duplication.
 
     DECLARE target_partition DATE DEFAULT "2023-05-02";
+
 # Arrays
 
 ## Arrays select
@@ -64,7 +69,7 @@ or ALL (beware of NULL here)
 
 *Creating*
 
-    SELECT UNIX_DATE(date)
+    SELECT UNIX_DATE(date) -- this is the number of DAYS since 1970-01
 
     SELECT UNIX_MILLIS(CURRENT_TIMESTAMP())
 
@@ -161,6 +166,30 @@ But the proper way to do this is probably nested GROUP BYs:
 From unix timestamp
 
     TIMESTAMP_TRUNC(TIMESTAMP_MILLIS(client_timestamp), HOUR) client_hour
+
+## Bucketing and pivoting to be able to use the charts view
+
+    bucketed AS (
+        SELECT time AS day,
+        CASE
+            WHEN page_duration_s < 60 THEN "1m"
+            WHEN page_duration_s < 180 THEN "3m"
+            WHEN page_duration_s < 600 THEN "10m"
+            WHEN page_duration_s < 3600 THEN "1h"
+            WHEN page_duration_s < 24 * 3600 THEN "1d"
+            ELSE "1d_plus"
+        END AS bucket,
+        COUNT(page_duration_s) duration_sum
+        FROM raw_with_duration this
+        GROUP BY day, bucket
+    ),
+    pivoted AS (
+        SELECT *
+        FROM bucketed
+        PIVOT(SUM(duration_sum) page_sum FOR bucket IN ("1m", "3m", "10m", "1h", "1d", "1d_plus"))
+    )
+    SELECT * FROM pivoted
+    ORDER BY day
 
 # Window functions
 

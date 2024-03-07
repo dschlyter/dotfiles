@@ -80,7 +80,6 @@
     review = !$HOME/.git-scripts/entry review
     wsreset = !$HOME/.git-scripts/entry wsreset
     update-hooks = !$HOME/.git-scripts/entry update-hooks
-    alex = !$HOME/.git-scripts/entry alias-export
     web = !$HOME/.git-scripts/entry web
 
     # easy merge and split of repos, with preserved history (hash-identical roundtrip when testing)
@@ -96,6 +95,7 @@
     # shorthand to show aliases
     edit = !$EDITOR $HOME/.gitconfig_base
     al = !git config alias.\"$1\" "#"
+    alex = !echo "[alias]" && cat $HOME/.gitconfig_base | grep
     alias = !git config alias.\"$1\" "#"
     alc = !cat \"$HOME/.gitconfig_base\" | grep \"^ *$1\" "#"
 
@@ -151,7 +151,9 @@
     wip-stash = !git add -A";" git wipa-stash
     wipa-stash = !git commit --no-verify -m 'wip-stash'
     ws = wip-stash
-    nuke = !git commit -am 'nuked repo' && git reset --hard 'HEAD~1' "#"
+    # don't commit but save state to reflog
+    checkpoint = !git commit -am \"checkpoint: $*\" && git reset 'HEAD~1' "#"
+    nuke = !git checkpoint "nuking repo" && git reset --hard "#"
     # remove all whitespace changes
     rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git restore "${@:-.}" && git reset'
 
@@ -173,7 +175,7 @@
 
     # switch/reset back n commits
     rsn = !COUNT=${1:-1}";" shift";" git reset HEAD~$COUNT \"$@\" "#"
-    ucm = rsn 1
+    uncommit = rsn 1
     # soft reset, useful to retract (un-amend) things and then recommit
     rss = ucm --soft
     recommit = commit --reuse-message=HEAD@{1}
