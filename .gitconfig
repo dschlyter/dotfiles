@@ -153,7 +153,7 @@
     ws = wip-stash
     # don't commit but save state to reflog
     checkpoint = !git commit -am \"checkpoint: $*\" && git reset 'HEAD~1' "#"
-    nuke = !git checkpoint "nuking repo" && git reset --hard "#"
+    nuke = !git checkpoint "nuking repo" && git reset --hard
     # remove all whitespace changes
     rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git restore "${@:-.}" && git reset'
 
