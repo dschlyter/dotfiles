@@ -88,30 +88,6 @@ use_gnu find
 has gls || unset -f ls
 has stat || unset -f _slow_fs
 
-#
-# Homebrew
-#
-
-# modify brew to make it work for multiple users
-# everything is done with a single user, other users needs to 
-function brew() {
-    if [[ "$1" == "search" ]]; then
-        /usr/local/bin/brew "$@"
-        return
-    fi
-
-    BREW_USER="$(_brew_main_user)"
-    if [[ "$BREW_USER" == "$(whoami)" ]]; then
-        /usr/local/bin/brew "$@"
-    else
-        sudo -EH -u "$BREW_USER" /usr/local/bin/brew "$@"
-    fi
-}
-
-function _brew_main_user() {
-    ls -ld /usr/local/Homebrew | cl 3
-}
-
 # brew convinience function
 
 BREW_UPDATE_FILE=/usr/local/.brew_lastupdate

@@ -28,7 +28,7 @@ class RestApi:
         return self._authed_request(url, method="DELETE")
 
     def auth(self, host, user, password):
-        ret = self._request(None, f"{host}/api/auth/login", method="POST", data={"userId": user, "password": password})
+        ret = self._request(f"{host}/api/auth/login", method="POST", data={"userId": user, "password": password})
         creds = {"host": host, "sessionId": ret['sessionId']}
 
         with open(CREDS_PATH, 'w') as fp:

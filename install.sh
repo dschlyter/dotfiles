@@ -221,13 +221,6 @@ else
     echo "Not installing/updating fzf, run with --fzf to enable"
 fi
 
-if [[ "$*" == *"--atuin"* ]]; then
-    /bin/bash -c "$(curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh)"
-else
-    echo "Not installing/updating atuin, run with --atuin to enable"
-fi
-
-
 if [[ "$*" == *"--vundle"* ]]; then
     if ! [ -d ~/.vim/bundle/vundle ]; then
         echo "Installing vim vundle plugins"
@@ -259,6 +252,7 @@ if [[ "$*" == *"--cron"* ]]; then
     echo "Adding autoupdate to cron"
     cron_add "0 10 * * * $HOME/bin/git-autoupdate >> /tmp/git-autoupdate-$USER.log 2>&1"
     echo "Setting up transient auto delete area"
+    mkdir -p "$HOME/transient"
     cron_add "0 14 * * * find $HOME/transient -mtime +14 -delete"
 else
     echo "Not installing autoupdate/transient cron, run with --cron to enable"
@@ -275,8 +269,10 @@ else
     echo "Not configuring default git author info, run with --git to enable"
 fi
 
-if ! git remote get-url origin | grep -q https; then
-    echo "Changing pull url to use https, push is still ssh"
-    git remote set-url origin --push "$(git remote get-url origin)"
+if git remote get-url origin | grep -q "git@" || git remote get-url origin --push | grep -q http; then
+    echo "Changing push url to use ssh, pull to use http"
+    # set pull to http
     git remote set-url origin "$(git github-url)"
+    # set push to ssh
+    git github-use-ssh
 fi

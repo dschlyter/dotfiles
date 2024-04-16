@@ -1,5 +1,4 @@
-# 20.04 LTS
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 # Basic image for playing around with tech. Ubuntu with useful stuff installed
 # Run: docker run -it -v $(pwd):/opt/app --name whatever devplay

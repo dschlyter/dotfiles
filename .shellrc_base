@@ -143,7 +143,7 @@ has() {
 # iso-8601 is the one true date format
 date() {
     BINARY=/bin/date
-    BREW_BINARY=/usr/local/bin/gdate
+    BREW_BINARY="${HOMEBREW_PREFIX:-/usr/local}/bin/gdate"
     if [ -f $BREW_BINARY ]; then
         BINARY=$BREW_BINARY
     fi
@@ -434,7 +434,7 @@ venv() {
     has direnv && direnv allow
 }
 
-pipi() {
+function pipi() {
     pip install "$@" && pip freeze > requirements.txt
 }
 

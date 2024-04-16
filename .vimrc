@@ -10,7 +10,7 @@ nnoremap <leader>w :StripWhitespace<cr>
 
 " copypasta from system clipboard (copy with Y)
 nmap <leader>y :.w !termcopy<CR><CR>
-vmap <leader>y :'<,'>w !termcopy<CR><CR>
+vmap <leader>y :w !termcopy<CR><CR>
 nmap <leader>p :set paste<CR>:r !termpaste<CR>:set nopaste<CR>
 
 
@@ -341,9 +341,6 @@ if $USER != 'root' && !exists($SUDO_USER) && isdirectory($HOME . '/.vim/bundle/v
     " filetree visualization and selection
     Bundle 'scrooloose/nerdtree'
     noremap <C-n> :NERDTreeToggle<cr>
-
-    " visualize undo tree, and revert to previous states
-    Bundle 'sjl/gundo.vim'
 
     " colorscheme for vim
     Bundle 'nanotech/jellybeans.vim'
