@@ -11,6 +11,7 @@ nnoremap <leader>e :edit ~/.ideavimrc<CR>
 " note to self: use :actionlist to find IDE commands to map
 " or cmd-shift-a and enable "Track action ids"
 " note: noremap does not work with <Action>
+nmap gh <Action>(Vcs.ShowTabbedFileHistory)
 nmap gf <Action>(ShowUsages)
 nmap gi <Action>(GotoImplementation)
 nmap gj <Action>(VcsShowNextChangeMarker)

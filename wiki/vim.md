@@ -57,11 +57,10 @@ Multicursors are awesome!
 
 ## VS code vim
 
-* `v` to select multiple lines, and then <Alt-Shift-i> to fix a cursor per line. Use <Ctrl-c> to go back into normal mode with multi cursor.
-* <Shift-Alt-Click> to add/remove multicursors anywhere
-* <Ctrl-Alt-Down> to add multicursors on the next line
+* <Cmd-Alt-Down> or <Ctrl-Alt-Down> to add multicursors on the next line
 * `C-d` or `gb` to select current word and add a multicursor
-* `v` to select multiple lines, and then `I` to insert at start of line map xe /^[ .,()]*e/e<CR>
+* <Shift-Alt-Click> to add/remove multicursors anywhere
+* `v` to select multiple lines, and then `I` to insert at start of line
 
 # ZIP!
 

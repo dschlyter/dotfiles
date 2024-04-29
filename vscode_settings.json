@@ -41,4 +41,12 @@
         "<C-p>": false
     },
     "vim.foldfix": true,
+
+    "files.autoSave": "onFocusChange",
+    "github.copilot.enable": {
+        "*": true,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false
+    }
 }

@@ -124,6 +124,13 @@ function save {
     fi
 }
 
+# redefine alias or function (in symlinked file in home dir)
+ral() {
+    search="(^|alias )$1(\(\)|\=)"
+    vim "+silent /\v$search" $(ag -l "$search" "$HOME"/.*(@))
+    rc
+}
+
 # poor mans watch, but with access to shell functions
 function shell-watch {
     while true; do

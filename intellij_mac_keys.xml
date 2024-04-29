@@ -239,4 +239,5 @@
   </action>
   <action id="Vcs.Log.GoToChild" />
   <action id="Vcs.Log.GoToParent" />
+  <action id="copilot.disposeInlays" />
 </keymap>

@@ -67,6 +67,7 @@ inject() {
     test -f "$file" || touch "$file"
 
     if grep -q -F "$inject" "$file"; then
+        echo "file $file already contains '$inject'"
         return
     fi
 
@@ -85,22 +86,6 @@ inject() {
     echo "injected $inject into $file"
     mv "$tmp_file" "$file"
 }
-
-# TODO TEMP migrate from old setup - can be deleted later
-migrate_local() {
-    if [[ -f "$1" ]]; then
-        echo "Migrating local $1 to $2"
-        mv "$1" "$2"
-    fi
-}
-
-test -L "$HOME/.zshrc" && rm "$HOME/.zshrc"
-test -L "$HOME/.bashrc" && rm "$HOME/.bashrc"
-test -L "$HOME/.shellrc" && rm "$HOME/.shellrc"
-migrate_local "$HOME/.zshrc_local" "$HOME/.zshrc"
-migrate_local "$HOME/.bashrc_local" "$HOME/.bashrc"
-migrate_local "$HOME/.shellrc_local" "$HOME/.shellrc"
-# TODO end tmp
 
 link . .dotfiles
 link bin
@@ -139,14 +124,17 @@ case "$(uname -s)" in
     Darwin)
         echo "Detected Mac OSX"
         link .zshrc_mac
-        link .hammerspoon
+        # link .hammerspoon
         # make sure the local file exists since it will be loaded
-        touch .hammerspoon/init-local.lua
+        # touch .hammerspoon/init-local.lua
 
         intellij_prefs="$(printf '%s\n' "$HOME/Library/Application Support/JetBrains/"*Idea* | tail -n 1)"
         link_settings "$intellij_prefs" "keymaps" "intellij_mac_keys.xml"
 
         link_settings "$HOME/Library/Application Support/Code/" "User" "keybindings.json" "vscode_keybindings.json"
+        # TODO is this a good idea ??
+        # this might force local state into git, in that case copy part of the file using "between" cmd
+        link_settings "$HOME/Library/Application Support/Code/" "User" "settings.json" "vscode_settings.json"
         ;;
 
     CYGWIN*|MINGW32*|MSYS*)
@@ -199,16 +187,18 @@ else
     echo "zsh not found, please install and chsh manually"
 fi
 
-if [[ "$*" == *"--zgen"* ]]; then
+echo
+
+if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--zgen"* ]]; then
     echo "Initializing zgen"
     zg_dir="${HOME}/.zgen"
     test -d "$zg_dir" && rm -rf "$zg_dir"
     git clone https://github.com/tarjoilija/zgen.git "$zg_dir"
 else
-    echo "Not installing/updating zgen (zsh plugins), run with --zgen to enable"
+    echo "Not installing/updating zgen (zsh plugins), run with --zgen or --all to enable"
 fi
 
-if [[ "$*" == *"--fzf"* ]]; then
+if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--fzf"* ]]; then
     if [ ! -d ~/.fzf ]; then
         git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
     else
@@ -218,10 +208,10 @@ if [[ "$*" == *"--fzf"* ]]; then
     fi
     ~/.fzf/install --key-bindings --completion --no-update-rc
 else
-    echo "Not installing/updating fzf, run with --fzf to enable"
+    echo "Not installing/updating fzf, run with --fzf or --all to enable"
 fi
 
-if [[ "$*" == *"--vundle"* ]]; then
+if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--vundle"* ]]; then
     if ! [ -d ~/.vim/bundle/vundle ]; then
         echo "Installing vim vundle plugins"
         git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
@@ -229,10 +219,10 @@ if [[ "$*" == *"--vundle"* ]]; then
     vim +PluginInstall +qall
     echo "Vundle plugins installed!"
 else
-    echo "Not installing vim vundle plugins, run with --vundle to enable"
+    echo "Not installing vim vundle plugins, run with --vundle or --all to enable"
 fi
 
-if [[ "$*" == *"--tpm"* ]]; then
+if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--tpm"* ]]; then
     which cmake || (echo "Cmake required for tpm cpu plugin"; exit 1)
 
     if ! [ -d ~/.tmux/plugins/tpm ]; then
@@ -241,26 +231,21 @@ if [[ "$*" == *"--tpm"* ]]; then
     fi
     echo "Tpm plugins installed!"
 else
-    echo "Not installing tmux tpm plugins, run with --tpm to enable"
+    echo "Not installing tmux tpm plugins, run with --tpm or --all to enable"
 fi
 
 cron_add() {
     (crontab -l || true ; echo "$@") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
 }
 
-if [[ "$*" == *"--cron"* ]]; then
+if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--cron"* ]]; then
     echo "Adding autoupdate to cron"
     cron_add "0 10 * * * $HOME/bin/git-autoupdate >> /tmp/git-autoupdate-$USER.log 2>&1"
     echo "Setting up transient auto delete area"
-    mkdir -p "$HOME/transient"
-    cron_add "0 14 * * * find $HOME/transient -mtime +14 -delete"
+    cron_add "0 14 * * * find $HOME/transient -mtime +14 -delete; mkdir -p $HOME/transient"
 else
-    echo "Not installing autoupdate/transient cron, run with --cron to enable"
+    echo "Not installing autoupdate/transient cron, run with --cron or --all to enable"
 fi
-
-# maintain the correct user for dotfiles regardless of global config
-git config user.name "David Schlyter"
-git config user.email "dschlyter@gmail.com"
 
 if [[ "$*" == *"--git"* ]]; then
     git config --global user.name "David Schlyter"
@@ -268,6 +253,10 @@ if [[ "$*" == *"--git"* ]]; then
 else
     echo "Not configuring default git author info, run with --git to enable"
 fi
+
+# maintain the correct user for dotfiles regardless of global config
+git config user.name "David Schlyter"
+git config user.email "dschlyter@gmail.com"
 
 if git remote get-url origin | grep -q "git@" || git remote get-url origin --push | grep -q http; then
     echo "Changing push url to use ssh, pull to use http"
