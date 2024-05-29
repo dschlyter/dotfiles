@@ -65,8 +65,8 @@ noremap Q @q
 vnoremap p "_dP
 
 " Use Y to append to a paste (on the y register)
-noremap Y  "Yy
-nnoremap YY  "Yy
+vnoremap Y  "Yy
+nnoremap Y  "Yyy
 
 set scrolloff=7
 

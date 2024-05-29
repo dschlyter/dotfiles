@@ -132,8 +132,11 @@
     # log including all branchless (rebased, amended, dropped) commits
     la = !git ll $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
     mine = !git ll --since='2 weeks ago' --author='David Schlyter' --author-date-order
+
+    # display commits
     # show the first commit from log that matches sha-prefix, eg. git sc 72F
     sf = !git log | grep '^commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show "#"
+    diff-commit = !bash -c 'diff -u --color <(git show $1) <(git show $2)' dummy
 
     # commit
     # patched commit with a file review and untracked sanity check first
@@ -152,7 +155,7 @@
     wipa-stash = !git commit --no-verify -m 'wip-stash'
     ws = wip-stash
     # don't commit but save state to reflog
-    checkpoint = !git commit -am \"checkpoint: $*\" && git reset 'HEAD~1' "#"
+    checkpoint = !git commit --no-verify -am \"checkpoint: $*\" && git reset 'HEAD~1' "#"
     nuke = !git checkpoint "nuking repo" && git reset --hard
     # remove all whitespace changes
     rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git restore "${@:-.}" && git reset'

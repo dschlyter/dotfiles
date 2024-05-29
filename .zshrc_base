@@ -1,7 +1,8 @@
 # kind of ridiculous that zsh startup needs profiling
 
 # 0 disabled, 1 enabled, 2 verbose
-profiling_level=0
+profiling_level=1
+profile_git=0
 test $profiling_level -gt 0 && profiling_start_time="$(gdate +%s%3N)"
 
 profiling_log() {
@@ -189,8 +190,6 @@ _slow_fs() {
 GIT_MAX_DAYS_BEHIND=7
 
 _update_git_info() {
-    profiling_log "git prompt start"
-    local profile_git=0
     local git_start_time="$(test $profile_git -eq 1 && gdate +%s%3N)"
     GIT_PROMPT=""
 
@@ -279,7 +278,6 @@ _update_git_info() {
         fi
     fi
     _set_prompt
-    profiling_log "git prompt complete"
     test $profile_git -eq 1 && echo $(($(gdate +%s%3N) - git_start_time)) "git complete"
 }
 

@@ -178,8 +178,8 @@ inoremap <C-l> <C-o>:bn<CR>
 vnoremap p "_dP
 
 " Use Y to append to a paste (on the y register)
-noremap Y  "Yy
-nnoremap YY  "Yy
+vnoremap Y  "Yy
+nnoremap Y  "Yyy
 
 " Make shift-tab work in reverse of tab in insert mode
 inoremap <S-Tab> <C-o><<
