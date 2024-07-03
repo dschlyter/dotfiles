@@ -60,6 +60,7 @@
     pp = !git pull --rebase && git pu
     pufl = push --force-with-lease
     br = branch -vv
+    rs = reset
     rb = rebase
     rba = rebase --autostash
     sw = switch
@@ -70,7 +71,6 @@
     cp = cherry-pick
     sa = stash --include-untracked
     ski = stash --keep-index
-    np = restore -p
 
     # entry point for custom scripts (for things that are too large to define inline here)
     # list contibutors with number of commits
@@ -124,7 +124,6 @@
     # lg shows all branches
     lg = !git lh --all
     lh = log --color --graph --date='format:%Y-%m-%d %H:%M' --pretty=format:'%C(red)%h%C(reset) %C(green)%ad%C(reset): %s%C(reset)%C(yellow)%d%C(reset) - %C(bold blue)%an%C(reset)' --abbrev-commit -n 15
-    ln = !git lh --no-merges
     ll = !git lg -n 9999
     lhl = !git lh -n 9999
     lc = !git ll | grep -C 10 $(git rev-parse --short HEAD)
@@ -178,12 +177,8 @@
 
     # switch/reset back n commits
     rsn = !COUNT=${1:-1}";" shift";" git reset HEAD~$COUNT \"$@\" "#"
-    uncommit = rsn 1
-    # soft reset, useful to retract (un-amend) things and then recommit
-    rss = ucm --soft
+    uncommit = reset --soft HEAD~1
     recommit = commit --reuse-message=HEAD@{1}
-    retract = !git reset && git rss && git reset -p && git recommit
-    retract-files = !git reset && git rss && git ri && git recommit
     # rebase the last n commits
     rbn = !git rebase -i HEAD~$1 "#"
     rsm = branch -f master origin/master
@@ -216,6 +211,7 @@
     # delete or rename branch, both locally and remotely
     brd = !git branch -d $1";" git push origin --delete $1 "#"
     brm = !old_name=$(git curr-br) && git br -m $1 && git push origin :$old_name $1 && git su "#"
+    drop = !old_name=$(git curr-br) && git switch master $1 && git br -D "$old_name" "#"
     # branch cleanup
     brc = !git branch --merged | grep -v \\* | grep -v master | grep -v develop | xargs -n 1 git branch -d && git delete-gone
     # delete branches that has upstream deleted
@@ -231,6 +227,7 @@
     qb = !git switch -c "$(echo $* | tr ' ' '-')" && git add . && git commit -am \"$*\" "#"
     # or just when you are too lazy to write -am ""
     cam = !git commit -am \"$*\" "#"
+    ce = !git commit --allow-empty -am \"$*\" "#"
 
     # tag management
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message
@@ -241,7 +238,7 @@
     github-url = !echo \"$(git config --get remote.origin.url | sed -e 's,:,/,' -e 's,https///,https://,' -e 's,git@,https://,' -e 's/[.]git$//')\"
     github-use-ssh = !git remote set-url --push origin \"git@github.com:$(git config --get remote.origin.url | sed -e 's,github.com[/],,' -e 's,.*[:][/]*,,')\"
     pr-winner = !git log --oneline --since='1 week' --pretty=format:'%an: %s' | grep 'Merge pull request' | sed 's/:.*//' | sort | uniq -c | sort -nr
-    fetch-pr = !git fetch origin "pull/$1/head:pr-$1" "#"
+    pr = !git fetch origin "pull/$1/head:pr-$1" && git sw "pr-$1" "#"
 
     # multi-repo stuff
     # everything i have done the last month. there is an echo and inverse grep empty lines to make sure newlines are properly inserted

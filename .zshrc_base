@@ -1,7 +1,7 @@
 # kind of ridiculous that zsh startup needs profiling
 
 # 0 disabled, 1 enabled, 2 verbose
-profiling_level=1
+profiling_level=0
 profile_git=0
 test $profiling_level -gt 0 && profiling_start_time="$(gdate +%s%3N)"
 

@@ -306,6 +306,8 @@ Subquery inside aggregation fn, note you need double parens to make it work.
     SELECT * FROM tmpA
     EXCEPT DISTINCT SELECT * FROM tmpB
 
+You can look at the execution graph to verify that records are actually present.
+
 This cannot diff arrays but you can use `TO_JSON_STRING` to encode them.
 
 This will not show rows that only exist in tmpB, so for more power you can use.
