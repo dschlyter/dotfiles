@@ -200,6 +200,7 @@
     lazy-fe = !test $(git last-fetch) -gt 20 && git fe || true
 
     # branch management
+    cl = !git clone "$@" && cd "$(ls -t | head -1)" && test "$(git curr-br)" == "main" && git br -m master && git br || true "#"
     # when done with branch after squash (this will do a hard delete of the branch)
     done = !git switch master && git pull --prune && git brc
     # list all branches - but local last
@@ -218,7 +219,7 @@
     delete-gone = !git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -n 1 git branch -D
     # quick alias for setting upstream
     su = !git branch -u origin/$(git curr-br)
-    # when you forget to create a feature branch and commit on main
+    # when you forget to create a feature branch and commit on master
     rbr = !branch=\"$(git symbolic-ref --short HEAD)\" && git branch -m \"$1\" && git branch \"$branch\" \"origin/$branch\" "#"
     # move the added files to a new branch from master, save unstaged as a WIP commit. for when you start new work on the wrong branch.
     nbr = !git invert && git wipa-stash && git switch master -c
@@ -255,6 +256,7 @@
     path = .gitconfig_local
 [init]
     templatedir = ~/.git_template
+    defaultBranch = master
 [credential]
     helper = cache --timeout=3600
 [merge]
