@@ -3,11 +3,16 @@
 # 0 disabled, 1 enabled, 2 verbose
 profiling_level=0
 profile_git=0
-test $profiling_level -gt 0 && profiling_start_time="$(gdate +%s%3N)"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    profile_date=gdate
+else
+    profile_date=date
+fi
+test $profiling_level -gt 0 && profiling_start_time="$($profile_date +%s%3N)"
 
 profiling_log() {
     if [[ $profiling_level -gt 0 ]]; then
-        echo $(($(gdate +%s%3N) - profiling_start_time)) "$@"
+        echo $(($($profile_date +%s%3N) - profiling_start_time)) "$@"
     fi
 }
 

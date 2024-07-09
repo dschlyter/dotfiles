@@ -1,3 +1,5 @@
 alias o='wslview'
 alias -g CB='| clip.exe'
 alias cb='powershell.exe Get-Clipboard'
+
+function cdw() { local d=`wslpath "$1"`; cd "$d"; }
