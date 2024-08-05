@@ -12,6 +12,7 @@ import logging
 from urllib.parse import quote, unquote
 from pathlib import Path
 from dotlib.jstore import JStore
+from datetime import datetime
 
 # log_level = logging.DEBUG
 log_level = logging.INFO
@@ -76,6 +77,7 @@ class Paperbox:
                     self.sync_all()
                 else:
                     logging.debug("No sync needed")
+                    print("Last check", datetime.now(), "\r", end="")
             except Exception as e:
                 logging.error("Exception when syncing, will retry. " + str(e))
 
