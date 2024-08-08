@@ -62,7 +62,7 @@ sticky() {
 # Aliases
 
 alias g="git"
-alias p="ptpython --vi --dark-bg || python" # a quick calculator
+alias p="PTPYTHON_CONFIG_HOME='$HOME/.config/ptpython' PYTHONSTARTUP='$HOME/.config/ptpython/startup.py' ptpython --vi --dark-bg || python" # a quick calculator
 alias groot='cd "./$(git rev-parse --show-cdup)"'
 alias grootp='git rev-parse --show-cdup'
 

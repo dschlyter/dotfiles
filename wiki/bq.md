@@ -303,6 +303,26 @@ Subquery inside aggregation fn, note you need double parens to make it work.
 
 ## Comparing result
 
+A quick count
+
+    WITH a AS
+        SELECT fields... FROM ...
+        GROUP BY ALL
+    ), b AS (
+        SELECT fields... FROM ...
+        GROUP BY ALL
+    ), intersect AS (
+        SELECT * FROM b
+        INTERSECT DISTINCT
+        SELECT * FROM a
+    )
+    SELECT
+        (SELECT COUNT(1) FROM a) AS a_elements,
+        (SELECT COUNT(1) FROM b) AS b_elements,
+        (SELECT COUNT(1) FROM distinct_intersection) AS distinct_intersection
+
+View differences
+
     SELECT * FROM tmpA
     EXCEPT DISTINCT SELECT * FROM tmpB
 

@@ -113,6 +113,9 @@ link .ideavimrc
 link .tmux.conf
 link .tmux-scripts
 
+link_settings "$HOME/.config" ptpython config.py ptpython-config.py
+link_settings "$HOME/.config" ptpython startup.py ptpython-startup.py
+
 inject 'source "$HOME/.zshrc_base"' "$HOME/.zshrc" first
 inject '# Note: Overrides below can be overridden again by anything in .zshrc_*, use .zshrc if this is a problem' "$HOME/.shellrc" first
 inject 'source "$HOME/.shellrc_base"' "$HOME/.shellrc" first
