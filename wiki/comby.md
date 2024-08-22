@@ -23,3 +23,8 @@ The fast solution is ...
 Or you can use regex to match both space and non space.
 
     comby 'if(:[a]):[~ *]{:[b]}' ':[b]' -i
+
+## FIX pattern
+
+If your match template matches on too many things, try adding a FIX prefix in your editor to the things to match.
+

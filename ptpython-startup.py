@@ -7,6 +7,7 @@
 import math
 import random
 import subprocess
+import statistics
 
 #
 # Default libs
@@ -61,7 +62,7 @@ def sh(command):
 def sh_read(command):
     return subprocess.check_output(['/bin/bash', '-o', 'pipefail', '-c', command]).decode("utf-8").strip()
 
-def fplot(*fns, x=None):
+def fplot(*fns, x=None, split=None):
     """
     Quick plot utility, give a list of functions lambda x: x ** 2 + x and plot them.
     Args can also be arrays.
@@ -70,15 +71,54 @@ def fplot(*fns, x=None):
     if not x:
         x = [n for n in range(100)]
 
-    fig, ax = plt.subplots()
+    data = []
     for f in fns:
         if type(f).__name__ == 'function':
-            y = [f(x) for x in x]
+            data.append((x, [f(x) for x in x]))
         else:
-            y = f
-        ax.plot(x, y)
+            data.append((x, f))
+
+    subplots(data, split=split)
     
-    if len(x) <= 20 and max(x) < 100:
-        ax.set_xticks(x)
-    plt.grid(linestyle="--")
+
+def subplots(plot_data, split=None):
+    """
+    Automatically split plots when ranges are significantly different
+    """
+    split = split if split is not None else 5
+    with_index = [(i+1, x, y) for i, (x, y) in enumerate(plot_data)]
+
+    plot_groups = []
+    for d in with_index:
+        added = False
+        for i in range(len(plot_groups)):
+            new_group = plot_groups[i] + [d]
+            y_range_sizes = [max(max([abs(p) for p in y]), 0.001) for (s, x, y) in new_group]
+            if split is False or max(y_range_sizes) / min(y_range_sizes) < split:
+                plot_groups[i] = new_group
+                added = True
+                break
+        if not added:
+            plot_groups.append([d])
+
+    fig, axs = plt.subplots(len(plot_groups), 1)
+    if len(plot_groups) == 1:
+        axs = [axs]
+
+    for i, p in enumerate(plot_groups):
+        ax = axs[i]
+        for (s, x, y) in p:
+            ax.plot(x, y, label=f"series {s}")
+
+            # nicer ticks if x range is short
+            if len(x) <= 20 and max(x) < 100:
+                ax.set_xticks(x)
+
+        ax.legend(loc='best')
+        ax.grid(linestyle="--")
+    
+    # plt.legend(loc='best')
     plt.show()
+
+def avg(x):
+    return statistics.fmean(x)

@@ -303,28 +303,24 @@ Subquery inside aggregation fn, note you need double parens to make it work.
 
 ## Comparing result
 
-A quick count
+If results are identical, then the output of this should have the same number of rows as both the inputs
 
     WITH a AS
-        SELECT fields... FROM ...
+        SELECT "v1" AS v, fields... FROM ...
         GROUP BY ALL
     ), b AS (
-        SELECT fields... FROM ...
+        SELECT "v2" AS v, fields... FROM ...
         GROUP BY ALL
-    ), intersect AS (
+    ), joined AS (
+        -- DANGER: UNION ALL unions by order, not by column name
         SELECT * FROM b
-        INTERSECT DISTINCT
+        UNION ALL
         SELECT * FROM a
     )
-    SELECT
-        (SELECT COUNT(1) FROM a) AS a_elements,
-        (SELECT COUNT(1) FROM b) AS b_elements,
-        (SELECT COUNT(1) FROM distinct_intersection) AS distinct_intersection
-
-View differences
-
-    SELECT * FROM tmpA
-    EXCEPT DISTINCT SELECT * FROM tmpB
+    SELECT ARRAY_AGG(v) versions, * EXCEPT(v)
+    FROM joined
+    GROUP BY ALL
+    ORDER BY ARRAY_LENGTH(versions), impression_id, versions[SAFE_OFFSET(0)]
 
 You can look at the execution graph to verify that records are actually present.
 
