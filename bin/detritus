@@ -1,0 +1,413 @@
+#!/usr/bin/env python3
+
+# Solver for Sorcerers Detritus game
+# Runs best with: pypy3 =detritus 7
+
+import sys
+import os
+import unittest
+from typing import List
+import queue
+
+levels = [
+"""
+#############
+ #   #     ##
+ #   # k_  X>
+ ####### # ##
+H   _  # ###
+####   # #
+#### __# #
+####   # #
+####     #
+##########
+""",
+"""
+#######
+#    # 
+#  k # 
+#  ### 
+#    X>
+#  ####
+#    # 
+H    # 
+######
+""",
+"""
+#######
+#     #
+#  =  ##
+H     X>
+########
+""",
+"""
+####### 
+#  #### 
+#     X>
+## ## ##
+ #    # 
+##    # 
+H  k  # 
+## ## # 
+ # ## # 
+#      #
+########
+""",
+"""
+#########
+# k    #
+# #    #
+# ##   #
+#      #
+H      X>
+#########
+""",
+"""
+######
+## k ##
+## #  #  
+## ## ###
+#       #
+#       #
+#     _ ##
+#       #
+H       X>
+##########
+""",
+"""
+##########
+#       # 
+H k_    X>
+###   ####
+###   ####
+###   ####
+##########
+""",
+"""
+#################
+#               #
+#               #
+#      #        #
+H  k _ # _     X>
+####       ######
+####       ######
+#################
+""",
+# TODO 4 more levels
+]
+
+# solve nodes
+# without:          16233, 12375, 235676, 146127
+# check unmovable:  8460, 7548, 215993, 38800, ?, 12242, ?
+# unmovable-border: 7214, 6045, 187574, 26468, 4225382, 7863, ?
+# free-spaces:      6374, 4939, 185424, 17360, 3342933, 6471
+
+
+def main():
+    arg = sys.argv[1]
+    # TODO support submitting level as non-numeric arg
+    level = levels[int(arg)]
+    state = Level(level).create_state()
+
+    if len(sys.argv) > 2 and sys.argv[2] == "play":
+        play(state)
+    else:
+        solve(state)
+
+
+def solve(state):
+    seen = set()
+    q = queue.Queue()
+    node_count = 0
+
+    q.put(state)
+
+    while not q.empty():
+        state = q.get()
+        node_count += 1
+        if state.on_goal():
+            print("Found solution in", node_count, "nodes")
+            print(state, state.path)
+            return
+        for next_state in state.next_states():
+            state_key = str(next_state)
+            if state_key not in seen:
+                seen.add(state_key)
+                q.put(next_state)
+        if node_count % 1000 == 0:
+            print(node_count, state.__repr__(with_unclearable=True))
+        if node_count > 100_000_000:
+            print("timeout")
+            break
+
+    print("Failed to find solution in", node_count, "nodes")
+
+
+def play(state):
+    while True:
+        print(state)
+        if state.on_goal():
+            print("You win!")
+            break
+        key = input("Move: ")
+        move = {"a": LEFT, "w": UP, "d": RIGHT, "s": DOWN}.get(key)
+        if move:
+            state.move(state.player, move)
+
+
+class Level:
+    def __init__(self, level):
+        rows = level.split("\n")
+
+        self.height = len(rows)
+        self.width = max(len(row) for row in rows)
+        self.level_data = [["#" for x in range(self.width)] for y in range(self.height)]
+        self.key_start = None
+
+        for y, row in enumerate(rows):
+            for x, c in enumerate(row):
+                if c == "H":
+                    self.player_start = (y, x)
+                    self.level_data[y][x] = " "
+                elif c == "k":
+                    self.key_start = (y, x)
+                    self.level_data[y][x] = " "
+                elif c == "=":
+                    self.key_start = (y, x)
+                    self.level_data[y][x] = "_"
+                else:
+                    self.level_data[y][x] = c
+
+    def level_value(self, pos):
+        y, x = pos
+        if y < 0 or y >= self.height or x < 0 or x >= self.width:
+            return "#"
+        return self.level_data[y][x]
+
+    def create_state(self):
+        return GameState(self, dict(), self.player_start, self.key_start, [])
+
+
+UP, DOWN, LEFT, RIGHT = (-1, 0), (1, 0), (0, -1), (0, 1)
+
+
+class GameState:
+    def __init__(self, level, cruft, player, key, path=None):
+        self.level = level
+        self.cruft = cruft or dict()
+        self.player = player
+        self.key = key
+        self.path = path
+
+    def move(self, pos, direction, key_push=False):
+        next_pos = self.plus(pos, direction)
+        lv = self.level.level_value(pos)
+        success = False
+
+        if lv == "#":
+            success = False
+        elif lv == "X" and self.key:
+            if key_push:
+                self.key = None
+                success = True
+        elif pos == self.key:
+            success = self.move(next_pos, direction, key_push=True)
+            if success and self.key:
+                self.key = next_pos
+        elif self.cruft.get(pos):
+            success = self.move(next_pos, direction)
+            if success:
+                del self.cruft[pos]
+                self.cruft[next_pos] = True
+        elif pos == self.player:
+            success = self.move(next_pos, direction)
+            if success:
+                self.player = next_pos
+                if direction == UP:
+                    self.cruft[pos] = True
+                else:
+                    self.fall(self.plus(pos, UP))
+        else:
+            success = True
+
+        if success and direction != UP:
+            self.fall(next_pos)
+
+        return success
+
+    def fall(self, pos):
+        fall = False
+        f = self.floor(pos)
+        if f != pos:
+            fall = True
+            if pos == self.player:
+                self.player = f
+            elif pos == self.key:
+                self.key = f
+            elif self.cruft.get(pos):
+                del self.cruft[pos]
+                self.cruft[f] = True
+            else:
+                fall = False
+        if fall:
+            self.fall(self.plus(pos, UP))
+
+    def floor(self, pos):
+        below = self.plus(pos, DOWN)
+        lv = self.level.level_value(pos)
+        lb = self.level.level_value(below)
+        if (
+            lv == "_"
+            or lb == "#"
+            or below in (self.player, self.key)
+            or self.cruft.get(below)
+        ):
+            return pos
+        else:
+            return self.floor(below)
+
+    def plus(self, pos, direction):
+        return pos[0] + direction[0], pos[1] + direction[1]
+
+    def dist(self, pos1, pos2):
+        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+
+    def next_states(self):
+        ret = []
+        for dir_name, direction in [("l", LEFT), ("u", UP), ("r", RIGHT)]:
+            new_state = GameState(
+                self.level,
+                self.cruft.copy(),
+                self.player,
+                self.key,
+                self.path + [dir_name],
+            )
+            success = new_state.move(self.player, direction)
+            if success and not new_state.unsolvable():
+                ret.append(new_state)
+        return ret
+
+    def on_goal(self):
+        return self.level.level_value(self.player) == ">"
+
+    def calc_unclearable(self):
+        unclearable = dict()
+
+        # TODO better detection
+        # 1. scan each horizontal segment of cruft (including key)
+        # 2. if blocked on either side -> all unclearable
+        # 3. check which sides player can reach (without going through the segment - other segments are fine)
+
+        # mark all walls, border and lock (unless key is nearby) as unclearable
+        for y in range(-1, self.level.height+1):
+            for x in range(-1, self.level.width+1):
+                p = (y, x)
+                if self.level.level_value(p) == "#":
+                    unclearable[p] = True
+                if self.level.level_value(p) == "X" and self.key and self.dist(p, self.key) > 1:
+                    unclearable[p] = True
+
+        # track the number of spaces a box can be moved into - a box can essentially not be moved up since another box takes its place
+        # TODO currently a naive check, does not check actual reachability
+        free_spaces = 0
+
+        for y in range(self.level.height - 1, -1, -1):
+            # propagate unclearable from left to right
+            for x in range(self.level.width):
+                p = (y, x)
+                down = self.plus(p, DOWN)
+                left = self.plus(p, LEFT)
+                if unclearable.get(down) and unclearable.get(left):
+                    if self.cruft.get(p) or p == self.key:
+                        unclearable[p] = True
+
+                if not unclearable.get(p) and not self.cruft.get(p) and self.level.level_value(p) != ">":
+                    free_spaces += 1
+
+            # propagate unclearable from right to left
+            for x in range(self.level.width - 1, -1, -1):
+                p = (y, x)
+                down = self.plus(p, DOWN)
+                right = self.plus(p, RIGHT)
+                if unclearable.get(down) and unclearable.get(right):
+                    if self.cruft.get(p) or p == self.key:
+                        unclearable[p] = True
+
+            # mark as unclearable if these is no space to move the boxes falling down
+            for x in range(self.level.width):
+                up = self.plus(p, UP)
+                stacked_on_top = 0
+                while self.cruft.get(up):
+                    stacked_on_top += 1
+                    up = self.plus(up, UP)
+
+                if stacked_on_top >= free_spaces:
+                    unclearable[p] = True
+
+        return unclearable
+
+    def unsolvable(self):
+        unclearable = self.calc_unclearable()
+
+        for y in range(self.level.height):
+            for x in range(self.level.width):
+                p = (y, x)
+
+                if p == self.key:
+                    down = self.plus(p, DOWN)
+                    left = self.plus(p, LEFT)
+                    right = self.plus(p, RIGHT)
+                    if unclearable.get(down) and (unclearable.get(left) or unclearable.get(right)):
+                        return True
+                
+                if self.level.level_value(p) == "X":
+                    # TODO navie assume goal opens from the left - true for all levels currently
+                    left = self.plus(p, LEFT)
+                    left2 = self.plus(left, LEFT)
+                    # right becomes unclearable when pushing a box into the goal
+                    right = self.plus(p, RIGHT)
+                    if unclearable.get(left) or unclearable.get(left2) or unclearable.get(right):
+                        return True
+
+        # TODO pathfind to goal ?
+        # TODO mark all unreachable squares as crufty
+
+        return False
+
+    def __repr__(self, with_unclearable=False) -> str:
+        ret = ""
+        mark = self.calc_unclearable() if with_unclearable else dict()
+
+        for y in range(self.level.height):
+            for x in range(self.level.width):
+                p = (y, x)
+                if p == self.player:
+                    ret += "H"
+                elif p == self.key:
+                    ret += "k"
+                elif mark.get(p):
+                    ret += "#"
+                elif self.cruft.get(p):
+                    ret += "*"
+                else:
+                    lv = self.level.level_value((y, x))
+                    if lv == "k" or lv == "H" or (lv == "X" and not self.key):
+                        ret += " "
+                    else:
+                        ret += lv
+            ret += "\n"
+        return ret
+
+
+# Inline tests
+# Run by setting UNITTEST=1
+class Tests(unittest.TestCase):
+    def test_upper(self):
+        self.assertEqual("foo".upper(), "FOO")
+
+
+if __name__ == "__main__":
+    if os.environ.get("UNITTEST") == "1":
+        unittest.main()
+    else:
+        main()
