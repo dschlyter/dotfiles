@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-# Solver for Sorcerers Detritus game
+# Solver for Sorcerers Detritus game - https://chz.itch.io/the-sorcerers-detritus
 # Runs best with: pypy3 =detritus 7
 
 import sys
 import os
 import unittest
-from typing import List
 import queue
+from collections import defaultdict
 
 levels = [
 """
@@ -83,44 +83,68 @@ H k_    X>
 ###   ####
 ##########
 """,
+### TODO optimized away the start point - does not help much
 """
-#################
-#               #
-#               #
+################
 #      #        #
-H  k _ # _     X>
-####       ######
-####       ######
-#################
+#             ##
+#      #      ##
+#H k _ # _    X>
+####       #####
+####       #####
+################
 """,
-# TODO 4 more levels
+# TODO solver needs to support multi-keys!
+"""
+#########
+###   ###
+#     ###
+# k   XXX>
+###   ####
+#     ####
+# k   ####
+###   ####
+#     ####
+# k   ####
+###   ####
+H     ####
+##########
+"""
 ]
 
-# solve nodes
+# solve in number of nodes
 # without:          16233, 12375, 235676, 146127
 # check unmovable:  8460, 7548, 215993, 38800, ?, 12242, ?
 # unmovable-border: 7214, 6045, 187574, 26468, 4225382, 7863, ?
-# free-spaces:      6374, 4939, 185424, 17360, 3342933, 6471
-
+# free-spaces:      6374, 4939, 185424, 17360, 3342933, 6471, ?
+# prio queue        4684, 7809, 100883, 19719, 3006277, 1316, ?
+# prio queue        3214, 7703, 78750, 19572, 3120544, 18008, ?, ?
 
 def main():
     arg = sys.argv[1]
     # TODO support submitting level as non-numeric arg
     level = levels[int(arg)]
-    state = Level(level).create_state()
 
     if len(sys.argv) > 2 and sys.argv[2] == "play":
+        state = Level(level).create_state()
         play(state)
     else:
-        solve(state)
+        solve(level)
 
 
-def solve(state):
-    seen = set()
-    q = queue.Queue()
+def solve(level):
+    state = Level(level).create_state()
+
+    # Step 1 - solve with simplified rules, to calculate unsolvable states
+    # TODO pre solve
+
+    # Step 2 - actually solve the level
     node_count = 0
 
-    q.put(state)
+    seen = set()
+
+    q = MyPrioQueue()
+    q.put(state.prio(), state)
 
     while not q.empty():
         state = q.get()
@@ -128,12 +152,12 @@ def solve(state):
         if state.on_goal():
             print("Found solution in", node_count, "nodes")
             print(state, state.path)
-            return
+            return True
         for next_state in state.next_states():
             state_key = str(next_state)
             if state_key not in seen:
                 seen.add(state_key)
-                q.put(next_state)
+                q.put(next_state.prio(), next_state)
         if node_count % 1000 == 0:
             print(node_count, state.__repr__(with_unclearable=True))
         if node_count > 100_000_000:
@@ -141,6 +165,34 @@ def solve(state):
             break
 
     print("Failed to find solution in", node_count, "nodes")
+    return False
+
+
+# simplified priority queue, since the cardinality of distances is small an array is more opt
+class MyPrioQueue:
+    def __init__(self) -> None:
+        self.queues = defaultdict(lambda: queue.Queue())
+        self.curr_dist = None
+        self.count = 0
+
+    def put(self, prio, value):
+        self.queues[prio].put(value)
+        if self.curr_dist is None or prio < self.curr_dist:
+            self.curr_dist = prio
+        self.count += 1
+
+    def get(self):
+        if self.count == 0:
+            return None
+
+        while self.queues[self.curr_dist].empty():
+            self.curr_dist += 1
+
+        self.count -= 1
+        return self.queues[self.curr_dist].get()
+
+    def empty(self):
+        return self.count == 0
 
 
 def play(state):
@@ -163,18 +215,23 @@ class Level:
         self.width = max(len(row) for row in rows)
         self.level_data = [["#" for x in range(self.width)] for y in range(self.height)]
         self.key_start = None
+        self.goal = None
 
         for y, row in enumerate(rows):
             for x, c in enumerate(row):
+                p = (y, x)
                 if c == "H":
-                    self.player_start = (y, x)
+                    self.player_start = p
                     self.level_data[y][x] = " "
                 elif c == "k":
-                    self.key_start = (y, x)
+                    self.key_start = p
                     self.level_data[y][x] = " "
                 elif c == "=":
-                    self.key_start = (y, x)
+                    self.key_start = p
                     self.level_data[y][x] = "_"
+                elif c == ">":
+                    self.goal = p
+                    self.level_data[y][x] = c
                 else:
                     self.level_data[y][x] = c
 
@@ -288,7 +345,13 @@ class GameState:
         return ret
 
     def on_goal(self):
-        return self.level.level_value(self.player) == ">"
+        return self.level.goal == self.player
+
+    def prio(self):
+        # TODO multiple keys - sum the distances
+        key_dist = self.dist(self.key, self.level.goal) if self.key else 0
+        player_dist = self.dist(self.player, self.level.goal)
+        return key_dist * 10 + len(self.path)
 
     def calc_unclearable(self):
         unclearable = dict()
@@ -302,10 +365,12 @@ class GameState:
         for y in range(-1, self.level.height+1):
             for x in range(-1, self.level.width+1):
                 p = (y, x)
+                left = self.plus(p, LEFT)
                 if self.level.level_value(p) == "#":
                     unclearable[p] = True
-                if self.level.level_value(p) == "X" and self.key and self.dist(p, self.key) > 1:
-                    unclearable[p] = True
+                if self.level.level_value(p) == "X" and self.level.level_value(left) != "X":
+                    if self.key and self.dist(p, self.key) > 1:
+                        unclearable[p] = True
 
         # track the number of spaces a box can be moved into - a box can essentially not be moved up since another box takes its place
         # TODO currently a naive check, does not check actual reachability
@@ -367,7 +432,8 @@ class GameState:
                     # right becomes unclearable when pushing a box into the goal
                     right = self.plus(p, RIGHT)
                     if unclearable.get(left) or unclearable.get(left2) or unclearable.get(right):
-                        return True
+                        if not self.level.level_value(left) == "X":
+                            return True
 
         # TODO pathfind to goal ?
         # TODO mark all unreachable squares as crufty
@@ -402,8 +468,18 @@ class GameState:
 # Inline tests
 # Run by setting UNITTEST=1
 class Tests(unittest.TestCase):
-    def test_upper(self):
-        self.assertEqual("foo".upper(), "FOO")
+        # solve the levels that are fast
+    def test_solves1(self):
+        self.assertEqual(solve(levels[1]), True)
+
+    def test_solves2(self):
+        self.assertEqual(solve(levels[2]), True)
+
+    def test_solves4(self):
+        self.assertEqual(solve(levels[4]), True)
+
+    def test_solves6(self):
+        self.assertEqual(solve(levels[6]), True)
 
 
 if __name__ == "__main__":
