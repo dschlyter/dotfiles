@@ -41,15 +41,15 @@ H     X>
 ########
 """,
 """
-####### 
-#  #### 
+########
+#  #####
 #     X>
 ## ## ##
- #    # 
-##    # 
-H  k  # 
-## ## # 
- # ## # 
+ #    ##
+##    ##
+H  k  ##
+## ## ##
+## ## ##
 #      #
 ########
 """,
@@ -148,15 +148,15 @@ def solve(level):
         node_count += 1
         if state.on_goal():
             print("Found solution in", node_count, "nodes")
-            print(state, state.path_string())
+            print(state.show(False), state.path_string())
             return True
         for next_state in state.next_states():
-            state_key = str(next_state)
+            state_key = next_state.show(False)
             if state_key not in seen:
                 seen.add(state_key)
                 q.put(next_state.prio(), next_state)
         if node_count % 1000 == 0:
-            print(node_count, state.__repr__(with_unclearable=True))
+            print(node_count, state, sep="\n")
         if node_count > 100_000_000:
             print("timeout")
             break
@@ -193,15 +193,26 @@ class MyPrioQueue:
 
 
 def play(state):
+    hist = [state]
     while True:
-        print(state)
-        if state.on_goal():
-            print("You win!")
-            break
+        print(state.show(False))
         key = input("Move: ")
-        move = {"a": LEFT, "w": UP, "d": RIGHT, "s": DOWN}.get(key)
-        if move:
-            state.move(state.player, move)
+        move = {"a": LEFT, "w": UP, "d": RIGHT, "s": DOWN, 'u': "UNDO"}.get(key)
+
+        if move == "UNDO":
+            if hist:
+                hist.pop()
+                state = hist[-1]
+        elif move:
+            state = state.copy()
+            success = state.move(state.player, move)
+            if success:
+                hist.append(state)
+            if state.on_goal():
+                print("You win!")
+                break
+            if state.unsolvable():
+                print("WARNING! - Unsolvable")
 
 
 class Level:
@@ -215,7 +226,6 @@ class Level:
         self.locks = []
         self.goal = None
 
-        self.lowest_level = 0
         self.lowest_lock = 0
 
         for y, row in enumerate(rows):
@@ -240,9 +250,6 @@ class Level:
                 else:
                     self.level_data[y][x] = c
 
-                if self.level_data[y][x] == " ":
-                    self.lowest_level = max(self.lowest_level, y)
-
     def level_value(self, pos):
         y, x = pos
         if y < 0 or y >= self.height or x < 0 or x >= self.width:
@@ -257,13 +264,24 @@ UP, DOWN, LEFT, RIGHT = (-1, 0), (1, 0), (0, -1), (0, 1)
 
 
 class GameState:
-    def __init__(self, level, cruft, player, keys, locks, path=None):
+    def __init__(self, level, cruft, player, keys, locks, path):
         self.level = level
         self.cruft = cruft or dict()
         self.player = player
         self.keys = keys
         self.locks = locks
         self.path = path
+
+    # TODO might be opt to copy on change instead of on every new state
+    def copy(self):
+        return GameState(
+            self.level,
+            self.cruft.copy(),
+            self.player,
+            self.keys.copy(),
+            self.locks.copy(),
+            self.path.copy()
+        )
 
     def move(self, pos, direction, key_push=False):
         next_pos = self.plus(pos, direction)
@@ -351,17 +369,10 @@ class GameState:
     def next_states(self):
         ret = []
         for dir_name, direction in [("l", LEFT), ("u", UP), ("r", RIGHT)]:
-            # TODO might be opt to copy on change instead of on every new state
-            new_state = GameState(
-                self.level,
-                self.cruft.copy(),
-                self.player,
-                self.keys.copy(),
-                self.locks.copy(),
-                self.path + [dir_name],
-            )
+            new_state = self.copy()
             success = new_state.move(self.player, direction)
             if success and not new_state.unsolvable():
+                new_state.path.append(dir_name)
                 ret.append(new_state)
         return ret
 
@@ -378,6 +389,7 @@ class GameState:
 
     def calc_unclearable(self):
         unclearable = dict()
+        lowest_level = self.level.height
 
         # TODO better detection
         # 1. scan each horizontal segment of cruft (including key)
@@ -405,6 +417,7 @@ class GameState:
 
         for y in range(self.level.height - 1, -1, -1):
             found_lock = False
+            free_spaces_on_level = 0
 
             # propagate unclearable from left to right
             for x in range(self.level.width):
@@ -420,6 +433,7 @@ class GameState:
 
                 if not unclearable.get(p) and not self.cruft.get(p) and p not in self.keys and not found_lock:
                     free_spaces += 1
+                    free_spaces_on_level += 1
 
             # propagate unclearable from right to left
             for x in range(self.level.width - 1, -1, -1):
@@ -430,9 +444,18 @@ class GameState:
                     if self.cruft.get(p) or p in self.keys:
                         unclearable[p] = True
 
+            # if y > self.level.lowest_lock and y > self.player and free_spaces_on_level == 0:
+            if y > self.player[0] and free_spaces_on_level == 0:
+                lowest_level = y-1
+                for x in range(self.level.width):
+                    unclearable[(y, x)] = True
+
             # mark as unclearable if these is no space to move the boxes falling down
             for x in range(self.level.width):
                 p = (y, x)
+                if p == self.player:
+                    continue
+
                 up = self.plus(p, UP)
                 stacked_on_top = 0
                 while self.cruft.get(up) or up in self.keys:
@@ -442,10 +465,10 @@ class GameState:
                 if stacked_on_top >= free_spaces:
                     unclearable[p] = True
 
-        return unclearable
+        return unclearable, lowest_level
 
     def unsolvable(self):
-        unclearable = self.calc_unclearable()
+        unclearable, lowest_level = self.calc_unclearable()
 
         # TODO navie assume goal opens from the left - true for all levels currently
 
@@ -458,13 +481,21 @@ class GameState:
                 return True
 
             y, x = key
-            if y == self.level.lowest_level:
+
+            # key has fallen down and is unretrievable
+            if y > lowest_level:
+                return True
+
+            if y == lowest_level:
                 # if a key is on the lowest level and the lock is above, there is no way to raise the key
                 if y < self.level.lowest_lock:
                     return True
-
-                # if cruft is blocking the key from the goal, the level is unsolvable
                 else:
+                    # if cruft is ahead of the key, it cannot be removed
+                    if (y, x-1) in self.cruft:
+                        return True
+
+                    # if cruft is blocking the key from the goal, the level is unsolvable
                     for x2 in range(x, self.level.width):
                         if (y, x2) in self.cruft:
                             return True
@@ -510,9 +541,15 @@ class GameState:
         
         return " ".join(ret)
 
-    def __repr__(self, with_unclearable=False) -> str:
+    def __repr__(self) -> str:
+        return self.show()
+
+    def show(self, with_unclearable=True) -> str:
         ret = ""
-        mark = self.calc_unclearable() if with_unclearable else dict()
+        if with_unclearable:
+            unclearable, lowest_level = self.calc_unclearable()
+        else:
+            unclearable, lowest_level = dict(), 0
 
         for y in range(self.level.height):
             for x in range(self.level.width):
@@ -523,10 +560,12 @@ class GameState:
                     ret += "k"
                 elif p in self.locks:
                     ret += "X"
-                elif mark.get(p):
+                elif unclearable.get(p):
                     ret += "#"
                 elif self.cruft.get(p):
                     ret += "*"
+                elif with_unclearable and y == lowest_level:
+                    ret += "-"
                 else:
                     ret += self.level.level_value((y, x))
             ret += "\n"
