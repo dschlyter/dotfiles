@@ -94,7 +94,6 @@ H k_    X>
 ####       #####
 ################
 """,
-# TODO solver needs to support multi-keys!
 """
 #########
 ###   ###
@@ -113,11 +112,12 @@ H     ####
 ]
 
 # solve in number of nodes
-# without:          16233, 12375, 235676, 146127
+# no pruning        16233, 12375, 235676, 146127
 # check unmovable:  8460, 7548, 215993, 38800, ?, 12242, ?
 # unmovable-border: 7214, 6045, 187574, 26468, 4225382, 7863, ?
 # free-spaces:      6374, 4939, 185424, 17360, 3342933, 6471, ?
 # prio queue        3214, 7703, 78750, 19572, 3120544, 18008, ?, 21882
+# more unsolvable   3262, 656, 35102, 9587, 434584, 3933, ?, 33310
 
 def main():
     arg = sys.argv[1]
@@ -148,8 +148,7 @@ def solve(level):
         node_count += 1
         if state.on_goal():
             print("Found solution in", node_count, "nodes")
-            print(state, state.path)
-            print(max(q.queues.keys()))
+            print(state, state.path_string())
             return True
         for next_state in state.next_states():
             state_key = str(next_state)
@@ -216,6 +215,9 @@ class Level:
         self.locks = []
         self.goal = None
 
+        self.lowest_level = 0
+        self.lowest_lock = 0
+
         for y, row in enumerate(rows):
             for x, c in enumerate(row):
                 p = (y, x)
@@ -231,11 +233,15 @@ class Level:
                 elif c == "X":
                     self.locks.append(p)
                     self.level_data[y][x] = " "
+                    self.lowest_lock = max(self.lowest_lock, y)
                 elif c == ">":
                     self.goal = p
                     self.level_data[y][x] = c
                 else:
                     self.level_data[y][x] = c
+
+                if self.level_data[y][x] == " ":
+                    self.lowest_level = max(self.lowest_level, y)
 
     def level_value(self, pos):
         y, x = pos
@@ -398,6 +404,8 @@ class GameState:
         free_spaces = 0
 
         for y in range(self.level.height - 1, -1, -1):
+            found_lock = False
+
             # propagate unclearable from left to right
             for x in range(self.level.width):
                 p = (y, x)
@@ -407,7 +415,10 @@ class GameState:
                     if self.cruft.get(p) or p in self.keys:
                         unclearable[p] = True
 
-                if not unclearable.get(p) and not self.cruft.get(p) and self.level.level_value(p) != ">":
+                if p in self.locks:
+                    found_lock = True
+
+                if not unclearable.get(p) and not self.cruft.get(p) and p not in self.keys and not found_lock:
                     free_spaces += 1
 
             # propagate unclearable from right to left
@@ -421,9 +432,10 @@ class GameState:
 
             # mark as unclearable if these is no space to move the boxes falling down
             for x in range(self.level.width):
+                p = (y, x)
                 up = self.plus(p, UP)
                 stacked_on_top = 0
-                while self.cruft.get(up):
+                while self.cruft.get(up) or up in self.keys:
                     stacked_on_top += 1
                     up = self.plus(up, UP)
 
@@ -435,15 +447,29 @@ class GameState:
     def unsolvable(self):
         unclearable = self.calc_unclearable()
 
-        # if a key becomes unmovable, the level is unsolvable
+        # TODO navie assume goal opens from the left - true for all levels currently
+
         for key in self.keys:
+            # if a key becomes unmovable, the level is unsolvable
             down = self.plus(key, DOWN)
             left = self.plus(key, LEFT)
             right = self.plus(key, RIGHT)
             if unclearable.get(down) and (unclearable.get(left) or unclearable.get(right)):
                 return True
+
+            y, x = key
+            if y == self.level.lowest_level:
+                # if a key is on the lowest level and the lock is above, there is no way to raise the key
+                if y < self.level.lowest_lock:
+                    return True
+
+                # if cruft is blocking the key from the goal, the level is unsolvable
+                else:
+                    for x2 in range(x, self.level.width):
+                        if (y, x2) in self.cruft:
+                            return True
+
                 
-        # TODO navie assume goal opens from the left - true for all levels currently
         # don't push boxes next to the lock - this applies even after the lock has been removed (looking at level)
         for lock in self.level.locks:
             left = self.plus(lock, LEFT)
@@ -456,11 +482,33 @@ class GameState:
             left2 = self.plus(left, LEFT)
             if left2 in self.cruft and unclearable.get(left2):
                 return True
+            if left in self.keys and left2 in self.cruft:
+                # TODO not universally aplicable - could work on some levels
+                return True
 
         # TODO pathfind to goal ?
         # TODO mark all unreachable squares as crufty
 
         return False
+
+    def path_string(self):
+        ret = []
+        i = 0
+
+        while i < len(self.path):
+            direction = self.path[i]
+            repeat = 1
+
+            while i+1 < len(self.path) and self.path[i+1] == direction:
+                i += 1
+                repeat += 1
+            if repeat > 1:
+                direction += str(repeat)
+            ret.append(direction)
+
+            i += 1
+        
+        return " ".join(ret)
 
     def __repr__(self, with_unclearable=False) -> str:
         ret = ""
