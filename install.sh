@@ -178,11 +178,14 @@ case "$(uname -s)" in
         ;;
 esac
 
-if [ "$SHELL" == "/bin/zsh" ]; then
+if [[ "$SHELL" == "/bin/zsh" ]]; then
     echo "zsh is the current active shell"
-elif [ -f /bin/zsh ]; then
+elif [[ -f /bin/zsh ]]; then
     if [[ "$*" != *"--no-zsh"* ]]; then
-        chsh -s /bin/zsh
+        read -p "Switch shell to zsh (skip check with --no-zsh)? [y/n]: " yn
+        if [[ "$yn" == [Yy]* ]]; then
+            chsh -s /bin/zsh
+        fi
     else
         echo "Skipping zsh shell change"
     fi
