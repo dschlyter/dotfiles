@@ -21,26 +21,22 @@ def main():
     sp = sub_ps.add_parser('read', aliases=['r'], help='read time')
     sp.set_defaults(handler=read)
 
-    sp = sub_ps.add_parser('start', aliases=['s'], help='start new')
+    sp = sub_ps.add_parser('start', aliases=['s'], help='start new segment')
     sp.set_defaults(handler=start)
-    sp.add_argument('minutes', nargs="?", type=int)
+    sp.add_argument('minutes', help="X minutes, XhY or HH:MM", nargs="?")
 
-    sp = sub_ps.add_parser('end', aliases=['e'], help='finish')
+    sp = sub_ps.add_parser('end', aliases=['e'], help='end segment')
     sp.set_defaults(handler=end)
-    sp.add_argument('activity', nargs="?")
-    sp.add_argument('minutes', nargs="?")
+    sp.add_argument('activity', help="name of activity (minuts can also be first arg)", nargs="?")
+    sp.add_argument('minutes', help="X minutes, XhY, HH:MM or negative amount", nargs="?")
 
-    sp = sub_ps.add_parser('delay', help='shorten current segment')
+    sp = sub_ps.add_parser('delay', aliases=['d'], help='delay current segment')
     sp.set_defaults(handler=delay)
-    sp.add_argument('minutes', type=int)
+    sp.add_argument('minutes', help="X minutes, XhY")
 
-    sp = sub_ps.add_parser('extend', help='extend current segment')
-    sp.set_defaults(handler=extend)
-    sp.add_argument('minutes', type=int)
-
-    sp = sub_ps.add_parser('split', help='split off part of the current segment')
-    sp.set_defaults(handler=split)
-    sp.add_argument('minutes', type=int)
+    sp = sub_ps.add_parser('add', aliases=['a'], help='add to current segment')
+    sp.set_defaults(handler=add)
+    sp.add_argument('minutes', help="X minutes, XhY")
 
     sp = sub_ps.add_parser('repl', help='start a repl')
     sp.set_defaults(handler=repl)
@@ -51,7 +47,7 @@ def main():
 
 
 def read(**global_args):
-    print(api.get("api/time/read"))
+    print(api.get("api/time/read-extended"))
 
 
 def start(minutes=None, **global_args):
@@ -62,24 +58,31 @@ def start(minutes=None, **global_args):
 
 
 def end(activity=None, minutes=None, **global_args):
-    if minutes:
-        start(minutes)
-
     if activity == "" or activity == "-":
         print(api.get("api/time/end"))
-    elif activity:
-        print(api.get(f"api/time/end/{activity}"))
-    else:
+        return
+
+    if activity and (activity[0].isdigit() or activity[0] == "-"):
+        activity, minutes = None, activity
+
+    if activity is None:
         activities = api.get("api/time/activities").split("\n")
-        pick = fzf_match(activities, sort=False)
-        if pick:
-            print(api.get(f"api/time/end/{pick}"))
+        activity = fzf_match(activities, sort=False)
+        if not activity:
+            print("No activity selected")
+            quit(1)
+
+    if minutes is not None:
+        print(api.get(f"api/time/end/{activity}/{minutes}"))
+    else:
+        print(api.get(f"api/time/end/{activity}"))
+
 
 def delay(minutes, **global_args):
     print(api.get(f"api/time/shorten/{minutes}"))
 
 
-def extend(minutes, **global_args):
+def add(minutes, **global_args):
     print(api.get(f"api/time/lengthen/{minutes}"))
 
 
