@@ -55,6 +55,15 @@ or ALL (beware of NULL here)
 
     SELECT * FROM UNNEST([1,2,3]) a WITH OFFSET AS offset_a
 
+## Single line top count
+
+A single line instead of multiple rows. Needs to be done in multiple steps...
+
+    WITH a AS (
+        SELECT APPROX_TOP_COUNT(app_version, 3) top_versions
+    )
+    ARRAY_TO_STRING(ARRAY(SELECT CONCAT(count, " ", value) FROM UNNEST(top_versions)), ", ")
+
 # Timestamps
 
 ## Unix timestamp

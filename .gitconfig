@@ -63,13 +63,12 @@
     rs = reset
     rb = rebase
     rba = rebase --autostash
-    sw = switch
     sc = switch -c
+    sw = switch
+    swm = switch --merge
     sm = switch master
     smm = switch master --merge
-    smc = switch master -c
     cp = cherry-pick
-    sa = stash --include-untracked
     ski = stash --keep-index
 
     # entry point for custom scripts (for things that are too large to define inline here)

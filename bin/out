@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+
+import subprocess
+import os
+import sys
+import re
+import argparse
+
+# Detect prompt based on the fact it has a special char with a special color in it - very unlikely to be in normal command output
+# (You can use the error message from this command to find the raw sequence for your prompt, and add it here)
+PROMPT_END = os.environ.get("OUT_PROMPT_END") or "\x1b[38;5;168m>\x1b[0m\x1b[38;5;168m"
+
+# If no prompt return -1, otherwise return the index of the end of the prompt (ignoring color for the index)
+# This method could be customized for other prompts - unless you have one of those multi-line prompts
+def detect_prompt(line):
+    if PROMPT_END in line:
+        clean_prompt = remove_color(PROMPT_END)
+        return remove_color(line).index(clean_prompt) + len(clean_prompt)
+    return -1
+
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    global_parser = argparse.ArgumentParser(description='Scrapes the current tmux buffer, and prints output of the last command to stdout')
+    global_parser.add_argument('command_prefix', help="Find the last command which begun with this prefix", nargs="?")
+    global_parser.add_argument('--no-color', '-n', help="Strip color from the output", action="store_true")
+    global_parser.add_argument('--scrollback', '-s', help="Number of scrollback lines to scrape, default 1000", type=int, default=1000)
+    args = global_parser.parse_args()
+
+    if not os.environ.get("TMUX"):
+        print("Command should only run in tmux", file=sys.stderr)
+        quit(1)
+
+    # get current tmux buffer with color and 1000 lines of scroll-back
+    lines = sh_read(f"tmux capture-pane -p -e -S -{args.scrollback}").split("\n")
+
+    # sanity check - last line should be a prompt
+    # TODO this does not work with something like ls; out
+    if detect_prompt(lines[-1]) < 0:
+        print(f"Expected to match the prompt on the last line: {lines[-1]}", file=sys.stderr)
+        print(f"Raw line: {repr(lines[-1])}", file=sys.stderr)
+        quit(1)
+
+    output = lines[:-1]
+    matching_prompt_index = -1
+    end_of_match = -1
+    for i, line in enumerate(output):
+        prompt_index = detect_prompt(line)
+        if prompt_index < 0:
+            continue
+
+        command = remove_color(line)[prompt_index:].strip()
+
+        # by default do not match against self - allows for multiple runs against the same output
+        if args.command_prefix is None and not re.match(r'^out([^a-z-].*|)$', command):
+            matching_prompt_index = i
+        elif args.command_prefix is not None and command.startswith(args.command_prefix):
+            matching_prompt_index = i
+        elif end_of_match < matching_prompt_index:
+            end_of_match = i
+
+    if matching_prompt_index < 0:
+        print("Could not find a matching prompt", file=sys.stderr)
+        quit(1)
+
+    if end_of_match <= matching_prompt_index:
+        end_of_match = len(output)
+
+    for line in output[matching_prompt_index+1:end_of_match]:
+        if args.no_color:
+            line = remove_color(line)
+        print(line)
+
+
+def remove_color(line):
+    # replace with regex
+    return re.sub(r'\x1b\[[0-9;]*m', '', line)
+
+
+def sh_read(command):
+    return subprocess.check_output(['/bin/bash', '-o', 'pipefail', '-c', command]).decode("utf-8").strip()
+
+
+if __name__ == '__main__':
+    main()

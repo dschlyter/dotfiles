@@ -118,18 +118,6 @@ function lh {
     (nohup tmux-merge-log > /dev/null) &> /dev/null &
 }
 
-# quickly save the previous command
-function save {
-    if [[ -n "$1" ]]; then
-        local last_command="$(fc -l -nIL -1 -1 2> /dev/null)"
-        _quicksave_command "$1" "$last_command"
-    else
-        echo "Name required as first arg"
-        echo "Current commands:"
-        ls $HOME/commands
-    fi
-}
-
 # redefine alias or function (in symlinked file in home dir)
 ral() {
     search="(^|alias )$1(\(\)|\=)"
