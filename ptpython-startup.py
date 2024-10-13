@@ -27,6 +27,10 @@ except:
 
 try:
     import numpy as np
+
+    # quickly define vectors
+    def v(*args):
+        return np.array([n for n in args])
 except:
     missing.append("numpy")
 
@@ -79,7 +83,7 @@ def fplot(*fns, x=None, split=None):
             data.append((x, f))
 
     subplots(data, split=split)
-    
+
 
 def subplots(plot_data, split=None):
     """
@@ -116,7 +120,7 @@ def subplots(plot_data, split=None):
 
         ax.legend(loc='best')
         ax.grid(linestyle="--")
-    
+
     # plt.legend(loc='best')
     plt.show()
 

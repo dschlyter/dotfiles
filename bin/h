@@ -27,8 +27,8 @@ def main():
 
     sp = sub_ps.add_parser('end', aliases=['e'], help='end segment')
     sp.set_defaults(handler=end)
-    sp.add_argument('activity', help="name of activity (minuts can also be first arg)", nargs="?")
-    sp.add_argument('minutes', help="X minutes, XhY, HH:MM or negative amount", nargs="?")
+    sp.add_argument('activity_or_minutes', help="name of activity, or duration (including negative amount)", nargs="*")
+    sp.add_argument('--start', '-s', help="discard remaining and start new", action="store_true")
 
     sp = sub_ps.add_parser('delay', aliases=['d'], help='delay current segment')
     sp.set_defaults(handler=delay)
@@ -57,25 +57,63 @@ def start(minutes=None, **global_args):
         print(api.get(f"api/time/start"))
 
 
-def end(activity=None, minutes=None, **global_args):
-    if activity == "" or activity == "-":
+def end(activity_or_minutes, **global_args):
+    a = activity_or_minutes
+    if get(a, 0) in ["", "-"]:
         print(api.get("api/time/end"))
         return
 
-    if activity and (activity[0].isdigit() or activity[0] == "-"):
-        activity, minutes = None, activity
+    # parse into list of tuples (activity, duration)
+    # allow flexibility look at the first arg to decide if durations come first or second
+    reports = []
+    duration_first = _is_duration(get(a, 0))
+    i = 0
+    while i < len(a):
+        a1 = get(a, i)
+        a2 = get(a, i+1)
+        if _is_duration(a1):
+            if duration_first and not _is_duration(a2):
+                reports.append((a2, a1))
+                i += 2
+            else:
+                reports.append((None, a1))
+                i += 1
+        else:
+            if not duration_first and _is_duration(a2):
+                reports.append((a1, a2))
+                i += 2
+            else:
+                reports.append((a1, None))
+                i += 1
 
-    if activity is None:
-        activities = api.get("api/time/activities").split("\n")
-        activity = fzf_match(activities, sort=False)
-        if not activity:
-            print("No activity selected")
-            quit(1)
+    if len([1 for _, duration in reports if duration is None]) > 1:
+        print("Only one duration can be unspecified")
+        quit(1)
 
-    if minutes is not None:
-        print(api.get(f"api/time/end/{activity}/{minutes}"))
-    else:
-        print(api.get(f"api/time/end/{activity}"))
+    if reports == []:
+        reports = [(None, None)]
+        
+    for i, (activity, duration) in enumerate(reports):
+        if activity is None:
+            activities = api.get("api/time/activities").split("\n")
+            activity = fzf_match(activities, sort=False)
+            reports[i] = (activity, duration)
+            if not activity:
+                print("No activity selected")
+                quit(1)
+
+    for activity, duration in reports:
+        if duration is not None:
+            print(api.get(f"api/time/end/{activity}/{duration}"))
+        else:
+            print(api.get(f"api/time/end/{activity}"))
+        
+    if global_args.get("start"):
+        print(api.get("api/time/start"))
+
+
+def _is_duration(arg):
+    return arg is not None and (arg[0].isdigit() or arg[0] == "-")
 
 
 def delay(minutes, **global_args):
@@ -126,6 +164,10 @@ def wait_or_keypress():
         signal.alarm(0)
     except:
         pass
+
+
+def get(list, i):
+    return list[i] if len(list) > i else None
 
 if __name__ == '__main__':
     main()
