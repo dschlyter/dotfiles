@@ -168,7 +168,7 @@ case "$(uname -s)" in
         link_settings "$intellij_prefs" "config/keymaps" "intellij_linux_keys.xml"
         link_settings "$HOME/.config/Code - OSS/" "User" "keybindings.json" "vscode_keybindings_linux.json"
 
-        if [[ $(grep microsoft /proc/version) ]]; then
+        if grep microsoft /proc/version; then
             link .zshrc_linux_wsl
         fi
         ;;
