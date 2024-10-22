@@ -48,5 +48,6 @@
         "plaintext": false,
         "markdown": false,
         "scminput": false
-    }
+    },
+    "gitlens.graph.minimap.enabled": false
 }

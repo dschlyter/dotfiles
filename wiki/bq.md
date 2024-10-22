@@ -86,6 +86,8 @@ A single line instead of multiple rows. Needs to be done in multiple steps...
 
     SELECT UNIX_MILLIS(TIMESTAMP("2021-12-25 15:30:00+00"))
 
+    SELECT UNIX_MILLIS(TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY))
+
 ## Date formatted as YYYYMMDD
 
 Yesterday, where data is usually available.

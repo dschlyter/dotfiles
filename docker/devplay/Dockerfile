@@ -9,7 +9,9 @@ RUN apt-get clean all
 RUN mkdir -p /opt/app
 
 WORKDIR /opt
-RUN git clone https://github.com/dschlyter/dotfiles && cd dotfiles && ./install.sh
+RUN git clone https://github.com/dschlyter/dotfiles
+WORKDIR /opt/dotfiles
+RUN ./install.sh --no-zsh
 
 WORKDIR /opt/app
 
