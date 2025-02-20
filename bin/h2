@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+
+import argparse
+import time
+import sys
+import signal
+from typing import List
+
+from dotlib.api import RestApi
+from dotlib.fzf import fzf_match
+
+api = RestApi()
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    global_parser = argparse.ArgumentParser(description='')
+
+    global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
+    sub_ps = global_parser.add_subparsers()
+
+    sp = sub_ps.add_parser('read', aliases=['r'], help='read time')
+    sp.set_defaults(handler=read)
+    sp.add_argument('start', help="date or N days ago (default 1 day ago)", default="1", nargs="?")
+    sp.add_argument('end', help="date or N days ago (default 0)", default="0", nargs="?")
+
+    sp = sub_ps.add_parser('start', aliases=['s'], help='mark new segment')
+    sp.set_defaults(handler=start)
+    sp.add_argument('minutes', help="X minutes, XhY or HH:MM", nargs="?")
+
+    sp = sub_ps.add_parser('delete', aliases=['d'], help='delete segment or mark')
+    sp.set_defaults(handler=delete)
+    sp.add_argument('time', help="time of segment")
+
+    sp = sub_ps.add_parser('end', aliases=['e'], help='end segment')
+    sp.set_defaults(handler=end)
+    sp.add_argument('args', help="optionally activity, then at most two of start/stop/duration", nargs="*")
+    sp.add_argument('-d', '--duration', help='duration in minutes, or 2h30')
+
+    sp = sub_ps.add_parser('add', help='add activity')
+    sp.set_defaults(handler=add_activity)
+    sp.add_argument('activity', help="name of activity")
+    sp.add_argument('parent', help="name of parent, or '' to remove parent", nargs="?")
+
+    sp = sub_ps.add_parser('remove', help='remove activity')
+    sp.set_defaults(handler=remove_activity)
+    sp.add_argument('activity', help="name of activity")
+
+    sp = sub_ps.add_parser('activities', help='list activities')
+    sp.set_defaults(handler=list_activities)
+
+    sp = sub_ps.add_parser('set-parent', help='list activities')
+    sp.set_defaults(handler=set_parent)
+    sp.add_argument('activity', help="name of activity")
+    sp.add_argument('parent', help="name of parent, or '' to remove parent")
+
+    # TODO read stats
+
+    parsed_args = global_parser.parse_args()
+    # Note: All handlers must have **kwargs to handle global args
+    parsed_args.handler(**parsed_args.__dict__)
+
+
+def read(start, end, **global_args):
+    res = api.get(f"api/time4/segments/{start}/{end}")
+    for e in res.get('segments', []):
+        date_prefix = e['id'].split("T")[0]+" " if start != "1" else ""
+        time = e['id'].split("T")[1][0:5]
+        end_time = e['end'].split("T")[1][0:5]
+        print(f"{date_prefix}{time} - {end_time} ({_display_duration(e['minutes'])}) {e['activity']}")
+
+
+def start(minutes=None, **global_args):
+    try:
+        api.post(f"api/time4/mark", {"time": minutes})
+    except:
+        pass
+
+
+def delete(time, **global_args):
+    api.delete(f"api/time4/segments/" + time)
+
+
+def end(args, duration, **global_args):
+    payload = {}
+    arg_i = 0
+    if arg_i < len(args) and not _is_time_arg(args[arg_i]):
+        payload['activity'] = args[0]
+        arg_i += 1
+
+    if arg_i < len(args):
+        if args[arg_i] != "-":
+            payload['start'] = args[arg_i]
+        arg_i += 1
+
+    if arg_i < len(args):
+        payload['end'] = args[arg_i]
+
+    if duration:
+        payload['duration'] = duration
+        
+    if payload.get('activity') is None:
+        activities = api.get("api/time4/activities")
+        names = [a['id'] for a in activities.get('activities', [])]
+        selected = fzf_match(names, sort=False)
+        if not selected:
+            print("No activity selected")
+            quit(1)
+        payload['activity'] = selected
+
+    print(payload)
+    try:
+        res = api.post("api/time4/segments", payload)
+        print(res)
+        # print(res.get('message'))
+        pass
+    except Exception as e:
+        pass
+
+
+def add_activity(activity, parent, **global_args):
+    try:
+        entry = {"activity": activity}
+        if parent:
+            entry['parent'] = parent
+        api.post("api/time4/activities", entry)
+    except Exception as e:
+        pass
+
+
+def remove_activity(activity, **global_args):
+    try:
+        api.delete("api/time4/activities/" + activity)
+    except Exception as e:
+        pass
+
+
+def list_activities(**global_args):
+    res = api.get("api/time4/activities")
+    activities = []
+    for a in res.get('activities', []):
+        parent = a.get('parent')
+        parent = parent + " > " if parent else ""
+        activities.append(parent + a.get('id'))
+    for a in sorted(activities):
+        print(a)
+
+
+def set_parent(activity, parent, **global_args):
+    api.put(f"api/time4/activities/{activity}/parent/{parent}", {})
+    try:
+        api.put(f"api/time4/activities/{activity}/parent/{parent}")
+    except Exception as e:
+        pass
+
+
+def _is_time_arg(arg):
+    return arg is not None and (arg[0].isdigit() or arg[0] == "-")
+
+
+def _display_duration(minutes):
+    return f"{minutes // 60}h {minutes % 60:02d}"
+
+
+def wait_or_keypress():
+    def handler():
+        pass
+    try:
+        signal.signal(signal.SIGALRM, handler)
+        signal.alarm(5)
+        input("...")
+        print()
+        # disable the alarm
+        signal.alarm(0)
+    except:
+        pass
+
+
+def get(list, i):
+    return list[i] if len(list) > i else None
+
+if __name__ == '__main__':
+    main()
