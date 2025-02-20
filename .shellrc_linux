@@ -6,7 +6,7 @@ fi
 
 has exo-open && alias open="exo-open"
 
-alias wr="sudo winboot && xfce4-session-logout --reboot"
+# alias wr="sudo winboot && xfce4-session-logout --reboot"
 
 # disable ctrl-S breaking terminals
 stty -ixon

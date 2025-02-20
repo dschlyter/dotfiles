@@ -63,10 +63,14 @@ def main():
 def read(start, end, **global_args):
     res = api.get(f"api/time4/segments/{start}/{end}")
     for e in res.get('segments', []):
-        date_prefix = e['id'].split("T")[0]+" " if start != "1" else ""
-        time = e['id'].split("T")[1][0:5]
-        end_time = e['end'].split("T")[1][0:5]
-        print(f"{date_prefix}{time} - {end_time} ({_display_duration(e['minutes'])}) {e['activity']}")
+        print(_display_segment(e, with_date=(start != "1")))
+
+
+def _display_segment(segment, with_date=False):
+    date_prefix = segment['id'].split("T")[0]+" " if with_date else ""
+    time = segment['id'].split("T")[1][0:5]
+    end_time = segment['end'].split("T")[1][0:5]
+    return f"{date_prefix}{time} - {end_time} ({_display_duration(segment['minutes'])}) {segment['activity']}"
 
 
 def start(minutes=None, **global_args):
@@ -110,7 +114,7 @@ def end(args, duration, **global_args):
     print(payload)
     try:
         res = api.post("api/time4/segments", payload)
-        print(res)
+        print(_display_segment(res.get('segment')))
         # print(res.get('message'))
         pass
     except Exception as e:
