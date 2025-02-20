@@ -1,0 +1,39 @@
+#!/bin/bash
+
+usage() {
+    echo "Convert each arg to mp4 - if not already"
+    echo "Usage: $0 file1 file2 ..."
+}
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+# TODO if -- exists, have everything before be args to ffmpeg
+
+for file in "$@"; do
+    if [[ -d "$file" ]]; then
+        echo "is dir: $file"
+        continue
+    fi
+
+    if [[ $file == *.mp4 ]]; then
+        echo "already mp4: $file"
+        continue
+    fi
+
+    file_name="${file%.*}"
+    mp4_file="${file_name}.mp4"
+    if [[ -f $mp4_file ]]; then
+        echo "already has conversion: $file"
+        if [[ "${DEL_CONVERTED:-}" == "1" ]]; then
+            rm "$file"
+        else
+            echo "DEL_CONVERTED=1 to delete"
+        fi
+        continue
+    fi
+
+    ffmpeg -i "$file" "$mp4_file"
+done
+

@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+
+import argparse
+import subprocess
+import textwrap
+import os
+import sys
+import unittest
+import time
+from typing import List
+
+# Simple cut and merge utility
+
+def usage():
+    print("Simple cut and merge utility")
+    print("Supply a file or list of files, and optionally a list of time ranges to cut")
+    print("Usage: ffcut file1 [00:00 00:10] [00:20 00:30] [file2] ...")
+
+
+def main():
+    if len(sys.argv) == 1 or sys.argv[1] in ["-h", "--help"]:
+        usage()
+        sys.exit(0)
+
+    files_to_process = []
+
+    i = 1
+    while i < len(sys.argv):
+        file = sys.argv[i]
+        if not os.path.exists(file):
+            print("File does not exist:", file)
+            sys.exit(1)
+        i += 1
+        cuts = []
+        while i < len(sys.argv) and ":" in sys.argv[i]:
+            cuts.append(sys.argv[i])
+            i += 1
+        if len(cuts) % 2 != 0:
+            print("Error: cuts must be in pairs")
+            sys.exit(1)
+        files_to_process.append((file, cuts))
+
+    if len(files_to_process) == 0:
+        print("No files to process")
+        sys.exit(0)
+
+    if len(files_to_process) == 1 and len(files_to_process[0][1]) == 0:
+        print("Just one file and nothing to cut")
+        sys.exit(0)
+    output_file = os.path.splitext(sys.argv[1])[0] + "_CUT.mp4"
+
+    if len(files_to_process) == 1 and len(files_to_process[0][1]) == 2:
+        direct_cut(files_to_process, output_file)
+    else:
+        multi_file_cut(files_to_process, output_file)
+
+
+def direct_cut(files_to_process: List[str], output_file: str):
+    print("Using direct cut mode")
+    file = files_to_process[0][0]
+    start, end = files_to_process[0][1]
+    subprocess.check_call(["ffmpeg", "-ss", start, "-to", end, "-i", file, "-c", "copy", output_file])
+
+
+def multi_file_cut(files_to_process: List[str], output_file: str):
+    print("Using multi cut mode")
+
+    random_id = os.urandom(4).hex()
+    files_to_merge = []
+    tmp_files = []
+    for file, cuts in files_to_process:
+        if len(cuts) == 0:
+            files_to_merge.append(file)
+            continue
+        for i in range(0, len(cuts), 2):
+            start, end = cuts[i], cuts[i + 1]
+            cut_file = f"tmpffcut_{file}_{random_id}_{start.replace(":", "_")}_{end.replace(":", "_")}.mp4"
+            subprocess.check_call(["ffmpeg", "-ss", start, "-to", end, "-i", file, "-c", "copy", cut_file])
+            tmp_files.append(cut_file)
+            files_to_merge.append(cut_file)
+
+    # write files_to_merge to a file
+    tmp_file_list = f"tmpffcut_{random_id}.txt"
+    with open(tmp_file_list, "w") as f:
+        for file in files_to_merge:
+            f.write(f"file '{file}'\n")
+
+    time.sleep(1)
+
+    subprocess.check_call(["ffmpeg", "-f", "concat", "-safe", "0", "-i", tmp_file_list, "-c", "copy", output_file])
+
+    for tmp_file in tmp_files:
+        if os.path.exists(tmp_file):
+            os.remove(tmp_file)
+    os.remove(tmp_file_list)
+
+if __name__ == "__main__":
+    main()

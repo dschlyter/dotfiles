@@ -45,7 +45,7 @@ def list_files(args, original_file, rename_file):
     if args.dirs:
         find_args = "-type d"
     if args.recursive or args.dirs:
-        run("find . {0} -not -path . | sed 's|^\./||' > {1}".format(find_args, original_file))
+        run("find . {0} -not -path . | sed 's|^\\./||' > {1}".format(find_args, original_file))
     else:
         run("ls -1 > {0}".format(original_file))
     run("cp {0} {1}".format(original_file, rename_file))
