@@ -23,6 +23,15 @@ def main():
     sp.add_argument('start', help="date or N days ago (default 1 day ago)", default="1", nargs="?")
     sp.add_argument('end', help="date or N days ago (default 0)", default="0", nargs="?")
 
+    sp = sub_ps.add_parser('time', aliases=['t'], help='summrize total time')
+    sp.set_defaults(handler=stats)
+    sp.add_argument('start', help="date or N days ago (default 1 day ago)", default="1", nargs="?")
+    sp.add_argument('end', help="date or N days ago (default 0)", default="0", nargs="?")
+    sp.add_argument('--window', '-w', choices=["day", "week", "month", "year"], help="level of granularity (default day)", default="day")
+    sp.add_argument('--grouping', '-g', choices=["root", "leaf"], help="grouping up or down (default both)", default=None)
+    sp.add_argument('--activities', '-a', help="comma separated list of activities", default=None)
+    sp.add_argument('--top', '-t', help="show top N per line", type=int, default=None)
+
     sp = sub_ps.add_parser('start', aliases=['s'], help='mark new segment')
     sp.set_defaults(handler=start)
     sp.add_argument('minutes', help="X minutes, XhY or HH:MM", nargs="?")
@@ -33,8 +42,16 @@ def main():
 
     sp = sub_ps.add_parser('end', aliases=['e'], help='end segment')
     sp.set_defaults(handler=end)
-    sp.add_argument('args', help="optionally activity, then at most two of start/stop/duration", nargs="*")
-    sp.add_argument('-d', '--duration', help='duration in minutes, or 2h30')
+    sp.add_argument('args', help="[acitivity] [duration]", nargs="*")
+    sp.add_argument('--start', '-s', help='start of the segment')
+    sp.add_argument('--end', '-e', help='end of the segment')
+
+    sp = sub_ps.add_parser('extend', aliases=['ex'], help='extend existing segment')
+    sp.set_defaults(handler=extend)
+    sp.add_argument('args', help="[segment id] [duration] - default to last segment", nargs="*")
+
+    sp = sub_ps.add_parser('activities', aliases=['ac'], help='list activities')
+    sp.set_defaults(handler=list_activities)
 
     sp = sub_ps.add_parser('add', help='add activity')
     sp.set_defaults(handler=add_activity)
@@ -45,15 +62,10 @@ def main():
     sp.set_defaults(handler=remove_activity)
     sp.add_argument('activity', help="name of activity")
 
-    sp = sub_ps.add_parser('activities', help='list activities')
-    sp.set_defaults(handler=list_activities)
-
     sp = sub_ps.add_parser('set-parent', help='list activities')
     sp.set_defaults(handler=set_parent)
     sp.add_argument('activity', help="name of activity")
     sp.add_argument('parent', help="name of parent, or '' to remove parent")
-
-    # TODO read stats
 
     parsed_args = global_parser.parse_args()
     # Note: All handlers must have **kwargs to handle global args
@@ -62,45 +74,72 @@ def main():
 
 def read(start, end, **global_args):
     res = api.get(f"api/time4/segments/{start}/{end}")
-    for e in res.get('segments', []):
-        print(_display_segment(e, with_date=(start != "1")))
+    last_date = None
+    for s in res.get('segments', []):
+        s_date = s.get('date')
+        if last_date and last_date != s_date:
+            if last_hour:
+                last_hour = None
+                print()
+            print("---", s_date, "---")
+        last_date = s_date
+
+        print(_display_segment(s, show_end=False, show_zero_h=False))
 
 
-def _display_segment(segment, with_date=False):
-    date_prefix = segment['id'].split("T")[0]+" " if with_date else ""
-    time = segment['id'].split("T")[1][0:5]
-    end_time = segment['end'].split("T")[1][0:5]
-    return f"{date_prefix}{time} - {end_time} ({_display_duration(segment['minutes'])}) {segment['activity']}"
+def stats(start, end, window, grouping, activities, top, **global_args):
+    print(start, end, window, grouping, activities, top)
+        
+    res = api.post(f"api/time4/stats", {})
+    print(res)
 
 
 def start(minutes=None, **global_args):
     try:
-        api.post(f"api/time4/mark", {"time": minutes})
+        res = api.post(f"api/time4/mark", {"time": minutes})
+        if r := res.get('result'):
+            duration = f"a {_display_duration(r.get('minutes'))} minute segment" if r.get('minutes') > 0 else ""
+            print(f"created mark {r.get('marks')} {duration}")
+        else:
+            print("no mark created")
     except:
         pass
 
 
 def delete(time, **global_args):
-    api.delete(f"api/time4/segments/" + time)
+    res = api.delete(f"api/time4/segments/{time}")
+    if s := res.get('segment'):
+        print("deleted", _display_segment(s))
+    else:
+        print("nothing to delete")
 
 
-def end(args, duration, **global_args):
+def end(args, start, end, **global_args):
     payload = {}
-    arg_i = 0
-    if arg_i < len(args) and not _is_time_arg(args[arg_i]):
-        payload['activity'] = args[0]
-        arg_i += 1
 
-    if arg_i < len(args):
-        if args[arg_i] != "-":
-            payload['start'] = args[arg_i]
-        arg_i += 1
+    if len(args) > 2:
+        print("Too many arguments")
+        quit(1)
 
-    if arg_i < len(args):
-        payload['end'] = args[arg_i]
+    if len(args) >= 1:
+        if _is_time_arg(args[0]):
+            payload['duration'] = args[0]
+        else:
+            payload['activity'] = args[0]
+    if len(args) == 2:
+        if _is_time_arg(args[1]):
+            payload['duration'] = args[1]
+        else:
+            payload['activity'] = args[1]
 
-    if duration:
-        payload['duration'] = duration
+    if start:
+        payload['start'] = start
+
+    if end:
+        payload['end'] = end
+    elif payload.get('duration', '').startswith("-"):
+        payload['end'] = payload['duration'][1:]
+        del payload['duration']
         
     if payload.get('activity') is None:
         activities = api.get("api/time4/activities")
@@ -111,12 +150,36 @@ def end(args, duration, **global_args):
             quit(1)
         payload['activity'] = selected
 
-    print(payload)
     try:
         res = api.post("api/time4/segments", payload)
-        print(_display_segment(res.get('segment')))
-        # print(res.get('message'))
+        print("ended", _display_segment(res.get('segment')))
         pass
+    except Exception as e:
+        print(e)
+        pass
+
+
+def extend(args, **global_args):
+    time, minutes = "last", 0
+
+    if len(args) > 2:
+        print("Too many arguments")
+        quit(1)
+
+    if len(args) >= 1:
+        if args[0].isdigit():
+            minutes = int(args[0])
+        else:
+            time = args[0]
+    if len(args) >= 2:
+        minutes = int(args[1])
+
+    try:
+        res = api.post(f"api/time4/segments/{time}/extend", {"minutes": minutes})
+        if s := res.get('segment'):
+            print("updated", _display_segment(s))
+        else:
+            print("nothing to delete")
     except Exception as e:
         pass
 
@@ -161,7 +224,23 @@ def _is_time_arg(arg):
     return arg is not None and (arg[0].isdigit() or arg[0] == "-")
 
 
-def _display_duration(minutes):
+def _display_segment(segment, show_end=True, show_zero_h=True):
+    try:
+        sid = segment['id']
+        time = sid.split("T")[1][0:5]
+        end_time = ""
+        if show_end:
+            end_time = " - " + segment['end'].split("T")[1][0:5] if segment.get('end') and segment.get('end') != sid else ""
+        minutes = segment['minutes']
+        return f"{time}{end_time}{"\t" + _display_duration(minutes, show_zero_h=show_zero_h) if minutes > 0 else ""}\t{segment['activity']}"
+    except:
+        print("Error displaying segment", segment)
+        return ""
+
+
+def _display_duration(minutes, show_zero_h=True):
+    if not show_zero_h and minutes < 60:
+        return f"   {minutes}"
     return f"{minutes // 60}h {minutes % 60:02d}"
 
 
