@@ -87,7 +87,9 @@ def multi_file_cut(files_to_process: List[str], output_file: str):
 
     time.sleep(1)
 
-    subprocess.check_call(["ffmpeg", "-f", "concat", "-safe", "0", "-i", tmp_file_list, "-c", "copy", output_file])
+    copy_args = ["-c", "copy"] if not os.getenv("REENC") else []
+
+    subprocess.check_call(["ffmpeg", "-f", "concat", "-safe", "0", "-i", tmp_file_list, output_file])
 
     for tmp_file in tmp_files:
         if os.path.exists(tmp_file):

@@ -3,10 +3,11 @@ import urllib
 import logging
 import json
 import sys
+import time
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-log_level = logging.INFO
+log_level = logging.DEBUG if os.environ.get('API_DEBUG') == "1" else logging.INFO
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s', level=log_level)
 
 HOME = str(Path.home())
@@ -60,9 +61,11 @@ class RestApi:
             if data is not None:
                 req.add_header('Content-Type', 'application/json')
                 req.data = json.dumps(data).encode('utf-8')
+            start_time = time.time()
             content = urlopen(req).read().decode()
+            duration = time.time() - start_time
 
-            logging.debug(f"Result {content}")
+            logging.debug(f"Completed in {duration}s: {content}")
             if content.startswith("{") or content.startswith("["):
                 return json.loads(content)
             return content
