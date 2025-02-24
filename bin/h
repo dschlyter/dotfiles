@@ -304,7 +304,8 @@ def _display_segment(segment, show_end=True, show_zero_h=True):
         if show_end:
             end_time = " - " + segment['end'].split("T")[1][0:5] if segment.get('end') and segment.get('end') != sid else ""
         minutes = segment['minutes']
-        return f"{time}{end_time}{"\t" + _display_duration(minutes, show_zero_h=show_zero_h) if minutes > 0 else ""}\t{segment['activity']}"
+        duration = "\t" + _display_duration(minutes, show_zero_h=show_zero_h) if minutes > 0 else ""
+        return f"{time}{end_time}{duration}\t{segment['activity']}"
     except:
         print("Error displaying segment", segment)
         return ""
