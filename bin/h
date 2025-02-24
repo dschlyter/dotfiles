@@ -8,6 +8,7 @@ from typing import List
 
 from dotlib.api import RestApi
 from dotlib.fzf import fzf_match
+from dotlib.util import print_table
 
 api = RestApi()
 
@@ -15,57 +16,74 @@ def main():
     # https://docs.python.org/3/library/argparse.html
     global_parser = argparse.ArgumentParser(description='')
 
-    global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
-    sub_ps = global_parser.add_subparsers()
+    global_parser.set_defaults(handler=lambda *args, **kwargs: read(1, 0))
+    root_p = global_parser.add_subparsers()
 
-    sp = sub_ps.add_parser('read', aliases=['r'], help='read time')
+    sp = root_p.add_parser('read', aliases=['r'], help='read time')
     sp.set_defaults(handler=read)
     sp.add_argument('start', help="date or N days ago (default 1 day ago)", default="1", nargs="?")
     sp.add_argument('end', help="date or N days ago (default 0)", default="0", nargs="?")
 
-    sp = sub_ps.add_parser('time', aliases=['t'], help='summrize total time')
+    sp = root_p.add_parser('time', aliases=['t'], help='summrize total time')
     sp.set_defaults(handler=stats)
-    sp.add_argument('start', help="date or N days ago (default 1 day ago)", default="1", nargs="?")
-    sp.add_argument('end', help="date or N days ago (default 0)", default="0", nargs="?")
-    sp.add_argument('--window', '-w', choices=["day", "week", "month", "year"], help="level of granularity (default day)", default="day")
-    sp.add_argument('--grouping', '-g', choices=["root", "leaf"], help="grouping up or down (default both)", default=None)
-    sp.add_argument('--activities', '-a', help="comma separated list of activities", default=None)
-    sp.add_argument('--top', '-t', help="show top N per line", type=int, default=None)
+    sp.add_argument('start', help="date or N days ago (inclusive, default 0)", default="0", nargs="?")
+    sp.add_argument('end', help="date or N days ago (inclusive, default 0)", default="0", nargs="?")
+    sp.add_argument('--activities', '-a', help="comma separated list of activities to filter for", default=None)
+    sp.add_argument('--window', '-w', choices=["day", "week", "month", "q", "year", "all"], help="level of granularity (default day)", default="day")
+    sp.add_argument('--root', '-r', help="aggregate up to root activities", action="store_true")
+    sp.add_argument('--count', '-c', help="count occurences instead of summing time", action="store_true")
+    sp.add_argument('--top', '-t', help="show top 10 per line", action="store_true")
 
-    sp = sub_ps.add_parser('start', aliases=['s'], help='mark new segment')
+    sp = root_p.add_parser('start', aliases=['s'], help='mark new segment')
     sp.set_defaults(handler=start)
     sp.add_argument('minutes', help="X minutes, XhY or HH:MM", nargs="?")
 
-    sp = sub_ps.add_parser('delete', aliases=['d'], help='delete segment or mark')
+    sp = root_p.add_parser('delete', aliases=['d'], help='delete segment or mark')
     sp.set_defaults(handler=delete)
     sp.add_argument('time', help="time of segment")
 
-    sp = sub_ps.add_parser('end', aliases=['e'], help='end segment')
+    sp = root_p.add_parser('end', aliases=['e'], help='end segment')
     sp.set_defaults(handler=end)
     sp.add_argument('args', help="[acitivity] [duration]", nargs="*")
     sp.add_argument('--start', '-s', help='start of the segment')
     sp.add_argument('--end', '-e', help='end of the segment')
 
-    sp = sub_ps.add_parser('extend', aliases=['ex'], help='extend existing segment')
+    sp = root_p.add_parser('extend', aliases=['ex'], help='extend existing segment')
     sp.set_defaults(handler=extend)
     sp.add_argument('args', help="[segment id] [duration] - default to last segment", nargs="*")
 
-    sp = sub_ps.add_parser('activities', aliases=['ac'], help='list activities')
+    sp = root_p.add_parser('activity', aliases=['a'], help='list and manage activities (has subcommands)')
+    # sp.set_defaults(handler=lambda *args, **kwargs: list_activities("open"))
     sp.set_defaults(handler=list_activities)
+    sp.add_argument('--status', '-s', help="status to list", choices=["open", "closed", "all"], default="open")
 
-    sp = sub_ps.add_parser('add', help='add activity')
+    activity_p = sp.add_subparsers()
+
+    sp = activity_p.add_parser('list', aliases=['l'], help='list activities')
+    sp.set_defaults(handler=list_activities)
+    sp.add_argument('--status', '-s', help="status to list", choices=["open", "closed", "all"], default="open")
+
+    sp = activity_p.add_parser('add', help='add activity')
     sp.set_defaults(handler=add_activity)
     sp.add_argument('activity', help="name of activity")
     sp.add_argument('parent', help="name of parent, or '' to remove parent", nargs="?")
 
-    sp = sub_ps.add_parser('remove', help='remove activity')
+    sp = activity_p.add_parser('remove', help='remove activity')
     sp.set_defaults(handler=remove_activity)
     sp.add_argument('activity', help="name of activity")
 
-    sp = sub_ps.add_parser('set-parent', help='list activities')
+    sp = activity_p.add_parser('parent', help='update parent')
     sp.set_defaults(handler=set_parent)
     sp.add_argument('activity', help="name of activity")
-    sp.add_argument('parent', help="name of parent, or '' to remove parent")
+    sp.add_argument('parent', help="name of parent, or '-' to remove parent")
+
+    sp = activity_p.add_parser('close', help='close activity')
+    sp.set_defaults(handler=activity_close)
+    sp.add_argument('activity', help="name of activity")
+
+    sp = activity_p.add_parser('open', help='close activity')
+    sp.set_defaults(handler=activity_open)
+    sp.add_argument('activity', help="name of activity")
 
     parsed_args = global_parser.parse_args()
     # Note: All handlers must have **kwargs to handle global args
@@ -78,27 +96,70 @@ def read(start, end, **global_args):
     for s in res.get('segments', []):
         s_date = s.get('date')
         if last_date and last_date != s_date:
-            if last_hour:
-                last_hour = None
-                print()
             print("---", s_date, "---")
         last_date = s_date
 
         print(_display_segment(s, show_end=False, show_zero_h=False))
 
 
-def stats(start, end, window, grouping, activities, top, **global_args):
-    print(start, end, window, grouping, activities, top)
+def stats(start, end, activities, window, root, count, top, **global_args):
+    res = api.post(f"api/time4/stats", {
+        'start': start,
+        'end': end,
+        'activities': activities.split(",") if activities else None,
+        'window': window,
+        'root': root,
+        'count': count,
+    })
+
+    s = res['stats']
+
+    if 'total' not in s:
+        print("No data")
+        return
+
+    rows = sorted(s.keys(), key=lambda k: s[k]['total'], reverse=True)
+    cols = sorted(s['total'].keys())
+    if len(cols) == 2:
+        cols.remove('total')
+
+    if not top:
+        table = [[""]]
+        year_prefixes = {c[0:5] for c in cols if c != "total"}
         
-    res = api.post(f"api/time4/stats", {})
-    print(res)
+        for col_name in cols:
+            if len(year_prefixes) == 1 and next(iter(year_prefixes)) == col_name[0:5]:
+                col_name = col_name[5:]
+            table[-1].append(col_name)
+        for r in rows:
+            table.append([r])
+            for c in cols:
+                v = s[r].get(c, 0)
+                display = _display_duration(v, show_zero_h=False) if not count else v
+                table[-1].append(display)
+
+        print_table(table, fit=True)
+    else:
+        table = []
+        for c in cols:
+            table.append([c])
+            entries = [(s[r][c], r) for r in rows if c in s[r] and r != "total"]
+            entries = sorted(entries, reverse=True)
+            for i in range(5):
+                if i < len(entries):
+                    e = entries[i]
+                    table[-1].append(f"{_display_duration(e[0], show_zero_h=False, no_pad=True)} {e[1]}")
+                else:
+                    table[-1].append("")
+                # print(f"{_display_duration(e[0], show_zero_h=False, no_pad=True)} {e[1]}", end=" ")
+        print_table(table, fit=True)
 
 
 def start(minutes=None, **global_args):
     try:
         res = api.post(f"api/time4/mark", {"time": minutes})
         if r := res.get('result'):
-            duration = f"a {_display_duration(r.get('minutes'))} minute segment" if r.get('minutes') > 0 else ""
+            duration = f"marking a {_display_duration(r.get('minutes'))}m segment" if r.get('minutes') > 0 else ""
             print(f"created mark {r.get('marks')} {duration}")
         else:
             print("no mark created")
@@ -201,21 +262,32 @@ def remove_activity(activity, **global_args):
         pass
 
 
-def list_activities(**global_args):
-    res = api.get("api/time4/activities")
+def list_activities(status, **global_args):
+    res = api.get(f"api/time4/activities?status={status}")
     activities = []
     for a in res.get('activities', []):
-        parent = a.get('parent')
-        parent = parent + " > " if parent else ""
-        activities.append(parent + a.get('id'))
+        activities.append(" > ".join((a.get('lineage', []) + [a['id']])) + (" (closed)" if a.get('status') == "closed" else ""))
     for a in sorted(activities):
         print(a)
 
 
 def set_parent(activity, parent, **global_args):
-    api.put(f"api/time4/activities/{activity}/parent/{parent}", {})
     try:
-        api.put(f"api/time4/activities/{activity}/parent/{parent}")
+        api.put(f"api/time4/activities/{activity}/parent/{parent}", {})
+    except Exception as e:
+        pass
+
+
+def activity_close(activity, **global_args):
+    try:
+        api.put(f"api/time4/activities/{activity}/status/closed", {})
+    except Exception as e:
+        pass
+
+
+def activity_open(activity, **global_args):
+    try:
+        api.put(f"api/time4/activities/{activity}/status/open", {})
     except Exception as e:
         pass
 
@@ -238,9 +310,9 @@ def _display_segment(segment, show_end=True, show_zero_h=True):
         return ""
 
 
-def _display_duration(minutes, show_zero_h=True):
+def _display_duration(minutes, show_zero_h=True, no_pad=False):
     if not show_zero_h and minutes < 60:
-        return f"   {minutes}"
+        return ("   " if not no_pad else "") + f"{minutes}"
     return f"{minutes // 60}h {minutes % 60:02d}"
 
 
