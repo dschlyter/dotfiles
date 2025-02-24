@@ -73,6 +73,7 @@ alias zl="vim $HOME/.zshrc; rc"
 # note: alias R breaks fasd
 alias -g P='|'
 alias -g G='| grep -i'
+alias -g W='| wc -l'
 alias -g L='| less --RAW-CONTROL-CHARS'
 alias -g H='| head'
 alias -g H1='| head -n 1'

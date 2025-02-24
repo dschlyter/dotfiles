@@ -133,6 +133,26 @@ Or
 
 It seems that ANY_VALUE returns what would be in the first row in the result, but this is probably not guaranteed.
 
+## Avoiding duplication on joins
+
+You can use a subquery, this seems to often be faster. It does not seem to like LIMIT, but ANY_VALUE works.
+
+    SELECT a, b, c,
+    (
+        SELECT ANY_VALUE(d)
+        FROM other_table
+        WHERE other_table.id = this_table.id
+    ) AS d
+
+Or unnest multiple fields
+
+    SELECT a, b, c,
+    (
+        SELECT AS STRUCT ANY_VALUE(d) AS d, ANY_VALUE(e) AS e
+        FROM other_table
+        WHERE other_table.id = this_table.id
+    ).*
+
 # Functions
 
 Commonly useful if you have duplicated boolean logic. Note the semicolon in the end.

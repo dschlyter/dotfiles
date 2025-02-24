@@ -49,5 +49,6 @@
         "markdown": false,
         "scminput": false
     },
-    "gitlens.graph.minimap.enabled": false
+    "gitlens.graph.minimap.enabled": false,
+    "explorer.confirmDelete": false
 }
