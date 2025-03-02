@@ -1,10 +1,11 @@
 import math
 import shutil
+import re
 from typing import List
 
 
-def print_table(table: List[List[str]], sep="\t", fit=False):
-    p = printable(table)
+def print_table(table: List[List[str]], sep="\t", fit=False, rjust=False):
+    p = printable(table, rjust=rjust)
     if fit:
         trim_to_terminal(p, sep)
 
@@ -12,19 +13,32 @@ def print_table(table: List[List[str]], sep="\t", fit=False):
         print(*row, sep=sep)
 
 # Pad strings to be equal width by column and thus nicely printable
-def printable(table: List[List[str]]):
+def printable(table: List[List[str]], rjust=False):
     str_table = [[str(col) for col in row] for row in table]
 
     col_width = {}
     for row in str_table:
         for i, col in enumerate(row):
-            col_width[i] = max(len(col), col_width.get(i, 0))
+            col_width[i] = max(length_without_color(col), col_width.get(i, 0))
 
     for row in str_table:
         for i,_ in enumerate(row):
-            row[i] = row[i].ljust(col_width[i])
+            w = col_width[i]
+            if rjust:
+                row[i] = row[i].rjust(w)
+            else:
+                row[i] = row[i].ljust(w)
 
     return str_table
+
+
+def length_without_color(text):
+    # Regular expression to match ANSI escape sequences
+    ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
+    # Remove ANSI escape sequences
+    clean_text = ansi_escape.sub('', text)
+    # Return the length of the cleaned text
+    return len(clean_text)
 
 
 def trim_to_terminal(table, sep):

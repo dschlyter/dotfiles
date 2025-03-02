@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
-import time
-import sys
-import signal
-from typing import List
 
-from dotlib.api import RestApi
+from dotlib.api import RestApi, api_err_print_and_exit
 from dotlib.fzf import fzf_match
 from dotlib.util import print_table
+from dotlib.color import red, green, cyan, nothing
 
 api = RestApi()
 
@@ -16,7 +13,7 @@ def main():
     # https://docs.python.org/3/library/argparse.html
     global_parser = argparse.ArgumentParser(description='')
 
-    global_parser.set_defaults(handler=lambda *args, **kwargs: read(1, 0))
+    global_parser.set_defaults(handler=lambda *args, **kwargs: show_both(1, 0))
     root_p = global_parser.add_subparsers()
 
     sp = root_p.add_parser('read', aliases=['r'], help='read time')
@@ -44,7 +41,7 @@ def main():
     sp.add_argument('--start', '-s', help='start of the segment')
     sp.add_argument('--end', '-e', help='end of the segment')
 
-    sp = root_p.add_parser('extend', aliases=['x'], help='extend existing segment')
+    sp = root_p.add_parser('extend', aliases=['ex'], help='extend existing segment')
     sp.set_defaults(handler=extend)
     sp.add_argument('args', help="[segment id] [duration] - default to last segment", nargs="*")
 
@@ -69,8 +66,8 @@ def main():
     sp.add_argument('activity', help="name of activity")
     sp.add_argument('parent', help="name of parent, or '' to remove parent", nargs="?")
 
-    sp = activity_p.add_parser('remove', help='remove activity')
-    sp.set_defaults(handler=remove_activity)
+    sp = activity_p.add_parser('delete', help='delete activity')
+    sp.set_defaults(handler=delete_activity)
     sp.add_argument('activity', help="name of activity")
 
     sp = activity_p.add_parser('parent', help='update parent')
@@ -87,20 +84,20 @@ def main():
     sp.add_argument('activity', help="name of activity")
 
 
-    habits_rp = root_p.add_parser('habits', aliases=['h'], help='list and manage habits (has subcommands)')
+    habits_rp = root_p.add_parser('habits', aliases=['h'], help='manage habits (has subcommands)')
     habits_rp.set_defaults(handler=lambda *args, **kwargs: habits_rp.print_help())
     habits_p = habits_rp.add_subparsers()
 
-    sp = habits_p.add_parser('show', aliases=['s'], help='list habits')
-    sp.set_defaults(handler=show_checks)
-    sp.add_argument('start', help="date or N days ago (inclusive, default 0)", default="0", nargs="?")
+    sp = habits_p.add_parser('read', aliases=['r'], help='read checks')
+    sp.set_defaults(handler=read_checks)
+    sp.add_argument('start', help="date or N days ago (inclusive, default 0)", default="7", nargs="?")
     sp.add_argument('end', help="date or N days ago (inclusive, default 0)", default="0", nargs="?")
 
-    sp = habits_p.add_parser('check', aliases=['c'], help='check off habit')
+    sp = habits_p.add_parser('check', aliases=['c'], help='check off one habit')
     sp.set_defaults(handler=check_habit)
     sp.add_argument('name', help="name of habit")
     sp.add_argument('check', help="type of check", choices=["x", "f", "s", "."], default="x", nargs="?")
-    sp.add_argument('date', help="date or N days ago (inclusive, default 0)", default="0", nargs="?")
+    sp.add_argument('--date', '-d', help="date or N days ago (inclusive, default 0)", default="0")
 
     sp = habits_p.add_parser('list', aliases=['l'], help='list habits')
     sp.set_defaults(handler=list_habits)
@@ -113,7 +110,7 @@ def main():
     sp.add_argument('description', help="name of habit")
 
     sp = habits_p.add_parser('remove', help='remove habit')
-    sp.set_defaults(handler=remove_habit)
+    sp.set_defaults(handler=delete_habit)
     sp.add_argument('name', help="name of habit")
 
     sp = habits_p.add_parser('update', help='update habit')
@@ -123,13 +120,20 @@ def main():
     sp.add_argument('--status', '-s', choices=["open", "closed"])
     sp.add_argument('--index', '-i', type=int)
 
+    sp = root_p.add_parser('check', aliases=['c'], help='check of one or more habits')
+    sp.set_defaults(handler=batch_check)
+    sp.add_argument('checks', choices=["x", "f", "s", ".", "_"], nargs="+")
+    sp.add_argument('--date', '-d', help="date or N days ago (inclusive, default 0)", default="0")
+    sp.add_argument('--overwrite', '-o', help="overwrite existing checks", action="store_true")
+
 
     parsed_args = global_parser.parse_args()
     # Note: All handlers must have **kwargs to handle global args
-    parsed_args.handler(**parsed_args.__dict__)
+    decorated_handler = api_err_print_and_exit(parsed_args.handler)
+    decorated_handler(**parsed_args.__dict__)
 
 def read(start, end, **global_args):
-    res = api.get(f"api/time4/segments/{start}/{end}")
+    res = api.get(f"api/time4/segments?start={start}&end={end}")
     last_date = None
     for s in res.get('segments', []):
         s_date = s.get('date')
@@ -175,7 +179,7 @@ def stats(start, end, activities, window, root, count, top, **global_args):
                 display = _display_duration(v, show_zero_h=False) if not count else v
                 table[-1].append(display)
 
-        print_table(table, fit=True)
+        print_table(table, fit=True, rjust=True)
     else:
         table = []
         for c in cols:
@@ -192,15 +196,12 @@ def stats(start, end, activities, window, root, count, top, **global_args):
         print_table(table, fit=True)
 
 def start(minutes=None, **global_args):
-    try:
-        res = api.post(f"api/time4/mark", {"time": minutes})
-        if r := res.get('result'):
-            duration = f"marking a {_display_duration(r.get('minutes'))}m segment" if r.get('minutes') > 0 else ""
-            print(f"created mark {r.get('marks')} {duration}")
-        else:
-            print("no mark created")
-    except:
-        pass
+    res = api.post(f"api/time4/mark", {"time": minutes})
+    if r := res.get('result'):
+        duration = f"marking a {_display_duration(r.get('minutes'))}m segment" if (r.get('minutes') or 0) > 0 else ""
+        print(f"created mark {r.get('marks')} {duration}")
+    else:
+        print("no mark created")
 
 def end(args, start, end, **global_args):
     payload = {}
@@ -241,13 +242,8 @@ def end(args, start, end, **global_args):
             quit(1)
         payload['activity'] = selected
 
-    try:
-        res = api.post("api/time4/segments", payload)
-        print("ended", _display_segment(res.get('segment')))
-        pass
-    except Exception as e:
-        print(e)
-        pass
+    res = api.post("api/time4/segments", payload)
+    print("ended", _display_segment(res.get('segment')))
 
 def extend(args, **global_args):
     time, minutes = "last", 0
@@ -264,14 +260,11 @@ def extend(args, **global_args):
     if len(args) >= 2:
         minutes = int(args[1])
 
-    try:
-        res = api.post(f"api/time4/segments/{time}/extend", {"minutes": minutes})
-        if s := res.get('segment'):
-            print("updated", _display_segment(s))
-        else:
-            print("nothing to delete")
-    except Exception as e:
-        pass
+    res = api.post(f"api/time4/segments/{time}/extend", {"minutes": minutes})
+    if s := res.get('segment'):
+        print("updated", _display_segment(s))
+    else:
+        print("nothing to delete")
 
 def delete(time, **global_args):
     res = api.delete(f"api/time4/segments/{time}")
@@ -281,20 +274,15 @@ def delete(time, **global_args):
         print("nothing to delete")
 
 def add_activity(activity, parent, **global_args):
-    try:
-        entry = {"activity": activity}
-        if parent:
-            entry['parent'] = parent
-        api.post("api/time4/activities", entry)
-    except Exception as e:
-        pass
+    entry = {"activity": activity}
+    if parent:
+        entry['parent'] = parent
+    api.post("api/time4/activities", entry)
 
-def remove_activity(activity, **global_args):
-    try:
-        api.delete("api/time4/activities/" + activity)
-    except Exception as e:
-        pass
+def delete_activity(activity, **global_args):
+    api.delete("api/time4/activities/" + activity)
 
+@api_err_print_and_exit
 def list_activities(status, all, **global_args):
     status = status if not all else "all"
     res = api.get(f"api/time4/activities?status={status}")
@@ -305,28 +293,24 @@ def list_activities(status, all, **global_args):
         print(a)
 
 def set_parent(activity, parent, **global_args):
-    try:
-        api.put(f"api/time4/activities/{activity}/parent/{parent}", {})
-    except Exception as e:
-        pass
+    api.put(f"api/time4/activities/{activity}/parent/{parent}", {})
 
 def activity_close(activity, **global_args):
-    try:
-        api.put(f"api/time4/activities/{activity}/status/closed", {})
-    except Exception as e:
-        pass
+    api.put(f"api/time4/activities/{activity}/status/closed", {})
 
 def activity_open(activity, **global_args):
-    try:
-        api.put(f"api/time4/activities/{activity}/status/open", {})
-    except Exception as e:
-        pass
+    api.put(f"api/time4/activities/{activity}/status/open", {})
 
 # Habits
 
-def show_checks(start, end, **global_args):
+def show_both(start, end, **global_args):
+    # TODO opt with a parallel call
+    read_checks(start, end)
+    print()
+    read(start, end)
+
+def read_checks(start, end, **global_args):
     res = api.get(f"api/time4/checks?start={start}&end={end}")
-    print(res)
     end_index = res.get('endIndex', 9)
     header = [(f"{i}" if i > 0 else "") for i in range(end_index)]
     p = [header]
@@ -335,87 +319,72 @@ def show_checks(start, end, **global_args):
         p.append(row)
         for check in day.get('checks', []):
             index = check['index']
-            row[index] = check.get('check', "!")
+            c = check.get('check', "!")
+            row[index] = _display_check_sign(c)
     print_table(p)
 
 def check_habit(name, date, check, **global_args):
-    try:
-        if check != ".":
-            api.put(f"api/time4/checks/{name}/{date}", {"check": check})
-        else:
-            api.delete(f"api/time4/checks/{name}/{date}")
-    except Exception as e:
-        pass
+    if check != ".":
+        res = api.put(f"api/time4/checks/{name}/{date}", {"check": check})
+        print("checked", _display_check(res.get('check')))
+    else:
+        api.delete(f"api/time4/checks/{name}/{date}")
+
+def batch_check(checks, date, overwrite, **global_args):
+    res = api.post(f"api/time4/checks-batch", {"batch": checks, "date": date, "overwrite": overwrite})
+    for c in res.get('checks', []):
+        print("checked", _display_check(c))
 
 def list_habits(status, all, **global_args):
     status = status if not all else "all"
     res = api.get(f"api/time4/habits?status={status}")
-    habits = []
+    rows = []
     for i, h in enumerate(res.get('habits', [])):
-        print(h)
         closed = " (closed)" if h.get('status') == "closed" else ""
-        habits.append(f"{i+1} {h.get('id')}{closed} - {h.get('description')}")
-    for h in sorted(habits):
-        print(h)
+        rows.append([f"{i+1}", h.get('id') + closed, h.get('description')])
+    print_table(rows, sep=" ")
 
 def add_habit(name, description, **global_args):
-    try:
-        api.post("api/time4/habits", {"name": name, "description": description})
-    except Exception as e:
-        pass
+    api.post("api/time4/habits", {"name": name, "description": description})
 
-def remove_habit(name, **global_args):
-    try:
-        api.delete("api/time4/habits/" + name)
-    except Exception as e:
-        pass
+def delete_habit(name, **global_args):
+    api.delete("api/time4/habits/" + name)
 
 def update_habit(name, description, status, index, **global_args):
     index = index-1 if index is not None else None
-    try:
-        api.put(f"api/time4/habits/{name}", {"description": description, "status": status, "index": index})
-    except Exception as e:
-        pass
+    api.put(f"api/time4/habits/{name}", {"description": description, "status": status, "index": index})
+
+
+# Utils
 
 
 def _is_time_arg(arg):
     return arg is not None and (arg[0].isdigit() or arg[0] == "-")
 
-
 def _display_segment(segment, show_end=True, show_zero_h=True):
-    try:
-        sid = segment['id']
-        time = sid.split("T")[1][0:5]
-        end_time = ""
-        if show_end:
-            end_time = " - " + segment['end'].split("T")[1][0:5] if segment.get('end') and segment.get('end') != sid else ""
-        minutes = segment['minutes']
-        duration = "\t" + _display_duration(minutes, show_zero_h=show_zero_h) if minutes > 0 else ""
-        return f"{time}{end_time}{duration}\t{segment['activity']}"
-    except:
-        print("Error displaying segment", segment)
-        return ""
+    sid = segment['id']
+    time = sid.split("T")[1][0:5]
+    end_time = ""
+    if show_end:
+        end_time = " - " + segment['end'].split("T")[1][0:5] if segment.get('end') and segment.get('end') != sid else ""
+    minutes = segment['minutes']
+    duration = "\t" + _display_duration(minutes, show_zero_h=show_zero_h) if minutes > 0 else ""
+    return f"{time}{end_time}{duration}\t{segment['activity']}"
 
+def _display_check(check):
+    return f"{check.get('habit')} {_display_check_sign(check.get('check', "?"))}"
+
+def _display_check_sign(sign):
+    return {
+        'x': green,
+        'f': red,
+        's': cyan
+    }.get(sign, nothing)(sign)
 
 def _display_duration(minutes, show_zero_h=True, no_pad=False):
     if not show_zero_h and minutes < 60:
-        return ("   " if not no_pad else "") + f"{minutes}"
+        return f"{minutes}"
     return f"{minutes // 60}h {minutes % 60:02d}"
-
-
-def wait_or_keypress():
-    def handler():
-        pass
-    try:
-        signal.signal(signal.SIGALRM, handler)
-        signal.alarm(5)
-        input("...")
-        print()
-        # disable the alarm
-        signal.alarm(0)
-    except:
-        pass
-
 
 def get(list, i):
     return list[i] if len(list) > i else None

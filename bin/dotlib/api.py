@@ -70,9 +70,27 @@ class RestApi:
                 return json.loads(content)
             return content
         except urllib.error.HTTPError as e:
-            body = e.read().decode()
-            logging.error(f"Request error: {body}")
+            logging.debug(f"Request error: {e.code} {e.reason}")
             raise
 
     def _get_host(self, auth=None):
         return os.environ.get(HOST_ENV_KEY) or auth['host']
+
+
+# standard decorator for clients - can catch the thrown error
+def api_err_print_and_exit(fn):
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except urllib.error.HTTPError as e:
+            body = e.read().decode()
+            msg = f"Error: {e.code} {e.reason} {body}"
+            try:
+                res = json.loads(body)
+                logging.debug(f"Error response: {res}")
+                msg = res.get('message') or res.get('error') or res.get('status') or msg
+            except:
+                pass
+            print(f"Error: {msg}")
+            sys.exit(1)
+    return wrapper
