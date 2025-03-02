@@ -134,6 +134,9 @@ def main():
 
 def read(start, end, **global_args):
     res = api.get(f"api/time4/segments?start={start}&end={end}")
+    display_segments(res)
+
+def display_segments(res):
     last_date = None
     for s in res.get('segments', []):
         s_date = s.get('date')
@@ -304,13 +307,17 @@ def activity_open(activity, **global_args):
 # Habits
 
 def show_both(start, end, **global_args):
-    # TODO opt with a parallel call
-    read_checks(start, end)
+    res = api.get(f"api/time4/segments-and-checks?start={start}&end={end}")
+    display_checks(res)
     print()
-    read(start, end)
+    display_segments(res)
+
 
 def read_checks(start, end, **global_args):
     res = api.get(f"api/time4/checks?start={start}&end={end}")
+    display_checks(res)
+
+def display_checks(res):
     end_index = res.get('endIndex', 9)
     header = [(f"{i}" if i > 0 else "") for i in range(end_index)]
     p = [header]
