@@ -404,6 +404,18 @@ n() {
 
 # Other file helpers
 
+ffinfo() {
+    for file in *.mp4; do
+        filesize=$(stat --format=%s "$file")  # Get the file size in bytes
+        filesize_mb=$(echo "scale=2; $filesize / (1024*1024)" | bc)  # Convert bytes to MB
+        echo -n "$file | Size: $filesize_mb MB | ";
+        ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,bit_rate:format=duration \
+            -of default=noprint_wrappers=1:nokey=1 "$file" |
+            awk 'NR==1{codec=$1} NR==2{width=$1} NR==3{height=$1} NR==4{bitrate=$1} NR==5{duration=$1}
+                END{bitrate_mbps = bitrate / (8 * 1024 * 1024); printf "Codec: %s | Resolution: %sx%s | Bitrate: %.2f MB/s | Duration: %.2f minutes\n", codec, width, height, bitrate_mbps, duration/60}';
+    done
+}
+
 tabsvsspaces() {
     echo "Tabs: $(grep -r "^\\t" . | wc -l)"
     echo "Spaces: $(grep -r "^  " . | wc -l)"

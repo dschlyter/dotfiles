@@ -15,6 +15,9 @@ def usage():
     print("Simple cut and merge utility")
     print("Supply a file or list of files, and optionally a list of time ranges to cut")
     print("Usage: ffcut file1 [00:00 00:10] [00:20 00:30] [file2] ...")
+    print("Flags:")
+    print("ffcut --small file1 ...  # reencode to default small size (at most 1920x1080)")
+    print("ffcut --reenc file1 ...  # reencode with default settings, instead of the default copying (faster)")
 
 
 def main():
@@ -22,18 +25,30 @@ def main():
         usage()
         sys.exit(0)
 
+    args = sys.argv
+    video_args = "-c copy".split(" ")
+    if len(args) > 1 and args[1] == "--small":
+        args = args[1:]
+        video_args = "-vf scale='min(1920,iw)':-2 -c:v hevc_nvenc -preset slow -rc vbr -cq 28 -c:a aac -b:a 128k".split(" ")
+    if len(args) > 1 and args[1] == "--reenc":
+        args = args[1:]
+        video_args = []
+    if len(args) > 1 and args[1].startswith("-"):
+        print("Unknown option:", args[1])
+        sys.exit(1)
+
     files_to_process = []
 
     i = 1
-    while i < len(sys.argv):
-        file = sys.argv[i]
+    while i < len(args):
+        file = args[i]
         if not os.path.exists(file):
             print("File does not exist:", file)
             sys.exit(1)
         i += 1
         cuts = []
-        while i < len(sys.argv) and ":" in sys.argv[i]:
-            cuts.append(sys.argv[i])
+        while i < len(args) and ":" in args[i]:
+            cuts.append(args[i])
             i += 1
         if len(cuts) % 2 != 0:
             print("Error: cuts must be in pairs")
@@ -44,25 +59,28 @@ def main():
         print("No files to process")
         sys.exit(0)
 
-    if len(files_to_process) == 1 and len(files_to_process[0][1]) == 0:
+    if len(files_to_process) == 1 and len(files_to_process[0][1]) == 0 and len(video_args) == 2:
         print("Just one file and nothing to cut")
         sys.exit(0)
-    output_file = os.path.splitext(sys.argv[1])[0] + "_CUT.mp4"
+    output_file = os.path.splitext(args[1])[0] + "_CUT.mp4"
 
-    if len(files_to_process) == 1 and len(files_to_process[0][1]) == 2:
-        direct_cut(files_to_process, output_file)
+    if len(files_to_process) == 1 and len(files_to_process[0][1]) <= 2:
+        direct_cut(files_to_process, output_file, video_args)
     else:
-        multi_file_cut(files_to_process, output_file)
+        multi_file_cut(files_to_process, output_file, video_args)
 
 
-def direct_cut(files_to_process: List[str], output_file: str):
+def direct_cut(files_to_process: List[str], output_file: str, video_args):
     print("Using direct cut mode")
     file = files_to_process[0][0]
-    start, end = files_to_process[0][1]
-    subprocess.check_call(["ffmpeg", "-ss", start, "-to", end, "-i", file, "-c", "copy", output_file])
+    if len(files_to_process[0][1]) >= 2:
+        start, end = files_to_process[0][1]
+        subprocess.check_call(["ffmpeg", "-ss", start, "-to", end, "-i", file] + video_args + [output_file])
+    else:
+        subprocess.check_call(["ffmpeg", "-i", file] + video_args + [output_file])
 
 
-def multi_file_cut(files_to_process: List[str], output_file: str):
+def multi_file_cut(files_to_process: List[str], output_file: str, video_args):
     print("Using multi cut mode")
 
     random_id = os.urandom(4).hex()
@@ -87,9 +105,7 @@ def multi_file_cut(files_to_process: List[str], output_file: str):
 
     time.sleep(1)
 
-    copy_args = ["-c", "copy"] if not os.getenv("REENC") else []
-
-    subprocess.check_call(["ffmpeg", "-f", "concat", "-safe", "0", "-i", tmp_file_list, output_file])
+    subprocess.check_call(["ffmpeg", "-f", "concat", "-safe", "0", "-i", tmp_file_list] + video_args + [output_file])
 
     for tmp_file in tmp_files:
         if os.path.exists(tmp_file):

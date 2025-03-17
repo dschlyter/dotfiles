@@ -47,7 +47,7 @@ def main():
 
     sp = root_p.add_parser('delete', aliases=['d'], help='delete segment or mark')
     sp.set_defaults(handler=delete)
-    sp.add_argument('time', help="time of segment")
+    sp.add_argument('time', help="time of segment", nargs="?")
 
 
     sp = root_p.add_parser('activity', aliases=['a'], help='list and manage activities (has subcommands)')
@@ -122,7 +122,7 @@ def main():
 
     sp = root_p.add_parser('check', aliases=['c'], help='check of one or more habits')
     sp.set_defaults(handler=batch_check)
-    sp.add_argument('checks', choices=["x", "f", "s", ".", "_"], nargs="+")
+    sp.add_argument('checks', nargs="+")
     sp.add_argument('--date', '-d', help="date or N days ago (inclusive, default 0)", default="0")
     sp.add_argument('--overwrite', '-o', help="overwrite existing checks", action="store_true")
 
@@ -270,6 +270,17 @@ def extend(args, **global_args):
         print("nothing to delete")
 
 def delete(time, **global_args):
+    if not time:
+        segments = api.get(f"api/time4/segments").get('segments', [])
+        if not segments:
+            print("No segments to delete")
+            quit(1)
+        lines = list(map(lambda s: f"{s['id']} {s.get('minutes', '-')} {s['activity']}", [s for s in segments if s['activity'] != "?"]))
+        selected = fzf_match(lines, sort=False)
+        if not selected:
+            print("No segment selected")
+            quit(1)
+        time = selected.split(" ")[0]
     res = api.delete(f"api/time4/segments/{time}")
     if s := res.get('segment'):
         print("deleted", _display_segment(s))
@@ -322,12 +333,10 @@ def display_checks(res):
     header = [(f"{i}" if i > 0 else "") for i in range(end_index)]
     p = [header]
     for day in res.get('checks', []):
-        row = [day.get('date', "")] + ["."] * (end_index-1)
-        p.append(row)
-        for check in day.get('checks', []):
-            index = check['index']
-            c = check.get('check', "!")
-            row[index] = _display_check_sign(c)
+        p.append([day.get('date', "??")])
+        for c in day.get('checks', []):
+            p[-1].append(_display_check_sign(c.get('check', "??")))
+
     print_table(p)
 
 def check_habit(name, date, check, **global_args):

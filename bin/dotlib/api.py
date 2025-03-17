@@ -53,7 +53,7 @@ class RestApi:
             full_url = url
             if "https://" not in url:
                 full_url = self._get_host(auth).rstrip("/") + "/" + url.lstrip("/")
-            logging.debug(f"{method} {full_url}")
+            logging.debug(f"{method} {full_url} {data}")
             req = Request(full_url)
             if auth is not None:
                 req.add_header('X-Session-Id', auth['sessionId'])
