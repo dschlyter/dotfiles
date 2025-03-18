@@ -388,7 +388,7 @@ def _display_segment(segment, show_end=True, show_zero_h=True):
     return f"{time}{end_time}{duration}\t{segment['activity']}"
 
 def _display_check(check):
-    return f"{check.get('habit')} {_display_check_sign(check.get('check', "?"))}"
+    return f"{check.get('habit')} {_display_check_sign(check.get('check', '?'))}"
 
 def _display_check_sign(sign):
     return {
