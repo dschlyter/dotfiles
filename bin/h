@@ -75,13 +75,13 @@ def main():
     sp.add_argument('activity', help="name of activity")
     sp.add_argument('parent', help="name of parent, or '-' to remove parent")
 
-    sp = activity_p.add_parser('close', help='close activity')
+    sp = activity_p.add_parser('close', aliases=['c'], help='close activity')
     sp.set_defaults(handler=activity_close)
-    sp.add_argument('activity', help="name of activity")
+    sp.add_argument('activity', help="name of activity", nargs="?")
 
-    sp = activity_p.add_parser('open', help='close activity')
+    sp = activity_p.add_parser('open', aliases=['o'], help='open activity')
     sp.set_defaults(handler=activity_open)
-    sp.add_argument('activity', help="name of activity")
+    sp.add_argument('activity', help="name of activity", nargs="?")
 
 
     habits_rp = root_p.add_parser('habits', aliases=['h'], help='manage habits (has subcommands)')
@@ -237,16 +237,19 @@ def end(args, start, end, **global_args):
         del payload['duration']
         
     if payload.get('activity') is None:
-        activities = api.get("api/time4/activities")
-        names = [a['id'] for a in activities.get('activities', [])]
-        selected = fzf_match(names, sort=False)
-        if not selected:
-            print("No activity selected")
-            quit(1)
-        payload['activity'] = selected
+        payload['activity'] = _pick_activity()
 
     res = api.post("api/time4/segments", payload)
     print("ended", _display_segment(res.get('segment')))
+
+def _pick_activity(multiple=False, status="open"):
+    activities = api.get(f"api/time4/activities?status={status}").get('activities', [])
+    names = [a['id'] for a in activities]
+    selected = fzf_match(names, multiple=multiple, sort=False)
+    if not selected:
+        print("No activity selected")
+        quit(1)
+    return selected
 
 def extend(args, **global_args):
     time, minutes = "last", 0
@@ -310,10 +313,14 @@ def set_parent(activity, parent, **global_args):
     api.put(f"api/time4/activities/{activity}/parent/{parent}", {})
 
 def activity_close(activity, **global_args):
-    api.put(f"api/time4/activities/{activity}/status/closed", {})
+    selected = [activity] if activity else _pick_activity(multiple=True)
+    for a in selected:
+        api.put(f"api/time4/activities/{a}/status/closed", {})
 
 def activity_open(activity, **global_args):
-    api.put(f"api/time4/activities/{activity}/status/open", {})
+    selected = [activity] if activity else _pick_activity(multiple=True, status="closed")
+    for a in selected:
+        api.put(f"api/time4/activities/{a}/status/open", {})
 
 # Habits
 

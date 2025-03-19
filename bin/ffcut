@@ -16,8 +16,8 @@ def usage():
     print("Supply a file or list of files, and optionally a list of time ranges to cut")
     print("Usage: ffcut file1 [00:00 00:10] [00:20 00:30] [file2] ...")
     print("Flags:")
-    print("ffcut --small file1 ...  # reencode to default small size (at most 1920x1080)")
     print("ffcut --reenc file1 ...  # reencode with default settings, instead of the default copying (faster)")
+    print("ffcut --small/--smaller/--smallest file1 ...  # reencode to default small size (at most 1920x1080) with slightly less quality, smaller is slower")
 
 
 def main():
@@ -27,12 +27,18 @@ def main():
 
     args = sys.argv
     video_args = "-c copy".split(" ")
-    if len(args) > 1 and args[1] == "--small":
+    output_suffix = "_CUT"
+    if len(args) > 1 and args[1].startswith("-"):
+        key = args[1].replace("-", "")
+        video_args = {
+            "reenc": [],
+            "small": "-vf scale='min(1920,iw)':-2 -c:v hevc_nvenc -rc vbr -cq 28".split(" "),
+            "smaller": "-vf scale='min(1920,iw)':-2 -c:v libx264 -crf 23".split(" "),
+            "smallest": "-vf scale='min(1920,iw)':-2 -c:v libx265 -crf 28".split(" "),
+        }.get(key, video_args)
         args = args[1:]
-        video_args = "-vf scale='min(1920,iw)':-2 -c:v hevc_nvenc -preset slow -rc vbr -cq 28 -c:a aac -b:a 128k".split(" ")
-    if len(args) > 1 and args[1] == "--reenc":
-        args = args[1:]
-        video_args = []
+        if len(args) == 2:
+            output_suffix = "_" + key.upper()
     if len(args) > 1 and args[1].startswith("-"):
         print("Unknown option:", args[1])
         sys.exit(1)
@@ -62,7 +68,7 @@ def main():
     if len(files_to_process) == 1 and len(files_to_process[0][1]) == 0 and len(video_args) == 2:
         print("Just one file and nothing to cut")
         sys.exit(0)
-    output_file = os.path.splitext(args[1])[0] + "_CUT.mp4"
+    output_file = os.path.splitext(args[1])[0] + output_suffix + ".mp4"
 
     if len(files_to_process) == 1 and len(files_to_process[0][1]) <= 2:
         direct_cut(files_to_process, output_file, video_args)
