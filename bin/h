@@ -235,7 +235,7 @@ def end(args, start, end, **global_args):
     elif ":" in payload.get('duration', ""):
         payload['end'] = payload['duration']
         del payload['duration']
-        
+
     if payload.get('activity') is None:
         payload['activity'] = _pick_activity()
 

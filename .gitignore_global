@@ -20,6 +20,8 @@ nocommit_*
 
 # vs code
 *.code-workspace
+.vscode
+.metals
 
 # java
 .gradle

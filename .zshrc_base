@@ -60,8 +60,8 @@ profiling_log "plugins loaded"
 ## Conveniences
 alias b='popd'
 alias ha='harpo'
-alias hs='h s'
 alias e='h e'
+alias hc='h c'
 alias hist='fc -ldD'
 alias sadd='harpo --vault david hi && echo Fetching from harpo... && ssh-add2 $HOME/.ssh/id_ed25519 "$(harpo --vault david get ssh-key-id_ed22519 password | tail -n 1)"'
 alias zshrc='vim ~/.zshrc; rc'
