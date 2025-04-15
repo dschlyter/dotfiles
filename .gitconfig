@@ -235,6 +235,7 @@
     tagd = !git tag -d $1";" git push origin --delete $1 "#"
 
     # github
+    fork = !git remote add fork \"$(git remote get-url origin | sed \"s,:.*/,:$USER/,\")\" && git remote -v
     github-url = !echo \"$(git config --get remote.origin.url | sed -e 's,:,/,' -e 's,https///,https://,' -e 's,git@,https://,' -e 's/[.]git$//')\"
     github-use-ssh = !git remote set-url --push origin \"git@github.com:$(git config --get remote.origin.url | sed -e 's,github.com[/],,' -e 's,.*[:][/]*,,')\"
     pr-winner = !git log --oneline --since='1 week' --pretty=format:'%an: %s' | grep 'Merge pull request' | sed 's/:.*//' | sort | uniq -c | sort -nr

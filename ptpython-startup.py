@@ -126,3 +126,18 @@ def subplots(plot_data, split=None):
 
 def avg(x):
     return statistics.fmean(x)
+
+def binomial_cdf(n, p, k):
+    """
+    Calculates the probability of n events with probability p occurring k or more times.
+
+    Returns:
+        float: The cumulative probability P(X ≤ k).
+    """
+    cdf = 0.0
+    for i in range(k + 1):
+        binomial_coeff = math.comb(n, i)
+        prob = binomial_coeff * (p ** i) * ((1 - p) ** (n - i))
+        cdf += prob
+
+    return cdf

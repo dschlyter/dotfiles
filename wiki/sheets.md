@@ -12,6 +12,18 @@ Use transpose to get a new shape
 
     TRANSPOSE({A3:C3; A5:C5})
 
+# Stable Cells
+
+Won't get relative change when being moved
+
+    =A$1:A12
+
+## Indirect cells
+
+Useful if you want to SUM to the current row, and not have the sum messed up by drag and drop reordering of rows.
+
+    =SUM(INDIRECT("G3:G" & ROW()))
+
 # Queries
 
 In general works kinda like expected. There are no joins.
