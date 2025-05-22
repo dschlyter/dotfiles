@@ -5,6 +5,8 @@ Sdkman feels like a terrible hack
     sdk use java 11.0.18-amzn
     sdk env init
 
+(You need to delete this file and re-run if you change java version - very good indead)
+
 # Clear it 
 
 Seems to be no good built in command for this.

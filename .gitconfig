@@ -102,12 +102,8 @@
     df = !git status --porcelain | awk '{print $2}' | fzf | xargs git diff "#"
     dg = !git status --porcelain | awk '{print $2}' | grep -i \"$1\" | xargs git diff "#"
 
-    # ignore without .gitignore, but for tracked files
-    ignore = update-index --assume-unchanged
-    unignore = update-index --no-assume-unchanged
-    ignored = !git ls-files -v | grep "^[[:lower:]]"
     # ignore but only locally (will not be pushed)
-    exclude = !mkdir -p .git/info && vim .git/info/exclude "#"
+    ignore = !mkdir -p .git/info && vim .git/info/exclude "#"
 
     # repo checks (reusable in aliases below)
     is-clean = !test -z \"$(git status --porcelain)\"
@@ -119,10 +115,11 @@
 
     # log and display
     # nicely formatted log, default to 15 entries but another -n may override that
-    # lgh only shows HEAD and ancestor commits
+    # lh only shows HEAD and ancestor commits
     # lg shows all branches
     lg = !git lh --all
     lh = log --color --graph --date='format:%Y-%m-%d %H:%M' --pretty=format:'%C(red)%h%C(reset) %C(green)%ad%C(reset): %s%C(reset)%C(yellow)%d%C(reset) - %C(bold blue)%an%C(reset)' --abbrev-commit -n 15
+    lm = !git lh HEAD master
     ll = !git lg -n 9999
     lhl = !git lh -n 9999
     lc = !git ll | grep -C 10 $(git rev-parse --short HEAD)

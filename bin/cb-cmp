@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+
+# Lazy hack because I don't know if I can trust the VS code plugin 
+
+import subprocess
+import time
+import tempfile
+import os
+
+def main():
+    last_clip = None
+
+    while True:
+        clip = read_clipboard()
+        if last_clip is not None and clip != last_clip:
+            # Create temporary files for diff comparison
+            with tempfile.NamedTemporaryFile(mode='w', delete=False) as last_file:
+                last_file.write(last_clip)
+                last_path = last_file.name
+            
+            with tempfile.NamedTemporaryFile(mode='w', delete=False) as curr_file:
+                curr_file.write(clip)
+                curr_path = curr_file.name
+            
+            # Run diff on the temporary files with color
+            subprocess.run(['diff', '--color=always', '-u', last_path, curr_path])
+            
+            # Clean up temporary files
+            os.unlink(last_path)
+            os.unlink(curr_path)
+            
+            print()
+            print()
+        
+        last_clip = clip
+        time.sleep(1)
+
+
+def read_clipboard():
+    # TODO non-mac support
+    return subprocess.check_output(['pbpaste']).decode('utf-8').strip()
+
+if __name__ == '__main__':
+    main()
