@@ -9,7 +9,7 @@ sys.dont_write_bytecode = True
 from dotlib.oldlib import run
 
 
-description="""Open all filenames in current dir in vim, edit as you like with the full power of vim. 
+description="""Open all filenames in current dir in vim, edit as you like with the full power of vim.
 When you save files will be renamed to your changed name."""
 
 

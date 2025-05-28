@@ -16,7 +16,7 @@ Check out `ffcut` utility in your dotfiles
 
 ## Reencode to smaller
 
-From limited testing there seems to be a tradeoff between encoding speed . Hardware encoding is as expected faster but also bigger output
+From limited testing there seems to be a tradeoff between encoding speed and size. Hardware encoding is as expected faster but also bigger footprint.
 
 Quality seems somewhat the same - but limited checks. Could play around with quality (lower is better) for additional results.
 

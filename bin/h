@@ -21,7 +21,7 @@ def main():
     sp.add_argument('start', help="date or N days ago (default 1 day ago)", default="1", nargs="?")
     sp.add_argument('end', help="date or N days ago (default 0)", default="0", nargs="?")
 
-    sp = root_p.add_parser('time', aliases=['t'], help='summrize total time')
+    sp = root_p.add_parser('time', aliases=['t'], help='summarize total time')
     sp.set_defaults(handler=stats)
     sp.add_argument('start', help="date or N days ago (inclusive, default 0)", default="0", nargs="?")
     sp.add_argument('end', help="date or N days ago (inclusive, default 0)", default="0", nargs="?")
@@ -122,7 +122,7 @@ def main():
 
     sp = root_p.add_parser('check', aliases=['c'], help='check of one or more habits')
     sp.set_defaults(handler=batch_check)
-    sp.add_argument('checks', nargs="+")
+    sp.add_argument('checks', nargs="*")
     sp.add_argument('--date', '-d', help="date or N days ago (inclusive, default 0)", default="0")
     sp.add_argument('--overwrite', '-o', help="overwrite existing checks", action="store_true")
 
@@ -252,21 +252,21 @@ def _pick_activity(multiple=False, status="open"):
     return selected
 
 def extend(args, **global_args):
-    time, minutes = "last", 0
+    segment, minutes = "last", 0
 
     if len(args) > 2:
         print("Too many arguments")
         quit(1)
 
     if len(args) >= 1:
-        if args[0].isdigit():
+        if _is_time_arg(args[0]):
             minutes = int(args[0])
         else:
-            time = args[0]
+            segment = args[0]
     if len(args) >= 2:
         minutes = int(args[1])
 
-    res = api.post(f"api/time4/segments/{time}/extend", {"minutes": minutes})
+    res = api.post(f"api/time4/segments/{segment}/extend", {"minutes": minutes})
     if s := res.get('segment'):
         print("updated", _display_segment(s))
     else:
@@ -354,6 +354,9 @@ def check_habit(name, date, check, **global_args):
         api.delete(f"api/time4/checks/{name}/{date}")
 
 def batch_check(checks, date, overwrite, **global_args):
+    if not checks:
+        read_checks(7, 0)
+        return
     res = api.post(f"api/time4/checks-batch", {"batch": checks, "date": date, "overwrite": overwrite})
     for c in res.get('checks', []):
         print("checked", _display_check(c))

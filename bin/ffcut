@@ -17,7 +17,7 @@ def usage():
     print("Usage: ffcut file1 [00:00 00:10] [00:20 00:30] [file2] ...")
     print("Flags:")
     print("ffcut --reenc file1 ...  # reencode with default settings, instead of the default copying (faster)")
-    print("ffcut --small/--smaller/--smallest file1 ...  # reencode to default small size (at most 1920x1080) with slightly less quality, smaller is slower")
+    print("ffcut --small/--smaller/--smallest file1 ...  # default SCALE=1280 QUALITY=28 can be overridden by env variables")
 
 
 def main():
@@ -30,15 +30,16 @@ def main():
     output_suffix = "_CUT"
     if len(args) > 1 and args[1].startswith("-"):
         key = args[1].replace("-", "")
+        scale = int(os.environ.get('SCALE', "1280"))
+        quality = int(os.environ.get('QUALITY', "28"))
         video_args = {
             "reenc": [],
-            "small": "-vf scale='min(1920,iw)':-2 -c:v hevc_nvenc -rc vbr -cq 28".split(" "),
-            "smaller": "-vf scale='min(1920,iw)':-2 -c:v libx264 -crf 23".split(" "),
-            "smallest": "-vf scale='min(1920,iw)':-2 -c:v libx265 -crf 28".split(" "),
+            "small": f"-vf scale='min({scale},iw)':-2 -c:v hevc_nvenc -rc vbr -cq {quality}".split(" "),
+            "smaller": f"-vf scale='min({scale},iw)':-2 -c:v libx264 -crf {quality}".split(" "),
+            "smallest": f"-vf scale='min({scale},iw)':-2 -c:v libx265 -crf {quality}".split(" "),
         }.get(key, video_args)
         args = args[1:]
-        if len(args) == 2:
-            output_suffix = "_" + key.upper()
+        output_suffix = f"_{key.upper()}_{scale}_{quality}"
     if len(args) > 1 and args[1].startswith("-"):
         print("Unknown option:", args[1])
         sys.exit(1)
@@ -92,13 +93,24 @@ def multi_file_cut(files_to_process: List[str], output_file: str, video_args):
     random_id = os.urandom(4).hex()
     files_to_merge = []
     tmp_files = []
+
+    for file, cuts in files_to_process:
+        for i in range(0, len(cuts), 2):
+            s = list(map(int, cuts[i].split(":")))
+            e = list(map(int, cuts[i+1].split(":")))
+            while len(s) < len(e):
+                s = [0] + s
+            if e <= s:
+                print("Error", cuts[i], "must be before", cuts[i+1])
+                quit(1)
+
     for file, cuts in files_to_process:
         if len(cuts) == 0:
             files_to_merge.append(file)
             continue
         for i in range(0, len(cuts), 2):
             start, end = cuts[i], cuts[i + 1]
-            cut_file = f"tmpffcut_{file}_{random_id}_{start.replace(":", "_")}_{end.replace(":", "_")}.mp4"
+            cut_file = f"tmpffcut_{file.replace(' ', '_')}_{random_id}_{start.replace(':', '_')}_{end.replace(':', '_')}.mp4".replace("'", "-")
             subprocess.check_call(["ffmpeg", "-ss", start, "-to", end, "-i", file, "-c", "copy", cut_file])
             tmp_files.append(cut_file)
             files_to_merge.append(cut_file)
