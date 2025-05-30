@@ -1,21 +1,32 @@
 // Place your key bindings in this file to override the defaultsauto[]
+// https://code.visualstudio.com/api/references/when-clause-contexts
 [
+    // UI
+    // cmd-j seems to also work?
+    {
+        "key": "shift+cmd+2",
+        "command": "workbench.action.terminal.focus"
+    },
+    // fileView shortcuts
     {
         "key": "cmd+n",
-        "command": "explorer.newFile"
+        "command": "explorer.newFile",
+        "when": "focusedView == 'workbench.explorer.fileView'"
+    },
+    {
+        "key": "cmd+d",
+        "command": "compareSelected",
+        "when": "focusedView == 'workbench.explorer.fileView'"
     },
     {
         "key": "cmd+n",
         "command": "-workbench.action.files.newUntitledFile"
     },
+    // Editor
     {
         "key": "ctrl+cmd+l",
         "command": "gitlens.toggleFileBlame",
         "when": "editorTextFocus"
-    },
-    {
-        "key": "shift+cmd+2",
-        "command": "workbench.action.terminal.focus"
     },
     {
         "key": "ctrl+cmd+k",
@@ -25,8 +36,9 @@
         "key": "ctrl+cmd+j",
         "command": "workbench.action.previousEditor"
     },
+    // Cusor specific commands
     {
         "key": "cmd+i",
         "command": "composerMode.agent"
-    }
+    },
 ]

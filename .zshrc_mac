@@ -11,9 +11,10 @@ alias pmlog='open $(echo /var/log/powermanagement/2* | xargs -n 1 echo | tail -n
 alias rau='reattach-to-user-namespace'
 alias ij='open -a "IntelliJ IDEA" .'
 
+alias cb='pbpaste'
+alias tocb='pbcopy'
 alias -g CB='| pbcopy'
 alias -g TCB='| tee >(pbcopy)'
-alias cb='pbpaste'
 alias o='open'
 alias sshot='screencapture -T 2 -t png -P screenshot.png'
 
