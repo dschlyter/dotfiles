@@ -209,7 +209,7 @@ _update_git_info() {
         set +m
 
         # start checking for modified files in the background - this is the slowest operation so we start it first
-        (git ls-files --deleted --modified --others --exclude-standard -- | grep -q .) &
+        (git ls-files --deleted --modified --others --exclude-standard -- "$GIT_ROOT" | grep -q .) &
         local UNTRACKED_PID="$!"
 
         # start checking for ahead / behind status in the background

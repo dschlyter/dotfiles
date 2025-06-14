@@ -23,10 +23,15 @@ def main():
 
     sp = root_p.add_parser('time', aliases=['t'], help='summarize total time')
     sp.set_defaults(handler=stats)
-    sp.add_argument('start', help="date or N days ago (inclusive, default 0)", default="0", nargs="?")
-    sp.add_argument('end', help="date or N days ago (inclusive, default 0)", default="0", nargs="?")
+    sp.add_argument('start', help="date or N steps ago", nargs="?")
+    sp.add_argument('end', help="date or N steps ago", nargs="?")
     sp.add_argument('--activities', '-a', help="comma separated list of activities to filter for", default=None)
-    sp.add_argument('--window', '-w', choices=["day", "week", "month", "q", "year", "all"], help="level of granularity (default day)", default="day")
+    sp.add_argument('--day', '-d', help="window daily", action="store_true")
+    sp.add_argument('--week', '-w', help="window weekly", action="store_true")
+    sp.add_argument('--month', '-m', help="window monthly", action="store_true")
+    sp.add_argument('--quarter', '-q', help="window quarterly", action="store_true")
+    sp.add_argument('--year', '-y', help="window yearly", action="store_true")
+    sp.add_argument('--all', help="window all", action="store_true")
     sp.add_argument('--root', '-r', help="aggregate up to root activities", action="store_true")
     sp.add_argument('--count', '-c', help="count occurences instead of summing time", action="store_true")
     sp.add_argument('--top', '-t', help="show top 10 per line", action="store_true")
@@ -58,6 +63,7 @@ def main():
 
     sp = activity_p.add_parser('list', aliases=['l'], help='list activities')
     sp.set_defaults(handler=list_activities)
+    sp.add_argument('root_prefix', help="only list for root with this prefix", nargs="?")
     sp.add_argument('--status', '-s', help="status to list", choices=["open", "closed", "all"], default="open")
     sp.add_argument('--all', '-a', help="list all", action="store_true")
 
@@ -146,7 +152,8 @@ def display_segments(res):
 
         print(_display_segment(s, show_end=False, show_zero_h=False))
 
-def stats(start, end, activities, window, root, count, top, **global_args):
+def stats(start, end, activities, day, week, month, quarter, year, all, root, count, top, **global_args):
+    window = "day" if day else "week" if week else "month" if month else "quarter" if quarter else "year" if year else "all" if all else None
     res = api.post(f"api/time4/stats", {
         'start': start,
         'end': end,
@@ -300,11 +307,13 @@ def delete_activity(activity, **global_args):
     api.delete("api/time4/activities/" + activity)
 
 @api_err_print_and_exit
-def list_activities(status, all, **global_args):
+def list_activities(status, all, root_prefix, **global_args):
     status = status if not all else "all"
     res = api.get(f"api/time4/activities?status={status}")
     activities = []
     for a in res.get('activities', []):
+        if root_prefix and not any(map(lambda x: x.startswith(root_prefix), a.get('lineage', []) + [a['id']])):
+            continue
         activities.append(" > ".join((a.get('lineage', []) + [a['id']])) + (" (closed)" if a.get('status') == "closed" else ""))
     for a in sorted(activities):
         print(a)
