@@ -206,7 +206,7 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
                     table[-1].append("")
         print_table(table, fit=True)
     else:
-        colors = [red_bg, green_bg, cyan_bg, yellow_bg, magenta_bg]
+        colors = [muted_blue_bg, muted_green_bg, muted_red_bg, muted_yellow_bg, muted_purple_bg]
         top_rows = rows[1:6]
         print("Top activities:", " ".join([col(r) for r, col in zip(top_rows, colors)]), nothing("other"))
 
