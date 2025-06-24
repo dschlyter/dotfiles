@@ -17,12 +17,13 @@ def main():
     main_p.set_defaults(handler=cut)
 
     main_p.add_argument('files_and_times', nargs='+', help='ffcut file1 [00:00 00:10] [00:20 00:30] [file2] ...')
-    main_p.add_argument('--reenc', action='store_true', help='reencode with default settings, instead of the default copying (faster)')
+    main_p.add_argument('--copy', action='store_true', help='copy instead of reencoding, only supported for single file')
     main_p.add_argument('--mid', action='store_true', help='1080p with 3M bitrate')
+    main_p.add_argument('--smid', action='store_true', help='720p with libx264, 23 quality')
     main_p.add_argument('--small', action='store_true', help='720p with hevc_nvenc (GPU)')
     main_p.add_argument('--smaller', action='store_true', help='720p with libx264')
     main_p.add_argument('--smallest', action='store_true', help='720p with libx265')
-    main_p.add_argument('--scale', default="1280", help='scale to use for small cuts, default is 1280 (width)')
+    main_p.add_argument('--scale', help='horizontal scale to use for small/mid cuts, default is 1280 or 1920')
     main_p.add_argument('--quality', default="28", help='quality to use for small cuts, default is 28 (higher is better, ffmpeg default is 23)')
 
     parsed_args = main_p.parse_args()
@@ -30,21 +31,30 @@ def main():
     parsed_args.handler(**parsed_args.__dict__)
 
 
-def cut(files_and_times: List[str], reenc, mid, small, smaller, smallest, scale, quality, **global_args):
+def cut(files_and_times: List[str], copy, mid, small, smaller, smallest, scale, quality, **global_args):
     args = files_and_times
 
-    video_args = "-c copy".split(" ")
+    video_args = []
     output_suffix = "_CUT"
-    key = (reenc and "reenc") or (mid and "mid") or (small and "small") or (smaller and "smaller") or (smallest and "smallest") or None
-    if key:
+    key = (mid and "mid") or (smid and "smid") or (small and "small") or (smaller and "smaller") or (smallest and "smallest") or None
+    if copy:
+        video_args = "-c copy".split(" ")
+    elif key:
         video_args = {
-            "reenc": [],
-            "mid": "-vf scale='min(1920,iw)':'min(1080,ih)' -c:v libx264 -b:v 3M -maxrate 3M -bufsize 10M".split(" "),
-            "small": f"-vf scale='min({scale},iw)':-2 -c:v hevc_nvenc -rc vbr -cq {quality}".split(" "),
-            "smaller": f"-vf scale='min({scale},iw)':-2 -c:v libx264 -crf {quality}".split(" "),
-            "smallest": f"-vf scale='min({scale},iw)':-2 -c:v libx265 -crf {quality}".split(" "),
+            "mid": "-c:a aac -c:v libx264 -b:v 3M -maxrate 3M -bufsize 10M".split(" "),
+            "smid": f"-c:a aac -c:v libx264 -crf 23".split(" "),
+            "small": f"-c:a aac -c:v hevc_nvenc -rc vbr -cq {quality}".split(" "),
+            "smaller": f"-c:a aac -c:v libx264 -crf {quality}".split(" "),
+            "smallest": f"-c:a aac -c:v libx265 -crf {quality}".split(" "),
         }.get(key, video_args)
+        scale = scale or ("1280" if not mid else "1920")
         output_suffix = f"_{key.upper()}_{scale}_{quality}"
+    if scale:
+        h_scale = round(int(scale) * 1080 / 1920)
+        # scale down to scale - but not up, and keep aspect ratio
+        scale_filter = f"scale='if(gt(iw/ih,1920/1080),min(iw,{scale}),-1)':'if(gt(iw/ih,1920/1080),-1,min(ih,{h_scale}))'"
+    else:
+        scale_filter = None
 
     files_to_process = []
 
@@ -76,13 +86,15 @@ def cut(files_and_times: List[str], reenc, mid, small, smaller, smallest, scale,
     output_file = os.path.splitext(args[0])[0] + output_suffix + ".mp4"
 
     if len(files_to_process) == 1 and len(files_to_process[0][1]) <= 2:
-        direct_cut(files_to_process, output_file, video_args)
+        direct_cut(files_to_process, output_file, video_args, scale_filter)
     else:
-        multi_file_cut(files_to_process, output_file, video_args)
+        multi_file_cut(files_to_process, output_file, video_args, scale_filter)
 
 
-def direct_cut(files_to_process: List[str], output_file: str, video_args):
+def direct_cut(files_to_process: List[str], output_file: str, video_args, scale_filter):
     print("Using direct cut mode")
+    if scale_filter:
+        video_args.insert(0, "-vf", scale_filter)
     file = files_to_process[0][0]
     if len(files_to_process[0][1]) >= 2:
         start, end = files_to_process[0][1]
@@ -91,7 +103,44 @@ def direct_cut(files_to_process: List[str], output_file: str, video_args):
         subprocess.check_call(["ffmpeg", "-i", file] + video_args + [output_file])
 
 
-def multi_file_cut(files_to_process: List[str], output_file: str, video_args):
+def multi_file_cut(files_to_process: List[str], output_file: str, video_args, scale_filter):
+    print("Using multi cut mode (concat filter, no temp files)")
+
+    input_args = []
+    segment_count = 0
+    for file, cuts in files_to_process:
+        if not cuts:
+            input_args += ["-i", file]
+            segment_count += 1
+        else:
+            for i in range(0, len(cuts), 2):
+                start = cuts[i]
+                end = cuts[i+1]
+                input_args += ["-ss", start, "-to", end, "-i", file]
+                segment_count += 1
+
+    filter_complex = ""
+    if scale_filter:
+        filter_complex += ";".join(f"[{i}:v]{scale_filter}[v{i}]" for i in range(segment_count)) + ";"
+        filter_complex += "".join(f"[v{i}][{i}:a]" for i in range(segment_count))
+    else:
+        filter_complex = "".join(f"[{i}:v][{i}:a]" for i in range(segment_count))
+    filter_complex += f"concat=n={segment_count}:v=1:a=1[outv][outa]"
+
+    cmd = (
+        ["ffmpeg"]
+        + input_args
+        + ["-filter_complex", filter_complex, "-map", "[outv]", "-map", "[outa]"]
+        + video_args
+        + [output_file]
+    )
+    print("Running:", " ".join(cmd))
+    subprocess.check_call(cmd)
+
+
+# OLD DEPRECATED - but could work better for different files with different codecs ?
+# does seem to have some audio offset issues though
+def OLD_multi_file_cut(files_to_process: List[str], output_file: str, video_args):
     print("Using multi cut mode")
 
     random_id = os.urandom(4).hex()

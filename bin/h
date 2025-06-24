@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
+import shutil
 
 from dotlib.api import RestApi, api_err_print_and_exit
 from dotlib.fzf import fzf_match
 from dotlib.util import print_table
-from dotlib.color import red, green, cyan, nothing
+from dotlib.color import *
 
 api = RestApi()
 
@@ -35,6 +36,7 @@ def main():
     sp.add_argument('--root', '-r', help="aggregate up to root activities", action="store_true")
     sp.add_argument('--count', '-c', help="count occurences instead of summing time", action="store_true")
     sp.add_argument('--top', '-t', help="show top 10 per line", action="store_true")
+    sp.add_argument('--graph', '-g', help="show a graph visual of changes", action="store_true")
 
     sp = root_p.add_parser('start', aliases=['s'], help='mark new segment')
     sp.set_defaults(handler=start)
@@ -64,8 +66,8 @@ def main():
     sp = activity_p.add_parser('list', aliases=['l'], help='list activities')
     sp.set_defaults(handler=list_activities)
     sp.add_argument('root_prefix', help="only list for root with this prefix", nargs="?")
-    sp.add_argument('--status', '-s', help="status to list", choices=["open", "closed", "all"], default="open")
-    sp.add_argument('--all', '-a', help="list all", action="store_true")
+    sp.add_argument('--closed', '-c', help="list closed activities", action="store_true")
+    sp.add_argument('--all', '-a', help="list all activities (not just open)", action="store_true")
 
     sp = activity_p.add_parser('add', help='add activity')
     sp.set_defaults(handler=add_activity)
@@ -107,8 +109,8 @@ def main():
 
     sp = habits_p.add_parser('list', aliases=['l'], help='list habits')
     sp.set_defaults(handler=list_habits)
-    sp.add_argument('--status', '-s', help="status to list", choices=["open", "closed", "all"], default="open")
-    sp.add_argument('--all', '-a', help="list all", action="store_true")
+    sp.add_argument('--closed', '-c', help="list closed habits", action="store_true")
+    sp.add_argument('--all', '-a', help="list all habits (not just open)", action="store_true")
 
     sp = habits_p.add_parser('add', help='add habit')
     sp.set_defaults(handler=add_habit)
@@ -152,10 +154,10 @@ def display_segments(res):
 
         print(_display_segment(s, show_end=False, show_zero_h=False))
 
-def stats(start, end, activities, day, week, month, quarter, year, all, root, count, top, **global_args):
+def stats(start, end, activities, day, week, month, quarter, year, all, root, count, top, graph, **global_args):
     window = "day" if day else "week" if week else "month" if month else "quarter" if quarter else "year" if year else "all" if all else None
     res = api.post(f"api/time4/stats", {
-        'start': start,
+        'start': start or (20 if graph else None),
         'end': end,
         'activities': activities.split(",") if activities else None,
         'window': window,
@@ -170,11 +172,11 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
         return
 
     rows = sorted(s.keys(), key=lambda k: s[k]['total'], reverse=True)
-    cols = sorted(s['total'].keys())
+    cols = [c for c in s['total'].keys() if c != 'total'] + ['total']
     if len(cols) == 2:
         cols.remove('total')
 
-    if not top:
+    if not (top or graph):
         table = [[""]]
         year_prefixes = {c[0:5] for c in cols if c != "total"}
         
@@ -190,7 +192,7 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
                 table[-1].append(display)
 
         print_table(table, fit=True, rjust=True)
-    else:
+    elif top:
         table = []
         for c in cols:
             table.append([c])
@@ -199,11 +201,29 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
             for i in range(5):
                 if i < len(entries):
                     e = entries[i]
-                    table[-1].append(f"{_display_duration(e[0], show_zero_h=False, no_pad=True)} {e[1]}")
+                    table[-1].append(f"{_display_duration(e[0], show_zero_h=False)} {e[1]}")
                 else:
                     table[-1].append("")
-                # print(f"{_display_duration(e[0], show_zero_h=False, no_pad=True)} {e[1]}", end=" ")
         print_table(table, fit=True)
+    else:
+        colors = [red_bg, green_bg, cyan_bg, yellow_bg, magenta_bg]
+        top_rows = rows[1:6]
+        print("Top activities:", " ".join([col(r) for r, col in zip(top_rows, colors)]), nothing("other"))
+
+        just = max([len(c) for c in cols])+1
+        bar_size = int(shutil.get_terminal_size().columns) - just
+        for c in cols:
+            print(c.ljust(just), end="")
+            total = s['total'].get(c, 0)
+            acc = 0
+            for r, col in zip(top_rows, colors):
+                v = s[r].get(c, 0)
+                perc = v / total if total > 0 else 0
+                text = str(int(perc * 100)) + "% " + (f"{v:>4}" if count else _display_duration(v, show_zero_h=True))
+                size = round((acc + perc) * bar_size) - round(acc * bar_size)
+                print(col(text[0:size] + " " * (size - len(text))), end="")
+                acc += perc
+            print(white_bg(" " * (bar_size - round(acc * bar_size))))
 
 def start(minutes=None, **global_args):
     res = api.post(f"api/time4/mark", {"time": minutes})
@@ -307,8 +327,8 @@ def delete_activity(activity, **global_args):
     api.delete("api/time4/activities/" + activity)
 
 @api_err_print_and_exit
-def list_activities(status, all, root_prefix, **global_args):
-    status = status if not all else "all"
+def list_activities(root_prefix, closed, all, **global_args):
+    status = "all" if all else "closed" if closed else "open"
     res = api.get(f"api/time4/activities?status={status}")
     activities = []
     for a in res.get('activities', []):
@@ -416,10 +436,10 @@ def _display_check_sign(sign):
         's': cyan
     }.get(sign, nothing)(sign)
 
-def _display_duration(minutes, show_zero_h=True, no_pad=False):
+def _display_duration(minutes, show_zero_h=True):
     if not show_zero_h and minutes < 60:
         return f"{minutes}"
-    return f"{minutes // 60}h {minutes % 60:02d}"
+    return f"{minutes // 60}:{minutes % 60:02d}"
 
 def get(list, i):
     return list[i] if len(list) > i else None
