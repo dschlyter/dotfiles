@@ -19,6 +19,10 @@
         {
             "before": ["g", "k"],
             "commands": ["workbench.action.editor.previousChange"]
+        },
+        {
+            "before": [ "<leader>", "t" ],
+            "commands": [ { "command": "editor.action.insertSnippet", "args": { "snippet": "${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}" } } ]
         }
     ],
     "vim.visualModeKeyBindings": [
