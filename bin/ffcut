@@ -31,7 +31,7 @@ def main():
     parsed_args.handler(**parsed_args.__dict__)
 
 
-def cut(files_and_times: List[str], copy, mid, small, smaller, smallest, scale, quality, **global_args):
+def cut(files_and_times: List[str], copy, mid, smid, small, smaller, smallest, scale, quality, **global_args):
     args = files_and_times
 
     video_args = []
@@ -58,7 +58,7 @@ def cut(files_and_times: List[str], copy, mid, small, smaller, smallest, scale, 
 
     files_to_process = []
 
-    print(video_args)
+    print("video args:", video_args)
 
     i = 0
     while i < len(args):
@@ -94,7 +94,7 @@ def cut(files_and_times: List[str], copy, mid, small, smaller, smallest, scale, 
 def direct_cut(files_to_process: List[str], output_file: str, video_args, scale_filter):
     print("Using direct cut mode")
     if scale_filter:
-        video_args.insert(0, "-vf", scale_filter)
+        video_args += ["-vf", scale_filter]
     file = files_to_process[0][0]
     if len(files_to_process[0][1]) >= 2:
         start, end = files_to_process[0][1]

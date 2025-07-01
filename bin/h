@@ -22,7 +22,7 @@ def main():
     sp.add_argument('start', help="date or N days ago (default 1 day ago)", default="1", nargs="?")
     sp.add_argument('end', help="date or N days ago (default 0)", default="0", nargs="?")
 
-    sp = root_p.add_parser('time', aliases=['t'], help='summarize total time')
+    sp = root_p.add_parser('stats', aliases=['s'], help='summarize total time')
     sp.set_defaults(handler=stats)
     sp.add_argument('start', help="date or N steps ago", nargs="?")
     sp.add_argument('end', help="date or N steps ago", nargs="?")
@@ -35,16 +35,17 @@ def main():
     sp.add_argument('--all', help="window all", action="store_true")
     sp.add_argument('--root', '-r', help="aggregate up to root activities", action="store_true")
     sp.add_argument('--count', '-c', help="count occurences instead of summing time", action="store_true")
+    sp.add_argument('--percent', '-p', help="show percentage instead of total", action="store_true")
     sp.add_argument('--top', '-t', help="show top 10 per line", action="store_true")
     sp.add_argument('--graph', '-g', help="show a graph visual of changes", action="store_true")
 
-    sp = root_p.add_parser('start', aliases=['s'], help='mark new segment')
-    sp.set_defaults(handler=start)
+    sp = root_p.add_parser('mark', aliases=['m'], help='mark new segment')
+    sp.set_defaults(handler=mark)
     sp.add_argument('minutes', help="X minutes, XhY or HH:MM", nargs="?")
 
     sp = root_p.add_parser('end', aliases=['e'], help='end segment')
     sp.set_defaults(handler=end)
-    sp.add_argument('args', help="[acitivity] [duration]", nargs="*")
+    sp.add_argument('args', help="[acitivity] [duration] (can be repeated N times)", nargs="*")
     sp.add_argument('--start', '-s', help='start of the segment')
     sp.add_argument('--end', '-e', help='end of the segment')
 
@@ -59,7 +60,8 @@ def main():
 
     sp = root_p.add_parser('activity', aliases=['a'], help='list and manage activities (has subcommands)')
     sp.set_defaults(handler=list_activities)
-    sp.add_argument('--status', '-s', help="status to list", choices=["open", "closed", "all"], default="open")
+    sp.add_argument('--root_prefix', '-r', help="only list for root with this prefix")
+    sp.add_argument('--closed', '-c', help="list closed activities", action="store_true")
     sp.add_argument('--all', '-a', help="list all", action="store_true")
     activity_p = sp.add_subparsers()
 
@@ -100,6 +102,18 @@ def main():
     sp.set_defaults(handler=read_checks)
     sp.add_argument('start', help="date or N days ago (inclusive, default 0)", default="7", nargs="?")
     sp.add_argument('end', help="date or N days ago (inclusive, default 0)", default="0", nargs="?")
+
+    sp = habits_p.add_parser('stats', aliases=['s'], help='summarize total time')
+    sp.set_defaults(handler=habit_stats)
+    sp.add_argument('start', help="date or N steps ago", nargs="?")
+    sp.add_argument('end', help="date or N steps ago", nargs="?")
+    sp.add_argument('--day', '-d', help="window daily", action="store_true")
+    sp.add_argument('--week', '-w', help="window weekly", action="store_true")
+    sp.add_argument('--month', '-m', help="window monthly", action="store_true")
+    sp.add_argument('--quarter', '-q', help="window quarterly", action="store_true")
+    sp.add_argument('--year', '-y', help="window yearly", action="store_true")
+    sp.add_argument('--all', help="window all", action="store_true")
+    sp.add_argument('--count', '-c', help="count occurences instead of percent", action="store_true")
 
     sp = habits_p.add_parser('check', aliases=['c'], help='check off one habit')
     sp.set_defaults(handler=check_habit)
@@ -154,7 +168,7 @@ def display_segments(res):
 
         print(_display_segment(s, show_end=False, show_zero_h=False))
 
-def stats(start, end, activities, day, week, month, quarter, year, all, root, count, top, graph, **global_args):
+def stats(start, end, activities, day, week, month, quarter, year, all, root, count, percent, top, graph, **global_args):
     window = "day" if day else "week" if week else "month" if month else "quarter" if quarter else "year" if year else "all" if all else None
     res = api.post(f"api/time4/stats", {
         'start': start or (20 if graph else None),
@@ -188,7 +202,12 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
             table.append([r])
             for c in cols:
                 v = s[r].get(c, 0)
-                display = _display_duration(v, show_zero_h=False) if not count else v
+                total = s['total'].get(c, 0)
+                if not percent:
+                    display = _display_duration(v, show_zero_h=False) if not count else v
+                else:
+                    perc = v / total if total > 0 else 0
+                    display = f"{int(perc * 100)}%" if total > 0 else "0%"
                 table[-1].append(display)
 
         print_table(table, fit=True, rjust=True)
@@ -198,10 +217,15 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
             table.append([c])
             entries = [(s[r][c], r) for r in rows if c in s[r] and r != "total"]
             entries = sorted(entries, reverse=True)
+            total = s['total'].get(c, 0)
             for i in range(5):
                 if i < len(entries):
                     e = entries[i]
-                    table[-1].append(f"{_display_duration(e[0], show_zero_h=False)} {e[1]}")
+                    if not percent:
+                        table[-1].append(f"{_display_duration(e[0], show_zero_h=False)} {e[1]}")
+                    else:
+                        perc = e[0] / total if total > 0 else 0
+                        table[-1].append(f"{int(perc * 100)}% {e[1]}")
                 else:
                     table[-1].append("")
         print_table(table, fit=True)
@@ -225,7 +249,7 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
                 acc += perc
             print(white_bg(" " * (bar_size - round(acc * bar_size))))
 
-def start(minutes=None, **global_args):
+def mark(minutes=None, **global_args):
     res = api.post(f"api/time4/mark", {"time": minutes})
     if r := res.get('result'):
         duration = f"marking a {_display_duration(r.get('minutes'))}m segment" if (r.get('minutes') or 0) > 0 else ""
@@ -234,40 +258,46 @@ def start(minutes=None, **global_args):
         print("no mark created")
 
 def end(args, start, end, **global_args):
-    payload = {}
-
-    if len(args) > 2:
-        print("Too many arguments")
+    if len(args) > 2 and (start or end):
+        print("Cannot specify start or end with more than 2 arguments")
         quit(1)
 
-    if len(args) >= 1:
-        if _is_time_arg(args[0]):
-            payload['duration'] = args[0]
-        else:
-            payload['activity'] = args[0]
-    if len(args) == 2:
-        if _is_time_arg(args[1]):
-            payload['duration'] = args[1]
-        else:
-            payload['activity'] = args[1]
+    payloads = []
+    for pair in range(0, max(1, len(args)), 2):
+        payload = {}
 
-    if start:
-        payload['start'] = start
+        for i in range(pair, min(pair + 2, len(args))):
+            if _is_time_arg(args[i]):
+                if payload.get('duration') is not None:
+                    print("Duration duplicate", payload.get('duration'), args[i])
+                    quit(1)
+                payload['duration'] = args[i]
+            else:
+                if payload.get('activity') is not None:
+                    print("Activity duplicate", payload.get('activity'), args[i])
+                    quit(1)
+                payload['activity'] = args[i]
 
-    if end:
-        payload['end'] = end
-    elif payload.get('duration', '').startswith("-"):
-        payload['end'] = payload['duration'][1:]
-        del payload['duration']
-    elif ":" in payload.get('duration', ""):
-        payload['end'] = payload['duration']
-        del payload['duration']
+        if start:
+            payload['start'] = start
 
-    if payload.get('activity') is None:
-        payload['activity'] = _pick_activity()
+        if end:
+            payload['end'] = end
+        elif payload.get('duration', '').startswith("-"):
+            payload['end'] = payload['duration'][1:]
+            del payload['duration']
+        elif ":" in payload.get('duration', ""):
+            payload['end'] = payload['duration']
+            del payload['duration']
 
-    res = api.post("api/time4/segments", payload)
-    print("ended", _display_segment(res.get('segment')))
+        if payload.get('activity') is None:
+            payload['activity'] = _pick_activity()
+
+        payloads.append(payload)
+
+    for payload in payloads:
+        res = api.post("api/time4/segments", payload)
+        print("ended", _display_segment(res.get('segment')))
 
 def _pick_activity(multiple=False, status="open"):
     activities = api.get(f"api/time4/activities?status={status}").get('activities', [])
@@ -374,6 +404,47 @@ def display_checks(res):
             p[-1].append(_display_check_sign(c.get('check', "??")))
 
     print_table(p)
+
+def habit_stats(start, end, day, week, month, quarter, year, all, count, **global_args):
+    window = "day" if day else "week" if week else "month" if month else "quarter" if quarter else "year" if year else "all" if all else None
+    res = api.post(f"api/time4/checks-stats", {
+        'start': start,
+        'end': end,
+        'window': window,
+    })
+    s = res.get('stats')
+
+    if not s:
+        print("No data")
+        return
+
+    rows = s.keys()
+    cols = [c for c in s['total'].keys() if c != 'total'] + ['total']
+    if len(cols) == 2:
+        cols.remove('total')
+
+    table = [[""]]
+    year_prefixes = {c[0:5] for c in cols if c != "total"}
+
+    for col_name in cols:
+        if len(year_prefixes) == 1 and next(iter(year_prefixes)) == col_name[0:5]:
+            col_name = col_name[5:]
+        table[-1].append(col_name)
+    for r in rows:
+        table.append([r])
+        for c in cols:
+            v = s[r].get(c, dict())
+            x = v.get('success', 0)
+            f = v.get('failure', 0)
+            if count:
+                display = f"{x}-{f}"
+            else:
+                display = str(round(100 * x/(x + f)) if (x + f) > 0 else 0) + "%"
+            table[-1].append(display)
+
+    print_table(table, fit=True, rjust=True)
+
+
 
 def check_habit(name, date, check, **global_args):
     if check != ".":
