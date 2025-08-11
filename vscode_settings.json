@@ -54,5 +54,6 @@
         "scminput": false
     },
     "gitlens.graph.minimap.enabled": false,
-    "explorer.confirmDelete": false
+    "explorer.confirmDelete": false,
+    "github.copilot.nextEditSuggestions.enabled": true
 }

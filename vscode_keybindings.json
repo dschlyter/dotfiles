@@ -29,11 +29,11 @@
         "when": "editorTextFocus"
     },
     {
-        "key": "ctrl+cmd+k",
+        "key": "cmd+l",
         "command": "workbench.action.nextEditor"
     },
     {
-        "key": "ctrl+cmd+j",
+        "key": "cmd+h",
         "command": "workbench.action.previousEditor"
     },
     // Cusor specific commands
