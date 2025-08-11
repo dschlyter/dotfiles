@@ -26,7 +26,7 @@ def main():
     sp.set_defaults(handler=stats)
     sp.add_argument('start', help="date or N steps ago", nargs="?")
     sp.add_argument('end', help="date or N steps ago", nargs="?")
-    sp.add_argument('--activities', '-a', help="comma separated list of activities to filter for", default=None)
+    sp.add_argument('--activities', '-a', help="comma separated list of activities to filter for (f for fzf select)", default=None)
     sp.add_argument('--day', '-d', help="window daily", action="store_true")
     sp.add_argument('--week', '-w', help="window weekly", action="store_true")
     sp.add_argument('--month', '-m', help="window monthly", action="store_true")
@@ -45,7 +45,7 @@ def main():
 
     sp = root_p.add_parser('end', aliases=['e'], help='end segment')
     sp.set_defaults(handler=end)
-    sp.add_argument('args', help="[acitivity] [duration] (can be repeated N times)", nargs="*")
+    sp.add_argument('args', help="[activity] [duration / end] ... (-N or HH:MM is interpreted as end)", nargs="*")
     sp.add_argument('--start', '-s', help='start of the segment')
     sp.add_argument('--end', '-e', help='end of the segment')
 
@@ -74,7 +74,7 @@ def main():
     sp = activity_p.add_parser('add', help='add activity')
     sp.set_defaults(handler=add_activity)
     sp.add_argument('activity', help="name of activity")
-    sp.add_argument('parent', help="name of parent, or '' to remove parent", nargs="?")
+    sp.add_argument('parent', help="name of parent, or 'root' to set as root")
 
     sp = activity_p.add_parser('delete', help='delete activity')
     sp.set_defaults(handler=delete_activity)
@@ -83,7 +83,7 @@ def main():
     sp = activity_p.add_parser('parent', help='update parent')
     sp.set_defaults(handler=set_parent)
     sp.add_argument('activity', help="name of activity")
-    sp.add_argument('parent', help="name of parent, or '-' to remove parent")
+    sp.add_argument('parent', help="name of parent, or 'root' to set as root")
 
     sp = activity_p.add_parser('close', aliases=['c'], help='close activity')
     sp.set_defaults(handler=activity_close)
@@ -95,7 +95,7 @@ def main():
 
 
     habits_rp = root_p.add_parser('habits', aliases=['h'], help='manage habits (has subcommands)')
-    habits_rp.set_defaults(handler=lambda *args, **kwargs: habits_rp.print_help())
+    habits_rp.set_defaults(handler=lambda *args, **kwargs: habit_stats(None, None, *([False] * 7), **kwargs))
     habits_p = habits_rp.add_subparsers()
 
     sp = habits_p.add_parser('read', aliases=['r'], help='read checks')
@@ -103,7 +103,7 @@ def main():
     sp.add_argument('start', help="date or N days ago (inclusive, default 0)", default="7", nargs="?")
     sp.add_argument('end', help="date or N days ago (inclusive, default 0)", default="0", nargs="?")
 
-    sp = habits_p.add_parser('stats', aliases=['s'], help='summarize total time')
+    sp = habits_p.add_parser('stats', aliases=['s'], help='summarize completion percentage')
     sp.set_defaults(handler=habit_stats)
     sp.add_argument('start', help="date or N steps ago", nargs="?")
     sp.add_argument('end', help="date or N steps ago", nargs="?")
@@ -170,6 +170,9 @@ def display_segments(res):
 
 def stats(start, end, activities, day, week, month, quarter, year, all, root, count, percent, top, graph, **global_args):
     window = "day" if day else "week" if week else "month" if month else "quarter" if quarter else "year" if year else "all" if all else None
+
+    if activities == "f":
+        activities = _pick_activity()
     res = api.post(f"api/time4/stats", {
         'start': start or (20 if graph else None),
         'end': end,
@@ -258,32 +261,30 @@ def mark(minutes=None, **global_args):
         print("no mark created")
 
 def end(args, start, end, **global_args):
-    if len(args) > 2 and (start or end):
-        print("Cannot specify start or end with more than 2 arguments")
-        quit(1)
-
     payloads = []
-    for pair in range(0, max(1, len(args)), 2):
+    i = 0
+
+    while i < len(args) or len(payloads) == 0:
         payload = {}
 
-        for i in range(pair, min(pair + 2, len(args))):
-            if _is_time_arg(args[i]):
-                if payload.get('duration') is not None:
-                    print("Duration duplicate", payload.get('duration'), args[i])
-                    quit(1)
-                payload['duration'] = args[i]
+        # consume args as long as they are not already in the payload
+        while i < len(args):
+            key = 'duration' if _is_time_arg(args[i]) else 'activity'
+            if key not in payload:
+                payload[key] = args[i]
+                i += 1
             else:
-                if payload.get('activity') is not None:
-                    print("Activity duplicate", payload.get('activity'), args[i])
-                    quit(1)
-                payload['activity'] = args[i]
-
+                break
+        
+        if len(payloads) > 0 and (start or end):
+            print("Cannot specify start or end with more than 2 payloads")
+            quit(1)
+        
         if start:
             payload['start'] = start
-
         if end:
             payload['end'] = end
-        elif payload.get('duration', '').startswith("-"):
+        elif payload.get('duration', "").startswith("-"):
             payload['end'] = payload['duration'][1:]
             del payload['duration']
         elif ":" in payload.get('duration', ""):
@@ -348,9 +349,7 @@ def delete(time, **global_args):
         print("nothing to delete")
 
 def add_activity(activity, parent, **global_args):
-    entry = {"activity": activity}
-    if parent:
-        entry['parent'] = parent
+    entry = {"activity": activity, "parent": parent}
     api.post("api/time4/activities", entry)
 
 def delete_activity(activity, **global_args):
@@ -396,12 +395,13 @@ def read_checks(start, end, **global_args):
 
 def display_checks(res):
     end_index = res.get('endIndex', 9)
-    header = [(f"{i}" if i > 0 else "") for i in range(end_index)]
+    header = [""] + [f"{i}" for i in range(1, end_index)]
     p = [header]
     for day in res.get('checks', []):
         p.append([day.get('date', "??")])
         for c in day.get('checks', []):
             p[-1].append(_display_check_sign(c.get('check', "??")))
+    p.append(["Streak"] + [s.get('streak', "") if s.get('streak', "") != 0 else "" for s in res.get('streaks', [])])
 
     print_table(p)
 
@@ -461,8 +461,8 @@ def batch_check(checks, date, overwrite, **global_args):
     for c in res.get('checks', []):
         print("checked", _display_check(c))
 
-def list_habits(status, all, **global_args):
-    status = status if not all else "all"
+def list_habits(closed, all, **global_args):
+    status = "all" if all else "closed" if closed else "open"
     res = api.get(f"api/time4/habits?status={status}")
     rows = []
     for i, h in enumerate(res.get('habits', [])):

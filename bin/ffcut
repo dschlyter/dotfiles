@@ -6,6 +6,7 @@ import textwrap
 import os
 import unittest
 import sys
+import shutil
 import time
 from typing import List
 
@@ -24,14 +25,15 @@ def main():
     main_p.add_argument('--smaller', action='store_true', help='720p with libx264')
     main_p.add_argument('--smallest', action='store_true', help='720p with libx265')
     main_p.add_argument('--scale', help='horizontal scale to use for small/mid cuts, default is 1280 or 1920')
-    main_p.add_argument('--quality', default="28", help='quality to use for small cuts, default is 28 (higher is better, ffmpeg default is 23)')
+    main_p.add_argument('--quality', type=int, help='quality to use for small cuts, default is 28 (higher is better, ffmpeg default is 23)')
+    main_p.add_argument('--mv', '-m', action='store_true', help='move to subdirs when done')
 
     parsed_args = main_p.parse_args()
     # Note: All handlers must have **kwargs to handle global args
     parsed_args.handler(**parsed_args.__dict__)
 
 
-def cut(files_and_times: List[str], copy, mid, smid, small, smaller, smallest, scale, quality, **global_args):
+def cut(files_and_times: List[str], copy, mid, smid, small, smaller, smallest, scale, quality, mv, **global_args):
     args = files_and_times
 
     video_args = []
@@ -40,9 +42,10 @@ def cut(files_and_times: List[str], copy, mid, smid, small, smaller, smallest, s
     if copy:
         video_args = "-c copy".split(" ")
     elif key:
+        quality = quality or (28 if key in ["small", "smaller", "smallest"] else 23)
         video_args = {
             "mid": "-c:a aac -c:v libx264 -b:v 3M -maxrate 3M -bufsize 10M".split(" "),
-            "smid": f"-c:a aac -c:v libx264 -crf 23".split(" "),
+            "smid": f"-c:a aac -c:v libx264 -crf {quality}".split(" "),
             "small": f"-c:a aac -c:v hevc_nvenc -rc vbr -cq {quality}".split(" "),
             "smaller": f"-c:a aac -c:v libx264 -crf {quality}".split(" "),
             "smallest": f"-c:a aac -c:v libx265 -crf {quality}".split(" "),
@@ -85,10 +88,20 @@ def cut(files_and_times: List[str], copy, mid, smid, small, smaller, smallest, s
         sys.exit(0)
     output_file = os.path.splitext(args[0])[0] + output_suffix + ".mp4"
 
+    if mv:
+        subdir = "ffcut-done"
+        if not os.path.exists(subdir):
+            os.makedirs(subdir)
+        output_file = os.path.join(subdir, output_file)
+
     if len(files_to_process) == 1 and len(files_to_process[0][1]) <= 2:
         direct_cut(files_to_process, output_file, video_args, scale_filter)
     else:
         multi_file_cut(files_to_process, output_file, video_args, scale_filter)
+
+    if mv:
+        for f in files_to_process:
+            move_to_dir(f[0], "ffcut-source")
 
 
 def direct_cut(files_to_process: List[str], output_file: str, video_args, scale_filter):
@@ -119,6 +132,8 @@ def multi_file_cut(files_to_process: List[str], output_file: str, video_args, sc
                 input_args += ["-ss", start, "-to", end, "-i", file]
                 segment_count += 1
 
+    # TODO this can fail is files have different resolutions or framerates
+    # color fix: -pix_fmt yuv420p -profile:v high
     filter_complex = ""
     if scale_filter:
         filter_complex += ";".join(f"[{i}:v]{scale_filter}[v{i}]" for i in range(segment_count)) + ";"
@@ -182,6 +197,12 @@ def OLD_multi_file_cut(files_to_process: List[str], output_file: str, video_args
         if os.path.exists(tmp_file):
             os.remove(tmp_file)
     os.remove(tmp_file_list)
+
+
+def move_to_dir(file: str, subdir: str):
+    if not os.path.exists(subdir):
+        os.makedirs(subdir)
+    shutil.move(file, subdir)
 
 
 if __name__ == '__main__':

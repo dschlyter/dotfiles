@@ -9,6 +9,17 @@
             "commands": ["git.revertSelectedRanges"]
         },
         {
+            "before": ["<leader>", "i"],
+            "commands": [
+                {
+                    "command": "editor.action.insertSnippet",
+                    "args": {
+                        "snippet": "${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}"
+                    }
+                }
+            ]
+        },
+        {
             "before": ["g", "f"],
             "commands": ["references-view.findReferences"]
         },
@@ -42,7 +53,8 @@
     "vim.vimrc.enable": true,
     "vim.handleKeys": {
         "<C-f>": false,
-        "<C-p>": false
+        "<C-p>": false,
+        "<C-w>": false,
     },
     "vim.foldfix": true,
 
