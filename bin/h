@@ -21,6 +21,7 @@ def main():
     sp.set_defaults(handler=read)
     sp.add_argument('start', help="date or N days ago (default 1 day ago)", default="1", nargs="?")
     sp.add_argument('end', help="date or N days ago (default 0)", default="0", nargs="?")
+    sp.add_argument('--activity', '-a', help="filter for activity")
 
     sp = root_p.add_parser('stats', aliases=['s'], help='summarize total time')
     sp.set_defaults(handler=stats)
@@ -154,8 +155,9 @@ def main():
     decorated_handler = api_err_print_and_exit(parsed_args.handler)
     decorated_handler(**parsed_args.__dict__)
 
-def read(start, end, **global_args):
-    res = api.get(f"api/time4/segments?start={start}&end={end}")
+def read(start, end, activity, **global_args):
+    activity_param = f"&activity={activity}" if activity else ""
+    res = api.get(f"api/time4/segments?start={start}&end={end}{activity_param}")
     display_segments(res)
 
 def display_segments(res):
