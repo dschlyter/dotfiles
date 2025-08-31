@@ -2,6 +2,8 @@
 
 import argparse
 import shutil
+from collections import defaultdict
+from datetime import datetime
 
 from dotlib.api import RestApi, api_err_print_and_exit
 from dotlib.fzf import fzf_match
@@ -19,9 +21,10 @@ def main():
 
     sp = root_p.add_parser('read', aliases=['r'], help='read time')
     sp.set_defaults(handler=read)
-    sp.add_argument('start', help="date or N days ago (default 1 day ago)", default="1", nargs="?")
+    sp.add_argument('start', help="date or N days ago (default 1 day ago)", nargs="?")
     sp.add_argument('end', help="date or N days ago (default 0)", default="0", nargs="?")
     sp.add_argument('--activity', '-a', help="filter for activity")
+    sp.add_argument('--graph', '-g', help="show a graph visual of changes", action="store_true")
 
     sp = root_p.add_parser('stats', aliases=['s'], help='summarize total time')
     sp.set_defaults(handler=stats)
@@ -46,7 +49,7 @@ def main():
 
     sp = root_p.add_parser('end', aliases=['e'], help='end segment')
     sp.set_defaults(handler=end)
-    sp.add_argument('args', help="[activity] [duration / end] ... (-N or HH:MM is interpreted as end)", nargs="*")
+    sp.add_argument('args', help="[duration / end] [activity] ... (-N or HH:MM duration is interpreted as end)", nargs="*")
     sp.add_argument('--start', '-s', help='start of the segment')
     sp.add_argument('--end', '-e', help='end of the segment')
 
@@ -155,10 +158,71 @@ def main():
     decorated_handler = api_err_print_and_exit(parsed_args.handler)
     decorated_handler(**parsed_args.__dict__)
 
-def read(start, end, activity, **global_args):
+def read(start, end, activity, graph, **global_args):
+    start = start or (7 if graph else 1)
     activity_param = f"&activity={activity}" if activity else ""
     res = api.get(f"api/time4/segments?start={start}&end={end}{activity_param}")
-    display_segments(res)
+    if not graph:
+        display_segments(res)
+    else:
+        # Sum by roots, and assign top roots to color
+        activities = api.get(f"api/time4/activities?status=all").get('activities', [])
+        root_for = {a['id']: (a['lineage'] or [a['id']])[0] for a in activities}
+
+        colors = [muted_blue_bg, muted_green_bg, muted_red_bg, muted_yellow_bg, muted_purple_bg]
+
+        totals = defaultdict(lambda: 0)
+        for s in res.get('segments', []):
+            totals[root_for.get(s['activity'])] += s['minutes']
+        top = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+        col_map = {r[0]: col for r, col in zip(top, colors)}
+        print("Top roots:", " ".join([col(r[0]) for r, col in zip(top, colors)]), nothing("other"))
+
+        # Print timeline header
+        print(" " * 12, end="")
+        for i in range(24):
+            print(str(i).ljust(6), end="")
+
+        # Split multi-date segments for simlicity
+        single_date = []
+        for s in res.get('segments', []):
+            d1 = s['id'][0:10]
+            d2 = s['end'][0:10]
+            if d1 == d2:
+                single_date.append({**s, 'date': d1})
+            else:
+                single_date.append({**s, 'end': d1 + "T23:59:59", 'date': d1})
+                single_date.append({**s, 'id': d2 + "T00:00:00", 'date': d2})
+
+        # Print segments to timeline
+        def slot(ts):
+            t = ts.split("T")[1].split(":")
+            return int(t[0]) * 6 + int(t[1][0])
+
+        pos = 0
+        last_date = None
+        for s in single_date:
+            if last_date != s['date']:
+                last_date = s['date']
+                print()
+                if _is_monday(last_date):
+                    print()
+                print(last_date, end=": ")
+                pos = 0
+            s1 = max(pos, slot(s['id']))
+            s2 = slot(s['end'])
+            size = s2 - s1
+            if size <= 0:
+                continue
+            if pos <= s1:
+                print(" " * (s1 - pos), end="")
+                pos = s1
+
+            a = s['activity']
+            col = col_map.get(root_for.get(a), nothing)
+            print(col(a[0:(size-1)].ljust(size-1) + " "), end="")
+            pos += size
+        print()
 
 def display_segments(res):
     last_date = None
@@ -219,6 +283,8 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
     elif top:
         table = []
         for c in cols:
+            if _is_monday(c):
+                table.append([])
             table.append([c])
             entries = [(s[r][c], r) for r in rows if c in s[r] and r != "total"]
             entries = sorted(entries, reverse=True)
@@ -243,6 +309,8 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
         just = max([len(c) for c in cols])+1
         bar_size = int(shutil.get_terminal_size().columns) - just
         for c in cols:
+            if _is_monday(c):
+                print()
             print(c.ljust(just), end="")
             total = s['total'].get(c, 0)
             acc = 0
@@ -274,19 +342,16 @@ def end(args, start, end, **global_args):
     while i < len(args) or len(payloads) == 0:
         payload = {}
 
-        # consume args as long as they are not already in the payload
-        while i < len(args):
-            key = 'duration' if _is_time_arg(args[i]) else 'activity'
-            if key not in payload:
-                payload[key] = args[i]
+        if _is_time_arg(args[i]):
+            payload['duration'] = args[i]
+            i += 1
+        if not _is_time_arg(args[i]):
+            payload['activity'] = args[i]
                 i += 1
-            else:
-                break
         
         if len(payloads) > 0 and (start or end):
-            print("Cannot specify start or end with more than 2 payloads")
+            print("Cannot specify start or end with more than 2 segments")
             quit(1)
-        
         if start:
             payload['start'] = start
         if end:
@@ -405,6 +470,8 @@ def display_checks(res):
     header = [""] + [f"{i}" for i in range(1, end_index)]
     p = [header]
     for day in res.get('checks', []):
+        if _is_monday(day.get('date')):
+            p.append([])
         p.append([day.get('date', "??")])
         for c in day.get('checks', []):
             p[-1].append(_display_check_sign(c.get('check', "??")))
@@ -493,6 +560,11 @@ def update_habit(name, description, status, index, **global_args):
 
 def _is_time_arg(arg):
     return arg is not None and (arg[0].isdigit() or arg[0] == "-")
+
+def _is_monday(date):
+    if len(date) != 10:
+        return False
+    return datetime.fromisoformat(date).weekday() == 0
 
 def _display_segment(segment, show_end=True, show_zero_h=True):
     sid = segment['id']

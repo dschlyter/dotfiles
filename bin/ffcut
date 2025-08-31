@@ -38,20 +38,26 @@ def cut(files_and_times: List[str], copy, mid, smid, small, smaller, smallest, s
 
     video_args = []
     output_suffix = "_CUT"
-    key = (mid and "mid") or (smid and "smid") or (small and "small") or (smaller and "smaller") or (smallest and "smallest") or None
+    preset = {
+        mid: ["mid", "-c:a aac -c:v libx264 -b:v 3M -maxrate 3M -bufsize 10M", 1920, None],
+        smid: ["smid", "-c:a aac -c:v libx264 -b:v 2M -maxrate 2M -bufsize 10M", 1280, None],
+        small: ["small", "-c:a aac -c:v hevc_nvenc -rc vbr -cq {quality}", 1280, 28],
+        smaller: ["smaller", "-c:a aac -c:v libx264 -crf {quality}", 1280, 28],
+        smallest: ["smallest", "-c:a aac -c:v libx265 -crf {quality}", 1280, 28],
+    }.get(True)
+
     if copy:
         video_args = "-c copy".split(" ")
-    elif key:
-        quality = quality or (28 if key in ["small", "smaller", "smallest"] else 23)
-        video_args = {
-            "mid": "-c:a aac -c:v libx264 -b:v 3M -maxrate 3M -bufsize 10M".split(" "),
-            "smid": f"-c:a aac -c:v libx264 -crf {quality}".split(" "),
-            "small": f"-c:a aac -c:v hevc_nvenc -rc vbr -cq {quality}".split(" "),
-            "smaller": f"-c:a aac -c:v libx264 -crf {quality}".split(" "),
-            "smallest": f"-c:a aac -c:v libx265 -crf {quality}".split(" "),
-        }.get(key, video_args)
-        scale = scale or ("1280" if not mid else "1920")
-        output_suffix = f"_{key.upper()}_{scale}_{quality}"
+    elif preset:
+        key = preset[0]
+        video_args = preset[1]
+        scale = scale or preset[2]
+        quality = quality or preset[3]
+        output_suffix = f"_{key.upper()}_{scale}"
+        if quality:
+            video_args = video_args.format(quality=quality)
+            output_suffix += f"_{quality}"
+        video_args = video_args.split(" ")
     if scale:
         h_scale = round(int(scale) * 1080 / 1920)
         # scale down to scale - but not up, and keep aspect ratio
