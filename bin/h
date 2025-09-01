@@ -181,23 +181,29 @@ def read(start, end, activity, graph, **global_args):
         # Print timeline header
         print(" " * 12, end="")
         for i in range(24):
-            print(str(i).ljust(6), end="")
+            h = (i + 5) % 24
+            print(str(h).ljust(6), end="")
 
-        # Split multi-date segments for simlicity
+        # Split multi-date segments for simlicity - split at 05:00
         single_date = []
         for s in res.get('segments', []):
-            d1 = s['id'][0:10]
+            d1 = s['date']
             d2 = s['end'][0:10]
-            if d1 == d2:
-                single_date.append({**s, 'date': d1})
+            h2 = s['end'][11:13]
+            if d1 == d2 or h2 < '05':
+                single_date.append(s)
             else:
-                single_date.append({**s, 'end': d1 + "T23:59:59", 'date': d1})
-                single_date.append({**s, 'id': d2 + "T00:00:00", 'date': d2})
+                single_date.append({**s, 'end': d2 + "T04:59:59", 'date': d1})
+                single_date.append({**s, 'id': d2 + "T05:00:00", 'date': d2})
 
         # Print segments to timeline
         def slot(ts):
             t = ts.split("T")[1].split(":")
-            return int(t[0]) * 6 + int(t[1][0])
+            h = int(t[0])
+            if h < 5:
+                h += 24
+            m = int(t[1][0])
+            return -(5 * 6) + h * 6 + m
 
         pos = 0
         last_date = None
@@ -239,6 +245,8 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
 
     if activities == "f":
         activities = _pick_activity()
+    if activities:
+        root = False
     res = api.post(f"api/time4/stats", {
         'start': start or (20 if graph else None),
         'end': end,
@@ -314,9 +322,6 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
             print(c.ljust(just), end="")
             total = s['total'].get(c, 0)
             acc = 0
-            for i, r, in enumerate(no_total):
-                # print(r, s[r].get(c, 0))
-                pass
             for i, r in enumerate(no_total):
                 v = s[r].get(c, 0)
                 perc = v / total if total > 0 else 0
@@ -347,7 +352,7 @@ def end(args, start, end, **global_args):
             i += 1
         if not _is_time_arg(args[i]):
             payload['activity'] = args[i]
-                i += 1
+            i += 1
         
         if len(payloads) > 0 and (start or end):
             print("Cannot specify start or end with more than 2 segments")
