@@ -14,6 +14,8 @@ BLUE_BG = "\033[44m"
 MAGENTA_BG = "\033[45m"
 CYAN_BG = "\033[46m"
 WHITE_BG = "\033[47m"
+GREY_BG = "\033[100m"
+LIGHT_GREY_BG = "\033[107m"
 
 RESET = "\033[0m"
 
@@ -65,6 +67,12 @@ def cyan_bg(text):
 
 def white_bg(text):
     return f"{WHITE_BG}{text}{RESET}"
+
+def grey_bg(text):
+    return f"{GREY_BG}{text}{RESET}"
+
+def light_grey_bg(text):
+    return f"{GREY_BG}{text}{RESET}"
 
 
 # 256 colors

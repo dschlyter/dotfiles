@@ -236,7 +236,8 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
         print_table(table, fit=True)
     else:
         colors = [muted_blue_bg, muted_green_bg, muted_red_bg, muted_yellow_bg, muted_purple_bg]
-        top_rows = rows[1:6]
+        no_total = rows[1:]
+        top_rows = no_total[:5]
         print("Top activities:", " ".join([col(r) for r, col in zip(top_rows, colors)]), nothing("other"))
 
         just = max([len(c) for c in cols])+1
@@ -245,14 +246,18 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
             print(c.ljust(just), end="")
             total = s['total'].get(c, 0)
             acc = 0
-            for r, col in zip(top_rows, colors):
+            for i, r, in enumerate(no_total):
+                # print(r, s[r].get(c, 0))
+                pass
+            for i, r in enumerate(no_total):
                 v = s[r].get(c, 0)
                 perc = v / total if total > 0 else 0
-                text = str(int(perc * 100)) + "% " + (f"{v:>4}" if count else _display_duration(v, show_zero_h=True))
                 size = round((acc + perc) * bar_size) - round(acc * bar_size)
+                text = str(int(perc * 100)) + "% " + (f"{v:>4}" if count else _display_duration(v, show_zero_h=True)) + " " + r
+                col = colors[i] if i < 5 else nothing
                 print(col(text[0:size] + " " * (size - len(text))), end="")
                 acc += perc
-            print(white_bg(" " * (bar_size - round(acc * bar_size))))
+            print(light_grey_bg(" " * (bar_size - round(acc * bar_size))))
 
 def mark(minutes=None, **global_args):
     res = api.post(f"api/time4/mark", {"time": minutes})
