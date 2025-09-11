@@ -211,7 +211,23 @@ _update_git_info() {
         set +m
 
         # start checking for modified files in the background - this is the slowest operation so we start it first
-        (git ls-files --deleted --modified --others --exclude-standard -- "$GIT_ROOT" | grep -q .) &
+        # check the entire repo, unless repo is marked as slow (monorepo) then check the current directory (or skip if in repo root)
+        if [ -f "$GIT_ROOT/.git/slow" ]; then
+            is_slow_repo=1
+        else
+            is_slow_repo=0
+        fi
+        if [ "$is_slow_repo" -eq 1 ] && [ "$PWD" = "$GIT_ROOT" ]; then
+            # both marked as slow and in repo root, skip the check (exit 1)
+            (exit 1) &
+        else
+            if [ "$is_slow_repo" -eq 1 ]; then
+                check_dir="."
+            else
+                check_dir="$GIT_ROOT"
+            fi
+            (git ls-files --deleted --modified --others --exclude-standard -- "$check_dir" | grep -q .) &
+        fi
         local UNTRACKED_PID="$!"
 
         # start checking for ahead / behind status in the background
@@ -267,6 +283,9 @@ _update_git_info() {
         fi
         if [ "$DAYS_SINCE_FETCH" -gt $GIT_MAX_DAYS_BEHIND ]; then
             GIT_STATUS="$GIT_STATUS%F{39}$DAYS_SINCE_FETCH "
+        fi
+        if [ "$is_slow_repo" -eq 1 ]; then
+            GIT_STATUS="$GIT_STATUS%F{39}slow "
         fi
         if [ "$UNTRACKED_RET" -eq 0 ] || [ "$DIFF_RET" -eq 1 ]; then
             GIT_STATUS="$GIT_STATUS%F{197}δ "
