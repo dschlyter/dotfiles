@@ -245,8 +245,6 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
 
     if activities == "f":
         activities = _pick_activity()
-    if activities:
-        root = False
     res = api.post(f"api/time4/stats", {
         'start': start or (20 if graph else None),
         'end': end,
@@ -309,25 +307,29 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
                     table[-1].append("")
         print_table(table, fit=True)
     else:
-        colors = [muted_blue_bg, muted_green_bg, muted_red_bg, muted_yellow_bg, muted_purple_bg]
-        no_total = rows[1:]
-        top_rows = no_total[:5]
-        print("Top activities:", " ".join([col(r) for r, col in zip(top_rows, colors)]), nothing("other"))
+        colors = [muted_blue_bg, muted_green_bg, muted_red_bg, muted_yellow_bg, muted_purple_bg, muted_orange_bg, 
+                  muted_pink_bg, muted_teal_bg, muted_brown_bg, muted_olive_bg, muted_grey_bg]
 
+        widest_row = max(s['total'].get(c, 0) for c in cols if c != 'total')
         just = max([len(c) for c in cols])+1
         bar_size = int(shutil.get_terminal_size().columns) - just
         for c in cols:
             if _is_monday(c):
                 print()
             print(c.ljust(just), end="")
-            total = s['total'].get(c, 0)
+            no_total = rows[1:]
+            total = max(widest_row, s['total'].get(c, 0))
             acc = 0
             for i, r in enumerate(no_total):
                 v = s[r].get(c, 0)
                 perc = v / total if total > 0 else 0
                 size = round((acc + perc) * bar_size) - round(acc * bar_size)
-                text = str(int(perc * 100)) + "% " + (f"{v:>4}" if count else _display_duration(v, show_zero_h=True)) + " " + r
-                col = colors[i] if i < 5 else nothing
+                text = r
+                if size >= 10:
+                    text = (f"{v:>4}" if count else _display_duration(v, show_zero_h=True)) + " " + text
+                if size >= 13:
+                    text = str(int(perc * 100)) + "% " + text
+                col = colors[i] if i < len(colors) else nothing
                 print(col(text[0:size] + " " * (size - len(text))), end="")
                 acc += perc
             print(light_grey_bg(" " * (bar_size - round(acc * bar_size))))

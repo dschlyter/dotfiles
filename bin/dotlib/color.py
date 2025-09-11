@@ -118,3 +118,24 @@ def muted_yellow_bg(text):
 
 def muted_purple_bg(text):
     return color_bg_256(code_muted_purple, text)
+
+def muted_orange_bg(text):
+    return color_bg_256(130, text)
+
+def muted_cyan_bg(text):
+    return color_bg_256(37, text)
+
+def muted_pink_bg(text):
+    return color_bg_256(161, text)
+
+def muted_teal_bg(text):
+    return color_bg_256(30, text)
+
+def muted_olive_bg(text):
+    return color_bg_256(100, text)
+
+def muted_brown_bg(text):
+    return color_bg_256(94, text)
+
+def muted_grey_bg(text):
+    return color_bg_256(240, text)
