@@ -197,6 +197,7 @@
 
     # branch management
     cl = !git clone "$@" && cd "$(ls -t | head -1)" && test "$(git curr-br)" == "main" && git br -m master && git br || true "#"
+    master = br -m main master
     # when done with branch after squash (this will do a hard delete of the branch)
     done = !git switch master && git pull --prune && git brc
     # list all branches - but local last
