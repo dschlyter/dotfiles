@@ -1,5 +1,5 @@
 javascript:(function() {
-  /* Paste this into a browser bookmark for easy access! Code conservatively here, no arrow functions or one-line comments, as that will break paste-ability. */
+  /* Paste this into a browser bookmark for easy access! Code conservatively here, always semicolons, no arrow functions or one-line comments, as that will break paste-ability. */
   var doggos = [
     "https://static.vecteezy.com/system/resources/thumbnails/041/642/908/small_2x/ai-generated-cute-cat-reaching-up-with-paw-on-transparent-background-png.png",
     "https://static.vecteezy.com/system/resources/thumbnails/048/739/390/small_2x/cat-relaxing-isolated-against-a-transparent-background-png.png",
@@ -8,11 +8,14 @@ javascript:(function() {
     "https://th.bing.com/th/id/OIP.psjzMVsafow2MY16pbkCRgHaHa?w=181&h=181&c=7&r=0&o=7&pid=1.7&rm=3",
     "https://png.pngtree.com/png-clipart/20231020/original/pngtree-happy-funny-cute-kitty-fluffy-cat-png-image_13374339.png",
     "https://png.pngtree.com/png-clipart/20230927/original/pngtree-happy-cat-smiling-cat-png-image_13141575.png",
-    "https://www.pngall.com/wp-content/uploads/10/Dog-Pet-PNG-Pic.png"
+    "https://www.pngall.com/wp-content/uploads/10/Dog-Pet-PNG-Pic.png",
+    "https://www.freeiconspng.com/uploads/dog-png-30.png"
   ];
 
   var N = 40;
   var SIZE = 150;
+  var DURATION = 4;
+
   var W = window.innerWidth;
   var H = window.innerHeight;
 
@@ -41,7 +44,7 @@ javascript:(function() {
       var vy = -rand(H * 1.5, H * 3);
       var gravity = H * 3;
       var airResistance = 0.998;
-      var duration = rand(2.0, 4.0);
+      var duration = rand(DURATION, DURATION * 2);
       var startTime = performance.now();
 
       function step(t) {

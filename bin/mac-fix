@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+
+import argparse
+import subprocess
+import re
+import os
+import unittest
+import json
+from typing import List
+
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    global_parser = argparse.ArgumentParser(description='Fixes for macOS issues')
+
+    global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
+    global_parser.add_argument('--dry-run', '-d', action='store_true')
+    sub_ps = global_parser.add_subparsers()
+
+    sp = sub_ps.add_parser('keyboard', help='Set all keyboards to Swedish layout - since the built in preference pane does not do this properly')
+    sp.set_defaults(handler=keyboard)
+    sp.add_argument("layout", nargs='?', type=int, default="41", help="Keyboard layout to set (default: 41 for Swedish)")
+
+    parsed_args = global_parser.parse_args()
+    # Note: All handlers must have **kwargs to handle global args
+    parsed_args.handler(**parsed_args.__dict__)
+
+
+def keyboard(layout, **kwargs):
+    keyboards = sh_read('system_profiler SPUSBDataType | grep -E "Product ID|Vendor ID|Product:"')
+    print("Available keyboards:", keyboards)
+    print()
+
+    keyboards = sh_read('hidutil list -m \'{"Class":"AppleUserHIDDevice"}\'')
+    print("Available", keyboards)
+    print()
+
+    conf_str = sh_read("defaults read /Library/Preferences/com.apple.keyboardtype")
+    print("Current layout conf", conf_str)
+
+    conf = parse_simple_plist(conf_str)
+    for keyboard_id, curr_layout in conf["keyboardtype"].items():
+        vendor_info = "0x{:x}".format(int(get(keyboard_id.split("-"), 1)))
+        for keyboard_info in keyboards.split("\n"):
+            if vendor_info in keyboard_info:
+                vendor_info = keyboard_info.strip()
+        print(vendor_info, f"Keyboard {keyboard_id} has layout {curr_layout}", sep='\t')
+        if curr_layout != layout:
+            print(f"Enter 'y' to change {keyboard_id} to {layout}", end=': ')
+            if input().strip() == "y":
+                print(f"Changing... {keyboard_id} to layout {layout}")
+                sh(f'sudo defaults write /Library/Preferences/com.apple.keyboardtype keyboardtype -dict-add "{keyboard_id}" -int {layout}')
+
+    print("Please connect/disconnect keyboards for changes to take effect.")
+    print('Otherwise try:')
+    print('killall -u "$USER" SystemUIServer')
+
+
+def sh(command):
+    subprocess.check_call(['/bin/bash', '-o', 'pipefail', '-c', command])
+
+
+def sh_read(command):
+    return subprocess.check_output(['/bin/bash', '-o', 'pipefail', '-c', command]).decode("utf-8").strip()
+
+
+def get(li, i, default=None):
+    if i < 0 or i >= len(li):
+        return default
+    return li[i]
+
+
+# Dumb parser for simple plist format:
+# Unsupported features: lists, String escaping, plist symbols in strings, Comments, XML plists, Data types like <data>, <date>
+def parse_simple_plist(string_data: str):
+    s = string_data
+    # Fix unquoted key names
+    s = re.sub(r'(?<!")\b([A-Za-z0-9_-]+)\b\s*=', r'"\1" =', s)
+    # Convert to JSON-like string
+    s = re.sub(r'\bYES\b', 'true', s)
+    s = re.sub(r'\bNO\b', 'false', s)
+    s = re.sub(r'\(', '[', s)
+    s = re.sub(r'\)', ']', s)
+    s = re.sub(r'=', ':', s)
+    s = re.sub(r';', ',', s)
+    # Fix trailing commas
+    s = re.sub(r',(\s*[}\]])', r'\1', s)
+
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError as e:
+        print("Failed to transform plist string to json:", s, "original input:", string_data)
+        raise
+
+
+# Inline tests
+# Run by setting UNITTEST=1
+class Tests(unittest.TestCase):
+    def test_upper(self):
+        self.assertEqual('foo'.upper(), 'FOO')
+
+
+if __name__ == '__main__':
+    if os.environ.get("UNITTEST") == "1":
+        unittest.main()
+    else:
+        main()

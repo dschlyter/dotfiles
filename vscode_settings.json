@@ -67,5 +67,6 @@
     },
     "gitlens.graph.minimap.enabled": false,
     "explorer.confirmDelete": false,
-    "github.copilot.nextEditSuggestions.enabled": true
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "editor.multiCursorModifier": "ctrlCmd"
 }

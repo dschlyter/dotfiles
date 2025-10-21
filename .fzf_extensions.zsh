@@ -11,7 +11,7 @@ cf() {
     dir="$(find ${1:-} -type d | fzf -1 -0 -e --no-sort +m)" && cd "${dir}" || return 1
 }
 
-# vim with fast
+# vim with fasd
 vf() {
   # zsh demon black magic here
   files=$(fasd -Rdl "$1" | fzf -0 -m) && $EDITOR ${(@f)files}
@@ -69,7 +69,8 @@ __last_command_sel() {
     if [[ -z "$selected_lines" ]]; then
       return
     fi
-    local selected_items="$(echo "$selected_lines" | tr " " "\n" | grep -v "^$" | fzf --tac -q "$query" -m $FZF_CTRL_G_OPTS)"
+    # we might want to select all in this case - add a shortcut for it, and try a very hacky way to put the cursor on top - in order to allow for tab+tab+tab to select
+    local selected_items="$(echo "$selected_lines" | tr " " "\n" | grep -v "^$" | fzf -1 --tac -q "$query" -m --bind 'ctrl-a:select-all,ctrl-d:deselect-all' --bind 'start:up+up+up+up+up+up+up+up+up+up+up+up+up+up+up+up+up' $FZF_CTRL_G_OPTS)"
 
     setopt localoptions pipefail 2> /dev/null
     echo "$selected_items" | while read item; do

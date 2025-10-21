@@ -11,9 +11,6 @@ You can append to registers by using the uppercase.
 
 ## Commands that I still have not learned
 
-qq - create a macro
-qQ - append to the macro - !!!
-
 `gn` go to next match and enter visual mode
 `cgn` change next match - this can be repeated with `.` !!!
 
@@ -57,10 +54,14 @@ Multicursors are awesome!
 
 ## VS code vim
 
+This overlaps a bit with VS codes native multicursor support
+
+* `v` to select multiple lines, and then <Opt-Shift-i> then Esc to get Normal Mode nulticursors (weird!) 
+    * or just `I` to insert at start of line (but does not allow Normal mode)
 * <Cmd-Alt-Down> or <Ctrl-Alt-Down> to add multicursors on the next line
-* `C-d` or `gb` to select current word and add a multicursor
-* <Shift-Alt-Click> to add/remove multicursors anywhere
-* `v` to select multiple lines, and then `I` to insert at start of line
+* <Alt-Click> or <Opt-Click> to add/remove multicursors anywhere
+* <Cmd-d> or `gb` to select current word and add a multicursor
+    * cmd-shift-L to add to all lines
 
 # ZIP!
 
