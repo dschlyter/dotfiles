@@ -112,6 +112,25 @@ alias -g THISHOUR-24='$(date "+%Y-%m-%dT%H" -d "-24 hour")'
 
 # Functions
 
+function ai {
+    # TODO support other agents based on what is installed
+    claude -p "$*"
+}
+
+function fix {
+    last_exit_code=$?
+    last_command=$(fc -ln -2 | head -n 1)
+    cmd_output=$(out | tail -n 100)
+    instructions="${*:-NONE}"
+
+    ai "Help the user with their terminal command, provide debugging tips or suggest a fixed command. Be concise and to the point, just one or a few lines unless asked for more detail.
+User instructions: $instructions
+Command: $last_command
+Exit code: $last_exit_code
+Output (maybe truncated):
+$cmd_output"
+}
+
 # Enable per-pane history in tmux
 function lh {
     pane=$(tmux display-message -p '#S:#I:#P')
@@ -449,6 +468,37 @@ export FZF_CTRL_R_OPTS="-e"
 source_if_exists ~/.fzf.zsh
 source_if_exists ~/.dotfiles/.fzf_extensions.zsh
 profiling_log "fzf and extensions loaded"
+
+# AI command helper - get suggestions for flags and parameters
+ai-command-helper() {
+  local current_buffer="$BUFFER"
+
+  if [[ -z "$current_buffer" ]]; then
+    return
+  fi
+
+  # Save current buffer to temp file for easy reading by AI
+  local tmpfile=$(mktemp)
+  echo "$current_buffer" > "$tmpfile"
+
+  # Ask AI for help with the command
+  local suggestion=$(claude -p "Help improve this shell command by suggesting useful flags, parameters, or corrections. Return ONLY the improved command, no explanation or markdown. Command: $current_buffer")
+
+  # Clean up
+  rm -f "$tmpfile"
+
+  if [[ -n "$suggestion" ]]; then
+    # Replace the buffer with the suggestion
+    BUFFER="$suggestion"
+    # Move cursor to end of line
+    CURSOR=${#BUFFER}
+  fi
+
+  zle redisplay
+}
+
+zle     -N   ai-command-helper
+bindkey '^H' ai-command-helper
 
 # Settings
 
