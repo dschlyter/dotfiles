@@ -36,6 +36,14 @@
         "key": "cmd+h",
         "command": "workbench.action.previousEditor"
     },
+    {
+        "key": "cmd+shift+h",
+        "command": "workbench.action.moveEditorLeftInGroup"
+    },
+    {
+        "key": "cmd+shift+l",
+        "command": "workbench.action.moveEditorRightInGroup"
+    },
     // Cusor specific commands
     {
         "key": "cmd+i",

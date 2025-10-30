@@ -40,6 +40,7 @@ def main():
     sp.add_argument('--root', '-r', help="aggregate up to root activities", action="store_true")
     sp.add_argument('--count', '-c', help="count occurences instead of summing time", action="store_true")
     sp.add_argument('--percent', '-p', help="show percentage instead of total", action="store_true")
+    sp.add_argument('--order', '-o', help="sort in order of first occurence", action="store_true")
     sp.add_argument('--top', '-t', help="show top 10 per line", action="store_true")
     sp.add_argument('--graph', '-g', help="show a graph visual of changes", action="store_true")
 
@@ -60,6 +61,7 @@ def main():
     sp = root_p.add_parser('delete', aliases=['d'], help='delete segment or mark')
     sp.set_defaults(handler=delete)
     sp.add_argument('time', help="time of segment", nargs="?")
+    sp.add_argument('--last', '-l', help="delete last segment", action="store_true")
 
 
     sp = root_p.add_parser('activity', aliases=['a'], help='list and manage activities (has subcommands)')
@@ -240,7 +242,7 @@ def display_segments(res):
 
         print(_display_segment(s, show_end=False, show_zero_h=False))
 
-def stats(start, end, activities, day, week, month, quarter, year, all, root, count, percent, top, graph, **global_args):
+def stats(start, end, activities, day, week, month, quarter, year, all, root, count, percent, order, top, graph, **global_args):
     window = "day" if day else "week" if week else "month" if month else "quarter" if quarter else "year" if year else "all" if all else None
 
     if activities == "f":
@@ -254,13 +256,19 @@ def stats(start, end, activities, day, week, month, quarter, year, all, root, co
         'count': count,
     })
 
-    s = res['stats']
+    # s[entry][time window] = duration
+    s: dict[str, dict[str, int]] = res['stats']
 
     if 'total' not in s:
         print("No data")
         return
 
-    rows = sorted(s.keys(), key=lambda k: s[k]['total'], reverse=True)
+    if not order:
+        rows = sorted(s.keys(), key=lambda k: s[k]['total'], reverse=True)
+    else:
+        no_tot = [k for k in s.keys() if k != "total"]
+        columns = {k: {col for col in s[k].keys() if col != "total"} for k in no_tot}
+        rows = sorted(no_tot, key=lambda k: [min(columns[k]), max(columns[k]), s[k]['total']]) + ["total"]
     cols = [c for c in s['total'].keys() if c != 'total'] + ['total']
     if len(cols) == 2:
         cols.remove('total')
@@ -349,13 +357,13 @@ def end(args, start, end, **global_args):
     while i < len(args) or len(payloads) == 0:
         payload = {}
 
-        if _is_time_arg(args[i]):
+        if i < len(args) and _is_time_arg(args[i]):
             payload['duration'] = args[i]
             i += 1
-        if not _is_time_arg(args[i]):
+        if i < len(args) and not _is_time_arg(args[i]):
             payload['activity'] = args[i]
             i += 1
-        
+
         if len(payloads) > 0 and (start or end):
             print("Cannot specify start or end with more than 2 segments")
             quit(1)
@@ -373,11 +381,17 @@ def end(args, start, end, **global_args):
         if payload.get('activity') is None:
             payload['activity'] = _pick_activity()
 
+        if payload['activity'] == "ex" and payload.get('end') is not None:
+            quit("Only durations are supported for extend")
+
         payloads.append(payload)
 
     for payload in payloads:
-        res = api.post("api/time4/segments", payload)
-        print("ended", _display_segment(res.get('segment')))
+        if payload['activity'] != "ex":
+            res = api.post("api/time4/segments", payload)
+            print("ended", _display_segment(res.get('segment')))
+        else:
+            extend([payload.get('duration') or "0"])
 
 def _pick_activity(multiple=False, status="open"):
     activities = api.get(f"api/time4/activities?status={status}").get('activities', [])
@@ -400,23 +414,26 @@ def extend(args, **global_args):
             minutes = int(args[0])
         else:
             segment = args[0]
-    if len(args) >= 2:
+    if len(args) == 2:
         minutes = int(args[1])
 
     res = api.post(f"api/time4/segments/{segment}/extend", {"minutes": minutes})
     if s := res.get('segment'):
         print("updated", _display_segment(s))
     else:
-        print("nothing to delete")
+        print("nothing to update")
 
-def delete(time, **global_args):
+def delete(time, last, **global_args):
     if not time:
         segments = api.get(f"api/time4/segments").get('segments', [])
         if not segments:
             print("No segments to delete")
             quit(1)
         lines = list(map(lambda s: f"{s['id']} {s.get('minutes', '-')} {s['activity']}", [s for s in segments if s['activity'] != "?"]))
-        selected = fzf_match(lines, sort=False)
+        if last:
+            selected = lines[-1]
+        else:
+            selected = fzf_match(lines, sort=False)
         if not selected:
             print("No segment selected")
             quit(1)

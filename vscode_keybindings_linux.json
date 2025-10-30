@@ -1,4 +1,4 @@
-// Place your key bindings in this file to override the defaultsauto
+// Place your key bindings in this file to override the defaults
 // vscode_keybindings_linux.json also works on windows, but instead on install.sh: Shift-Ctrl P -> Open Keyboard Shortcuts (JSON), and copy-paste
 [
     {
@@ -17,5 +17,13 @@
     {
         "key": "alt+l",
         "command": "workbench.action.nextEditor"
-    }
+    },
+    {
+        "key": "alt+shift+h",
+        "command": "workbench.action.moveEditorLeftInGroup"
+    },
+    {
+        "key": "alt+shift+l",
+        "command": "workbench.action.moveEditorRightInGroup"
+    },
 ]
