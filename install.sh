@@ -59,6 +59,36 @@ link_settings() {
     fi
 }
 
+sync_settings() {
+    local settings_root="$1"
+    local settings_subdir="$2"
+    local settings_file="$3"
+    local dotfiles_file="${4:-$settings_file}"
+
+    local target="$settings_root/$settings_subdir/$settings_file"
+
+    if [ -d "$settings_root" ]; then
+        mkdir -p "${settings_root}/${settings_subdir}"
+
+        local mtime1=$([[ -f "$dotfiles_file" ]] && (stat -c %Y "$dotfiles_file" 2>/dev/null || stat -f %m "$dotfiles_file" 2>/dev/null) || echo 0)
+        local mtime2=$([[ -f "$target" ]] && (stat -c %Y "$target" 2>/dev/null || stat -f %m "$target" 2>/dev/null) || echo 0)
+
+        if [[ "$mtime1" -eq 0 && "$mtime2" -eq 0 ]]; then
+            echo "Neither $dotfiles_file nor $target exists - no sync"
+        elif [[ "$mtime1" -gt "$mtime2" ]]; then
+            echo "$dotfiles_file -> $target ($(($mtime1 - $mtime2)) newer)"
+            cp -p "$dotfiles_file" "$target"
+        elif [[ "$mtime2" -gt "$mtime1" ]]; then
+            echo "$target -> $dotfiles_file ($(($mtime2 - $mtime1)) newer)"
+            cp -p "$target" "$dotfiles_file"
+        else
+            echo "Same age: $dotfiles_file = $target"
+        fi
+    else
+        echo "$settings_root dir not found, skipping $target."
+    fi
+}
+
 inject() {
     local inject="$1"
     local file="$2"
@@ -150,6 +180,16 @@ case "$(uname -s)" in
         echo "Detected Linux"
         link .zshrc_linux
         link .shellrc_linux
+
+        if grep microsoft /proc/version > /dev/null; then
+            link .zshrc_linux_wsl
+            # scary windows character insertion
+            winhome="$(cmd.exe /c "echo %USERPROFILE%" 2> /dev/null | tr -d '\r')"
+            winhome="$(wslpath -u "$winhome")"
+            sync_settings "${winhome}/AppData/Roaming/Code/User" "" "settings.json" "vscode_settings.json"
+            sync_settings "${winhome}/AppData/Roaming/Code/User" "" "keybindings.json" "vscode_keybindings_linux.json"
+        fi
+
         # Linking individual files does not work so we hack around by linking the directory
         # This could be extracted to link_dir function if reuse is needed
         # Irrelevant files are ignored with .gitignore
@@ -167,10 +207,6 @@ case "$(uname -s)" in
         intellij_prefs="$(printf '%s\n' "$HOME/.config/JetBrains/"*Idea* | tail -n 1)"
         link_settings "$intellij_prefs" "config/keymaps" "intellij_linux_keys.xml"
         link_settings "$HOME/.config/Code - OSS/" "User" "keybindings.json" "vscode_keybindings_linux.json"
-
-        if grep microsoft /proc/version; then
-            link .zshrc_linux_wsl
-        fi
         ;;
 
     *)
