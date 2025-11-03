@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+
+import argparse
+import subprocess
+import textwrap
+import os
+import unittest
+from typing import List
+
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    p = argparse.ArgumentParser(description='Very crude jail for processes, only allows access to current directory.')
+
+    p.set_defaults(handler=doit)
+    p.add_argument('--net', action='store_true', help='allow network')
+    p.add_argument('--ro', action='store_true', help='read only mount current dir')
+    p.add_argument('--no-bin', action='store_true', help='do not mount /usr/bin and libs')
+    p.add_argument('--image', '-i', default='docker.io/library/ubuntu:24.04', help='container image to use')
+    p.add_argument('command', help='command to run')
+    p.add_argument('args', nargs=argparse.REMAINDER, help='all the args to the program, including flags')
+
+    parsed_args = p.parse_args()
+    parsed_args.handler(**parsed_args.__dict__)
+
+
+def doit(command, args, net: bool, ro: bool, no_bin: bool, image: str, **kwargs):
+    jail = ["podman", "run", "--rm", "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges", "--ulimit", "nofile=1024:1024", "-it"]
+    if not net:
+        jail.append("--network=none")
+    jail += [f"-v={os.getcwd()}:{os.getcwd()}" + (":ro" if ro else ""), f"--workdir={os.getcwd()}"]
+    if not no_bin:
+        # very hacky mounting - use ldd on binaries you need inside the jail to find required libs
+        for lib in ["/usr/bin", "/usr/lib", "/lib", "/lib/x86_64-linux-gnu", "/usr/lib/x86_64-linux-gnu", "/lib64", "/usr/lib64", "/etc/alternatives"]:
+            if os.path.exists(lib):
+                jail += ["-v", f"{lib}:{lib}:ro"]
+        jail += ["--env", "PATH="+os.environ.get("PATH", "")]
+    jail += [image]
+    subprocess.check_call(jail + [command] + args)
+
+
+if __name__ == '__main__':
+    main()

@@ -4,10 +4,15 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+CONTAINER_CMD="docker"
+if command -v podman; then
+    CONTAINER_CMD="podman"
+fi
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 cd $SCRIPT_DIR/../docker/devplay
 ./build.sh
 cd -
-docker run -it -v "$PWD:/opt/app" "$@" devplay
+"$CONTAINER_CMD" run -it -v "$PWD:/opt/app" "$@" devplay
 
