@@ -1,17 +1,17 @@
 # kind of ridiculous that zsh startup needs profiling
 
-# 0 disabled, 1 enabled, 2 verbose
-profiling_level=0
-profile_git=0
+# 0 disabled, 1 enabled, 2 verbose - set these in your local .zshrc
+ZSH_PROFILING_LEVEL=${ZSH_PROFILING_LEVEL:-0}
+ZSH_PROFILING_GIT=${ZSH_PROFILING_GIT:-0}
 if [[ "$OSTYPE" == "darwin"* ]]; then
     profile_date=gdate
 else
     profile_date=date
 fi
-test $profiling_level -gt 0 && profiling_start_time="$($profile_date +%s%3N)"
+test $ZSH_PROFILING_LEVEL -gt 0 && profiling_start_time="$($profile_date +%s%3N)"
 
 profiling_log() {
-    if [[ $profiling_level -gt 0 ]]; then
+    if [[ $ZSH_PROFILING_LEVEL -gt 0 ]]; then
         echo $(($($profile_date +%s%3N) - profiling_start_time)) "$@"
     fi
 }
@@ -19,7 +19,7 @@ profiling_log() {
 profiling_log "start"
 
 # even more profiling, but a bit verbose
-test $profiling_level -gt 1 && zmodload zsh/zprof
+test $ZSH_PROFILING_LEVEL -gt 1 && zmodload zsh/zprof
 
 # profiling notes
 # 2018-01-11 macbook, 350 ms
@@ -112,25 +112,6 @@ alias -g THISHOUR-24='$(date "+%Y-%m-%dT%H" -d "-24 hour")'
 
 # Functions
 
-function ai {
-    # TODO support other agents based on what is installed
-    claude -p "$*"
-}
-
-function fix {
-    last_exit_code=$?
-    last_command=$(fc -ln -2 | head -n 1)
-    cmd_output=$(out | tail -n 100)
-    instructions="${*:-NONE}"
-
-    ai "Help the user with their terminal command, provide debugging tips or suggest a fixed command. Be concise and to the point, just one or a few lines unless asked for more detail.
-User instructions: $instructions
-Command: $last_command
-Exit code: $last_exit_code
-Output (maybe truncated):
-$cmd_output"
-}
-
 # Enable per-pane history in tmux
 function lh {
     pane=$(tmux display-message -p '#S:#I:#P')
@@ -209,7 +190,7 @@ _slow_fs() {
 GIT_MAX_DAYS_BEHIND=7
 
 _update_git_info() {
-    local git_start_time="$(test $profile_git -eq 1 && gdate +%s%3N)"
+    local git_start_time="$(test $ZSH_PROFILING_GIT -eq 1 && gdate +%s%3N)"
     GIT_PROMPT=""
 
     if _slow_fs; then
@@ -316,7 +297,7 @@ _update_git_info() {
         fi
     fi
     _set_prompt
-    test $profile_git -eq 1 && echo $(($(gdate +%s%3N) - git_start_time)) "git complete"
+    test $ZSH_PROFILING_GIT -eq 1 && echo $(($(gdate +%s%3N) - git_start_time)) "git complete"
 }
 
 autoload -Uz add-zsh-hook
@@ -469,34 +450,82 @@ source_if_exists ~/.fzf.zsh
 source_if_exists ~/.dotfiles/.fzf_extensions.zsh
 profiling_log "fzf and extensions loaded"
 
-# AI command helper - get suggestions for flags and parameters
+# AI Tooling
+
+function ai {
+    # TODO support other agents based on what is installed
+    if [[ -n "$*" ]]; then
+        claude -p "$*"
+    else
+        claude
+    fi
+}
+
+local _SHARED_COMMAND_HELPER_PROMPT="
+Provide a informative but very concise explanation to any suggested changes, more than 3 lines should rarely be needed.
+If instructed to explain, then don't suggest changes, but provide a more detailed explanation.
+There should be no markdown formatting anywhere in your response since it will be printed to a terminal.
+"
+
+function fix {
+    last_exit_code=$?
+    last_command=$(fc -ln -1)
+    cmd_output=$(out | tail -n 100)
+    # or if you don't have my fancy out command
+    # cmd_output=$(tmux capture-pane -p -S -100)
+    instructions="${*:-NONE}"
+
+    prompt="Help the user with their terminal command, provide debugging tips or suggest a fixed command. 
+$_SHARED_COMMAND_HELPER_PROMPT
+
+Output format:
+First explain what is going on.
+Second maybe suggest a fixed command at the very end.
+
+User instructions: $instructions
+Command: $last_command
+Exit code: $last_exit_code
+Output (maybe truncated):
+$cmd_output"
+    ai "$prompt"
+}
+
 ai-command-helper() {
-  local current_buffer="$BUFFER"
+  # Exit line editor mode to do I/O
+  zle -I
 
-  if [[ -z "$current_buffer" ]]; then
-    return
-  fi
+  print -n "AI instructions: "
+  local user_request
+  read user_request < /dev/tty
 
-  # Save current buffer to temp file for easy reading by AI
-  local tmpfile=$(mktemp)
-  echo "$current_buffer" > "$tmpfile"
+  local ai_prompt="Improve this shell command by as instructed by the user, like add or change flags and parameters.
+If you cannot improve the command, return the current command and explain why you cannot improve it.
+$_SHARED_COMMAND_HELPER_PROMPT
 
-  # Ask AI for help with the command
-  local suggestion=$(claude -p "Help improve this shell command by suggesting useful flags, parameters, or corrections. Return ONLY the improved command, no explanation or markdown. Command: $current_buffer")
+Output format: 
+First print the command without any kind of formatting as one line or multiple lines.
+Then print a empty row.
+Then print the explanation for what is going on.
 
-  # Clean up
-  rm -f "$tmpfile"
+User request: ${user_request:-NONE}
+Current command: $BUFFER"
 
-  if [[ -n "$suggestion" ]]; then
-    # Replace the buffer with the suggestion
-    BUFFER="$suggestion"
-    # Move cursor to end of line
+  local response=$(ai "$ai_prompt")
+  local command_part=$(echo "$response" | awk 'BEGIN{found=0} {if(NF==0 && !found){found=1; exit} print}' )
+  local explanation_part=$(echo "$response" | awk 'BEGIN{found=0} {if(NF==0 && !found){found=1; next} if(found){print}}')
+
+  print "\n$explanation_part\n"
+  if [[ -n "$command_part" ]]; then
+    BUFFER="$command_part"
     CURSOR=${#BUFFER}
+    # add padding to not overwrite explanation when showing buffer - might misbehave on multi-line prompts?
+    printf '\n%.0s' {0..$(echo -n "$BUFFER" | grep -c $'\n')}
   fi
 
   zle redisplay
 }
 
+# note: this overwrites CTRL-H for backspace in the terminal
 zle     -N   ai-command-helper
 bindkey '^H' ai-command-helper
 
@@ -547,4 +576,4 @@ typeset -U path
 
 profiling_log "zsh_base done"
 
-test $profiling_level -gt 1 && zprof || true
+test $ZSH_PROFILING_LEVEL -gt 1 && zprof || true
