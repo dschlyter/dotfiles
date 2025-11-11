@@ -39,10 +39,10 @@ def cut(files_and_times: List[str], copy, mid, smid, small, smaller, smallest, s
     video_args = []
     output_suffix = "_CUT"
     preset = {
-        mid: ["mid", "-c:a aac -c:v libx264 -b:v 3M -maxrate 3M -bufsize 10M", 1920, None],
-        smid: ["smid", "-c:a aac -c:v libx264 -b:v 2M -maxrate 2M -bufsize 10M", 1280, None],
+        mid: ["mid", "-c:a aac -c:v libx264 -pix_fmt yuv420p -b:v 3M -maxrate 3M -bufsize 10M", 1920, None],
+        smid: ["smid", "-c:a aac -c:v libx264 -pix_fmt yuv420p -b:v 2M -maxrate 2M -bufsize 10M", 1280, None],
         small: ["small", "-c:a aac -c:v hevc_nvenc -rc vbr -cq {quality}", 1280, 28],
-        smaller: ["smaller", "-c:a aac -c:v libx264 -crf {quality}", 1280, 28],
+        smaller: ["smaller", "-c:a aac -c:v libx264 -pix_fmt yuv420p -crf {quality}", 1280, 28],
         smallest: ["smallest", "-c:a aac -c:v libx265 -crf {quality}", 1280, 28],
     }.get(True)
 

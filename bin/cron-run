@@ -46,25 +46,50 @@ def run_and_report(args):
     start = time.time()
     log = Log()
     log.append(datetime.now().isoformat())
-
     log.append(f"Running {args}")
 
     p = Popen(args.command_args, stdout=PIPE, stderr=subprocess.STDOUT, close_fds=True)
 
-    # Stream output while running the command
-    # Run this command with python -u to get snappy output
-    stdout_b = b''
+    # Stream output while running the command - keep at most 10k bytes in memory
+    cyclic_buffer = []
+    i = 0
+    BUF_MAX = 10000
+    line_start = 0
+    write = True
     while True:
-        bytes = p.stdout.read(1)
-        if not bytes:
+        byte_out = p.stdout.read(100)
+        if not byte_out:
             break
-        stdout_b += bytes
-        sys.stdout.buffer.write(bytes)
+        sys.stdout.buffer.write(byte_out)
+
+        for c in byte_out:
+            t = i % BUF_MAX
+            if write:
+                if len(cyclic_buffer) <= t:
+                    cyclic_buffer.append(c)
+                else:
+                    cyclic_buffer[t] = c
+                i += 1
+
+            # parse row output but ignore rows with \r or escape sequences - roll back to line start and pause writes when encountered
+            if c == ord('\n'):
+                line_start = i
+                write = True
+            if (c == ord('\r') or c == ord('\x1b')):
+                i = line_start
+                write = False
+
     p.stdout.close()
     code = p.wait()
 
-    stdout_rows = stdout_b.decode('utf-8', errors='replace').splitlines()
-    log.append_all(stdout_rows, output=False)
+    # Decode buffer to UTF-8 before appending to log
+    buf_start = (i + 1) % BUF_MAX if i >= BUF_MAX else 0
+    cyclic_buffer = cyclic_buffer[buf_start:] + cyclic_buffer[:buf_start]
+    decoded_buffer = bytes(cyclic_buffer).decode('utf-8', errors='replace')
+
+    print(decoded_buffer.splitlines())
+
+    log.append_all(decoded_buffer.splitlines(), output=False)
     log.append(f"job returned {code}")
     log.append(f"completed in {time.time() - start} seconds")
 

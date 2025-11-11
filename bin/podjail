@@ -17,6 +17,7 @@ def main():
     p.add_argument('--ro', action='store_true', help='read only mount current dir')
     p.add_argument('--no-bin', action='store_true', help='do not mount /usr/bin and libs')
     p.add_argument('--image', '-i', default='docker.io/library/ubuntu:24.04', help='container image to use')
+    p.add_argument('--devplay', '-d', action='store_true', help='use devplay image')
     p.add_argument('command', help='command to run')
     p.add_argument('args', nargs=argparse.REMAINDER, help='all the args to the program, including flags')
 
@@ -24,7 +25,9 @@ def main():
     parsed_args.handler(**parsed_args.__dict__)
 
 
-def doit(command, args, net: bool, ro: bool, no_bin: bool, image: str, **kwargs):
+def doit(command, args, net: bool, ro: bool, no_bin: bool, image: str, devplay: bool, **kwargs):
+    if devplay:
+        image = "devplay"
     jail = ["podman", "run", "--rm", "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges", "--ulimit", "nofile=1024:1024", "-it"]
     if not net:
         jail.append("--network=none")
