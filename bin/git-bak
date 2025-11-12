@@ -6,6 +6,7 @@
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -22,6 +23,7 @@ def main():
         sys.exit(0)
 
     try:
+        last_error = None
         src_root = os.path.join(os.getcwd(), sys.argv[1])
         target_root = os.path.join(os.getcwd(), sys.argv[2])
 
@@ -37,7 +39,13 @@ def main():
 
             src = os.path.join(src_root, repo_dir)
             target = os.path.join(target_root, repo_dir)
-            backup_git(src, target)
+            try:
+                backup_git(src, target)
+            except Exception as e:
+                print(f"git-bak failed for {src} to {target}: {e}")
+                last_error = e
+        if last_error:
+            raise last_error
     except Exception as e:
         alert(str(e))
         raise e
@@ -55,6 +63,7 @@ def load_ignores(src_root):
 def backup_git(src, target):
     os.chdir(src)
     src_remote = get_remote()
+    src_origin_commit = sh_read("git rev-parse origin/master").strip()
 
     GIT_EXEC = "git"
     if os.environ.get("TO_WIN") == "1":
@@ -72,6 +81,10 @@ def backup_git(src, target):
         sh(GIT_EXEC+" init")
     else:
         os.chdir(target)
+    if os.environ.get("TO_WIN") == "1" and sh_read(GIT_EXEC+" config --get core.filemode") != "false":
+        # avoid dealing with a bunch of file permission issues on windows side
+        print("Disabling core.filemode on windows backup repo")
+        sh(GIT_EXEC+" config core.filemode false")
 
     subprocess.check_call([GIT_EXEC, "pull", "--no-rebase", src, "master:master"])
 
@@ -83,6 +96,12 @@ def backup_git(src, target):
         elif src_remote != target_remote:
             print("Setting remote to "+src_remote)
             subprocess.check_call([GIT_EXEC, "remote", "set-url", "origin", src_remote])
+
+    target_origin_commit = sh_read(GIT_EXEC+ " rev-parse origin/master").strip()
+    if src_origin_commit != target_origin_commit:
+        print("Updating origin/master to", src_origin_commit)
+        time.sleep(1)
+        sh(GIT_EXEC+f" update-ref refs/remotes/origin/master '{src_origin_commit}'")
 
 
 def get_remote():
