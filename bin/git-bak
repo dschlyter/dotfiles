@@ -80,7 +80,7 @@ def backup_git(src, target):
         print(f"Creating directory {target}")
         os.makedirs(target)
         os.chdir(target)
-        cmd(*GIT_EXEC, "init")
+        cmd(*GIT_EXEC, "init", "--bare")
     else:
         os.chdir(target)
     if os.environ.get("TO_WIN") == "1" and cmd_read(*GIT_EXEC, "config", "--get", "core.filemode") != "false":
@@ -89,10 +89,10 @@ def backup_git(src, target):
         print("Disabling core.filemode on windows backup repo")
         cmd(*GIT_EXEC, "config", "core.filemode", "false")
 
-    cmd(*GIT_EXEC, "pull", "--no-rebase", src, "master:master")
+    cmd(*GIT_EXEC, "fetch", src, "master:master")
     print("Pull complete")
 
-    target_remote = get_remote()
+    target_remote = get_remote(GIT_EXEC)
     if src_remote:
         if not target_remote:
             print("Adding remote "+src_remote)
@@ -112,10 +112,10 @@ def backup_git(src, target):
     print()
 
 
-def get_remote():
+def get_remote(GIT_EXEC=["git"]):
     try:
         DEVNULL = open(os.devnull, 'wb')
-        r = subprocess.check_output(["git", "remote", "get-url", "origin"], stderr=DEVNULL)
+        r = subprocess.check_output(GIT_EXEC + ["remote", "get-url", "origin"], stderr=DEVNULL)
         return r.decode("utf-8").strip()
     except Exception as e:
         return None
