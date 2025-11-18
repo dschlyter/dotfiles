@@ -65,12 +65,14 @@ def backup_git(src, target):
     src_remote = get_remote()
     src_origin_commit = sh_read("git rev-parse origin/master").strip()
 
-    GIT_EXEC = "git"
+    GIT_EXEC = ["git"]
     if os.environ.get("TO_WIN") == "1":
         # use Windows executable since linux executable assumes POSIX and closes files that windows FS considers in use, causing errors
-        GIT_EXEC="git.exe"
-        src = subprocess.check_output(["wslpath", "-w", src]).decode("utf-8").strip()
-        print("Rewrote source to", src)
+        # all paths must be converted to windows format as well - otherwise git.exe runs in a weird hybrid mode that fails on some operations
+        win_target = cmd_read("wslpath", "-w", target)
+        GIT_EXEC = ["git.exe", "-C", win_target]
+        src = cmd_read("wslpath", "-w", src)
+        print("Rewrote paths to", src, win_target)
 
     print("Backing up", src, target)
 
@@ -78,30 +80,36 @@ def backup_git(src, target):
         print(f"Creating directory {target}")
         os.makedirs(target)
         os.chdir(target)
-        sh(GIT_EXEC+" init")
+        cmd(*GIT_EXEC, "init")
     else:
         os.chdir(target)
-    if os.environ.get("TO_WIN") == "1" and sh_read(GIT_EXEC+" config --get core.filemode") != "false":
+    if os.environ.get("TO_WIN") == "1" and cmd_read(*GIT_EXEC, "config", "--get", "core.filemode") != "false":
+        os.chdir(os.path.expanduser("~"))
         # avoid dealing with a bunch of file permission issues on windows side
         print("Disabling core.filemode on windows backup repo")
-        sh(GIT_EXEC+" config core.filemode false")
+        cmd(*GIT_EXEC, "config", "core.filemode", "false")
 
-    subprocess.check_call([GIT_EXEC, "pull", "--no-rebase", src, "master:master"])
+    cmd(*GIT_EXEC, "pull", "--no-rebase", src, "master:master")
+    print("Pull complete")
 
     target_remote = get_remote()
     if src_remote:
         if not target_remote:
             print("Adding remote "+src_remote)
-            subprocess.check_call([GIT_EXEC, "remote", "add", "origin", src_remote])
+            cmd(*GIT_EXEC, "remote", "add", "origin", src_remote)
         elif src_remote != target_remote:
             print("Setting remote to "+src_remote)
-            subprocess.check_call([GIT_EXEC, "remote", "set-url", "origin", src_remote])
+            cmd(*GIT_EXEC, "remote", "set-url", "origin", src_remote)
 
-    target_origin_commit = sh_read(GIT_EXEC+ " rev-parse origin/master").strip()
+    try:
+        target_origin_commit = cmd_read(*GIT_EXEC, "rev-parse", "origin/master")
+    except subprocess.CalledProcessError:
+        target_origin_commit = None
     if src_origin_commit != target_origin_commit:
         print("Updating origin/master to", src_origin_commit)
         time.sleep(1)
-        sh(GIT_EXEC+f" update-ref refs/remotes/origin/master '{src_origin_commit}'")
+        cmd(*GIT_EXEC, "update-ref", "refs/remotes/origin/master", src_origin_commit)
+    print()
 
 
 def get_remote():
@@ -113,12 +121,17 @@ def get_remote():
         return None
 
 
-def sh(command):
-    subprocess.check_call(command, shell=True)
-
-
 def sh_read(command):
     return subprocess.check_output(command, shell=True).decode('utf-8').strip()
+
+
+def cmd(*args):
+    print("Running command:", " ".join(args))
+    return subprocess.check_call(args)
+
+
+def cmd_read(*args):
+    return subprocess.check_output(args).decode('utf-8').strip()
 
 
 def alert(message):

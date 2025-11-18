@@ -152,7 +152,7 @@ def report_status(job_name, status, next_run, logs):
     conf = load_conf(CONF, {})
     url = conf.get('healthcheck')
     if url:
-        report_url = os.path.join(url, job_name)
+        report_url = "/".join([url.rstrip("/"), job_name])
         json_data = json.dumps({
             'status': status,
             'next': next_run,
