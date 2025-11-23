@@ -57,7 +57,7 @@ def run_and_report(args):
     line_start = 0
     write = True
     while True:
-        byte_out = p.stdout.read(100)
+        byte_out = p.stdout.read(1)
         if not byte_out:
             break
         sys.stdout.buffer.write(byte_out)
