@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+
+import argparse
+import time
+import sys
+
+from dotlib.util import get_clipboard, set_clipboard
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    main_p = argparse.ArgumentParser(description='Reads clipboard and writes back a template (python string template) from multiple clips',)
+
+    main_p.set_defaults(handler=build)
+
+    main_p.add_argument('template', help='python format string template, e.g. "Title: {} Author: {}"')
+    main_p.add_argument('--exclude', '-e', help='comma separated list of strings, if any are in the clipboard content it will be ignored')
+    main_p.add_argument('--timeout', '-t', help='timeout before the template resets (default 10s)', default=10, type=int)
+
+    parsed_args = main_p.parse_args()
+    # Note: All handlers must have **kwargs to handle global args
+    parsed_args.handler(**parsed_args.__dict__)
+
+def build(template, exclude, timeout, **global_args):
+    params = template.count("{}")
+    exclude = (exclude or "").split(",")
+
+    last_time = time.time()
+    clip_history = []
+    clip_content = get_clip()
+    while True:
+        time.sleep(1)
+        new_clip = get_clip()
+        if new_clip == clip_content or not new_clip.strip():
+            continue
+        if any(b in new_clip for b in exclude):
+            print("Ignoring:", new_clip)
+            clip_content = new_clip
+            continue
+
+        current_time = time.time()
+        if current_time - last_time > timeout:
+            clip_history = []
+        last_time = current_time
+
+        clip_history.append(new_clip)
+        clip_history = clip_history[-params:]
+
+        if len(clip_history) == params:
+            formatted = template.format(*clip_history).strip()
+            print(formatted)
+            set_clipboard(formatted)
+            clip_content = formatted
+        else:
+            print("Got clip:", new_clip, "({}/{})".format(len(clip_history), params))
+            clip_content = new_clip
+            continue
+
+def get_clip():
+    return get_clipboard().split("\n")[0].split("\r")[0]
+
+if __name__ == "__main__":
+    main()

@@ -18,6 +18,7 @@ def parse_args():
     parser.add_argument('-i', '--id', dest='existing_id', help='id of an existing change, to retry on error')
     parser.add_argument('-r', '--recursive', dest='recursive', action='store_true', help='list files recursively')
     parser.add_argument('-d', '--dirs', dest='dirs', action='store_true', help='list only directories')
+    parser.add_argument('-t', '--tr', nargs=2, action="append", help='apply subtitutions')
     return parser.parse_args()
 
 
@@ -30,6 +31,9 @@ def main():
 
     if not args.existing_id:
         list_files(args, original_file, rename_file)
+
+    if args.tr:
+        substritute_lines(rename_file, args.tr)
 
     rename_files(rename_file)
     success = execute_changes(original_file, rename_file)
@@ -49,6 +53,19 @@ def list_files(args, original_file, rename_file):
     else:
         run("ls -1 > {0}".format(original_file))
     run("cp {0} {1}".format(original_file, rename_file))
+
+
+def substritute_lines(rename_file, tr_list):
+    lines = []
+    with open(rename_file, 'r') as rf:
+        for line in rf:
+            for tr in tr_list:
+                line = line.replace(tr[0], tr[1])
+            lines.append(line.rstrip('\n'))
+
+    with open(rename_file, 'w') as rf:
+        for line in lines:
+            rf.write(line + "\n")
 
 
 def rename_files(rename_file):

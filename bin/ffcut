@@ -19,13 +19,18 @@ def main():
 
     main_p.add_argument('files_and_times', nargs='+', help='ffcut file1 [00:00 00:10] [00:20 00:30] [file2] ...')
     main_p.add_argument('--copy', action='store_true', help='copy instead of reencoding, only supported for single file')
-    main_p.add_argument('--mid', action='store_true', help='1080p with 3M bitrate')
-    main_p.add_argument('--smid', action='store_true', help='720p with libx264, 23 quality')
-    main_p.add_argument('--small', action='store_true', help='720p with hevc_nvenc (GPU)')
-    main_p.add_argument('--smaller', action='store_true', help='720p with libx264')
-    main_p.add_argument('--smallest', action='store_true', help='720p with libx265')
-    main_p.add_argument('--scale', help='horizontal scale to use for small/mid cuts, default is 1280 or 1920')
-    main_p.add_argument('--quality', type=int, help='quality to use for small cuts, default is 28 (higher is better, ffmpeg default is 23)')
+
+    main_p.add_argument('--av', action='store_true', help='1080p with av1 libsvtav1, 30 crf - approx 6M bitrate')
+    main_p.add_argument('--av-mid', action='store_true', help='1080p with av1 libsvtav1, 39 crf - approx 3M bitrate')
+
+    main_p.add_argument('--mid', action='store_true', help='1080p with libx264, 3M bitrate')
+    main_p.add_argument('--smid', action='store_true', help='720p with libx264, 2M bitrate')
+    main_p.add_argument('--small', action='store_true', help='720p with hevc_nvenc (GPU), 42 cq')
+    main_p.add_argument('--smaller', action='store_true', help='720p with libx264, 28 crf')
+    main_p.add_argument('--smallest', action='store_true', help='720p with libx265, 28 crf')
+
+    main_p.add_argument('--scale', help='horizontal scale to use for small/mid cuts, default is 1920 or 1280 depending on preset')
+    main_p.add_argument('--quality', type=int, help='quality to use for -crf (cpu, x264 default 23 ~= av1 30) or -cq (gpu, different scale 23 crf ~= 36 cq for x264)')
     main_p.add_argument('--mv', '-m', action='store_true', help='move to subdirs when done')
 
     parsed_args = main_p.parse_args()
@@ -33,15 +38,19 @@ def main():
     parsed_args.handler(**parsed_args.__dict__)
 
 
-def cut(files_and_times: List[str], copy, mid, smid, small, smaller, smallest, scale, quality, mv, **global_args):
+def cut(files_and_times: List[str], copy, av, av_mid, mid, smid, small, smaller, smallest, scale, quality, mv, **global_args):
     args = files_and_times
 
     video_args = []
     output_suffix = "_CUT"
     preset = {
+        av: ["av", "-c:a aac -c:v libsvtav1 -pix_fmt yuv420p -preset 8 -crf {quality}", 1920, 30],
+        av_mid: ["av_mid", "-c:a aac -c:v libsvtav1 -pix_fmt yuv420p -preset 8 -crf {quality}", 1920, 39],
+        # GPU encode, faster but lower quality per bitrate
+        # av: ["av", "-c:a aac -c:v av1_nvenc -multipass 2 -preset p7 -cq {quality}" , 1920, 32],
         mid: ["mid", "-c:a aac -c:v libx264 -pix_fmt yuv420p -b:v 3M -maxrate 3M -bufsize 10M", 1920, None],
         smid: ["smid", "-c:a aac -c:v libx264 -pix_fmt yuv420p -b:v 2M -maxrate 2M -bufsize 10M", 1280, None],
-        small: ["small", "-c:a aac -c:v hevc_nvenc -rc vbr -cq {quality}", 1280, 28],
+        small: ["small", "-c:a aac -c:v hevc_nvenc -rc vbr -cq {quality}", 1280, 35], # -cq and -crf are different scales
         smaller: ["smaller", "-c:a aac -c:v libx264 -pix_fmt yuv420p -crf {quality}", 1280, 28],
         smallest: ["smallest", "-c:a aac -c:v libx265 -crf {quality}", 1280, 28],
     }.get(True)
@@ -53,7 +62,7 @@ def cut(files_and_times: List[str], copy, mid, smid, small, smaller, smallest, s
         video_args = preset[1]
         scale = scale or preset[2]
         quality = quality or preset[3]
-        output_suffix = f"_{key.upper()}_{scale}"
+        output_suffix = f"_{scale}_{key.upper()}"
         if quality:
             video_args = video_args.format(quality=quality)
             output_suffix += f"_{quality}"

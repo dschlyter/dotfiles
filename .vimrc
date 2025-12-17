@@ -47,39 +47,42 @@ nnoremap <leader>B :bd!<cr>
 nnoremap <leader>j :tabnext<cr>
 nnoremap <leader>k :tabprev<cr>
 
-" open in same dir
-" or search common files with fasd
-nnoremap <leader>e :e <C-R>=expand("%:p:h") . "/" <CR>
-nnoremap <leader>f :FasdOpen<cr>
-
 " Fast markdown
 nnoremap <leader>- yyp^v$r-
 nnoremap <leader>= yyp^v$r=
 nnoremap <leader>* I**<Esc>A**<Esc>
 
-" insert current date or time
-nnoremap <leader>i "=strftime("%F")<CR>p
-nnoremap <leader>t "=strftime("%F %T")<CR>p
+" these shortcuts should be overridden by vscode config, or they do not work in vscode
+if !exists('g:vscode')
+    " open in same dir
+    " or search common files with fasd
+    nnoremap <leader>e :e <C-R>=expand("%:p:h") . "/" <CR>
+    nnoremap <leader>f :FasdOpen<cr>
 
-" toggle spellcheck
-nnoremap <leader>s :set spell!<CR>
+    " insert current date or time
+    nnoremap <leader>i "=strftime("%F")<CR>p
+    nnoremap <leader>t "=strftime("%F %T")<CR>p
 
-" git shortcuts from plugings
-nnoremap <leader>g :Gstatus<cr>
-nnoremap <leader>l :Gblame<cr>
-nnoremap <leader>r :GitGutterUndoHunk<CR>
-nnoremap <leader>d :GitGutterPreviewHunk<CR>
+    " toggle spellcheck
+    nnoremap <leader>s :set spell!<CR>
 
-" other plugin leader hotkeys
-nnoremap <leader>u :GundoToggle<cr>
+    " git shortcuts from plugings
+    nnoremap <leader>g :Gstatus<cr>
+    nnoremap <leader>l :Gblame<cr>
+    nnoremap <leader>r :GitGutterUndoHunk<CR>
+    nnoremap <leader>d :GitGutterPreviewHunk<CR>
 
-" have some custom commands under c prefix
-nnoremap <leader>ct 0R- [ ] <C-c>
-nnoremap <leader>cf :call CreateMdFile()<cr>
-nnoremap <leader>cl :call CreateMdLink()<cr>
-nnoremap <leader>cr :RandomLine<cr>
-command! RandomLine execute 'normal! '.(system('/bin/bash -c "echo -n $RANDOM"') % line('$')).'G'
-nnoremap <leader>ca vG<C-a>
+    " other plugin leader hotkeys
+    nnoremap <leader>u :GundoToggle<cr>
+
+    " have some custom commands under c prefix
+    nnoremap <leader>ct 0R- [ ] <C-c>
+    nnoremap <leader>cf :call CreateMdFile()<cr>
+    nnoremap <leader>cl :call CreateMdLink()<cr>
+    nnoremap <leader>cr :RandomLine<cr>
+    command! RandomLine execute 'normal! '.(system('/bin/bash -c "echo -n $RANDOM"') % line('$')).'G'
+    nnoremap <leader>ca vG<C-a>
+endif
 
 function! CreateMdFile()
     execute "e " . expand("%:p:h") . "/<cfile>"

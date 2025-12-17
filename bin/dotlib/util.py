@@ -1,5 +1,8 @@
 import math
+import os
+import platform
 import shutil
+import subprocess
 import re
 from typing import List
 
@@ -56,6 +59,25 @@ def trim_to_terminal(table, sep):
             max_cols += 1
         for i in range(len(table)):
             table[i] = table[i][0:max_cols]
+
+
+def get_clipboard():
+    if platform.system() == 'Darwin':
+        return subprocess.check_output(['pbpaste']).decode('utf-8').strip()
+    elif platform.system() == 'Windows' or 'microsoft' in platform.uname().release.lower() or 'wsl' in platform.uname().release.lower():
+        return subprocess.check_output(['powershell.exe', 'Get-Clipboard']).decode('utf-8').strip()
+    else:
+        return subprocess.check_output(['xclip', '-selection', 'clipboard', '-o']).decode('utf-8').strip()
+
+
+def set_clipboard(text):
+    if platform.system() == 'Darwin':
+        subprocess.run(['pbcopy'], input=text.encode('utf-8'), check=True)
+    elif platform.system() == 'Windows' or 'microsoft' in platform.uname().release.lower() or 'wsl' in platform.uname().release.lower():
+        subprocess.run(['clip.exe'], input=text.encode('utf-8'), check=True)
+        return
+    else:
+        subprocess.run(['xclip', '-selection', 'clipboard'], input=text.encode('utf-8'), check=True)
 
 
 # the function missing from python
