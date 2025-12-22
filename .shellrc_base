@@ -102,7 +102,7 @@ alias locate='locate -i'
 alias mv='mv -i'
 alias cp='cp -i'
 alias tig='tig --all'
-alias ag='ag --hidden'
+alias rg='rg --hidden'
 
 # Less used aliases - candidates for removal
 
@@ -405,7 +405,16 @@ n() {
 # Other file helpers
 
 ffinfo() {
-    for file in *.mp4; do
+	# default to curr dir
+	set -- "${@:-.}"
+	# iterate over args which could be directories (all mp4s) or list of files
+	(
+		for p in "$@"; do
+			[ -d "$p" ] && printf '%s\0' "$p"/*.mp4 || printf '%s\0' "$p"
+		done
+	) |
+	while IFS= read -r -d '' file; do
+		echo $file
         filesize=$(stat --format=%s "$file")  # Get the file size in bytes
         filesize_mb=$(echo "scale=2; $filesize / (1024*1024)" | bc)  # Convert bytes to MB
         ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,avg_frame_rate,bit_rate:format=duration \
@@ -459,11 +468,9 @@ ungrab() {
     sudo chmod o-rwx "${@:-.}"
 }
 
-alias agh="ag --hidden"
-
 # jump directly to a line in a file in vim
-vag() {
-    vim "+silent /$*" $(ag -l "$@")
+virg() {
+    vim "+silent /$*" $(rg -. -l "$@")
 }
 
 # Various helpers

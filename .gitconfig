@@ -169,7 +169,7 @@
     cps = !git cherry-pick $(git select)
     amend-date = !GIT_COMMITTER_DATE=\"$1\" git commit --amend --date=\"$1\" "#"
     # continue rebase with sanity check and auto add
-    rbc = !ag \"<<<<\" || git add -u && git rebase --continue
+    rbc = !rg \"<<<<\" || git add -u && git rebase --continue
 
     # switch/reset back n commits
     rsn = !COUNT=${1:-1}";" shift";" git reset HEAD~$COUNT \"$@\" "#"

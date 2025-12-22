@@ -135,7 +135,7 @@ function lh {
 # redefine alias or function (in symlinked file in home dir)
 ral() {
     search="(^|alias )$1(\(\)|\=)"
-    vim "+silent /\v$search" $(ag -l "$search" "$HOME"/.*(@))
+    vim "+silent /\v$search" $(rg -l "$search" "$HOME"/.*(@))
     rc
 }
 

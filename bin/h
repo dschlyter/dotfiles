@@ -36,7 +36,7 @@ def main():
     sp.add_argument('--month', '-m', help="window monthly", action="store_true")
     sp.add_argument('--quarter', '-q', help="window quarterly", action="store_true")
     sp.add_argument('--year', '-y', help="window yearly", action="store_true")
-    sp.add_argument('--all', help="window all", action="store_true")
+    sp.add_argument('--everything', '-e', help="window everything", action="store_true")
     sp.add_argument('--root', '-r', help="aggregate up to root activities", action="store_true")
     sp.add_argument('--count', '-c', help="count occurences instead of summing time", action="store_true")
     sp.add_argument('--percent', '-p', help="show percentage instead of total", action="store_true")
@@ -242,8 +242,8 @@ def display_segments(res):
 
         print(_display_segment(s, show_end=False, show_zero_h=False))
 
-def stats(start, end, activities, day, week, month, quarter, year, all, root, count, percent, order, top, graph, **global_args):
-    window = "day" if day else "week" if week else "month" if month else "quarter" if quarter else "year" if year else "all" if all else None
+def stats(start, end, activities, day, week, month, quarter, year, everything, root, count, percent, order, top, graph, **global_args):
+    window = "day" if day else "week" if week else "month" if month else "quarter" if quarter else "year" if year else "all" if everything else None
 
     if activities == "f":
         activities = _pick_activity()
@@ -380,6 +380,7 @@ def end(args, start, end, **global_args):
 
         if payload.get('activity') is None:
             payload['activity'] = _pick_activity()
+            print(payload['activity'])
 
         if payload['activity'] == "ex" and payload.get('end') is not None:
             quit("Only durations are supported for extend")
@@ -395,12 +396,15 @@ def end(args, start, end, **global_args):
 
 def _pick_activity(multiple=False, status="open"):
     activities = api.get(f"api/time4/activities?status={status}").get('activities', [])
-    names = [a['id'] for a in activities]
-    selected = fzf_match(names, multiple=multiple, sort=False)
+    pick_map = {_show_activity(a, flag_closed=(status != "closed")): a['id'] for a in activities}
+    selected = fzf_match(sorted(pick_map.keys()), multiple=multiple, sort=False)
     if not selected:
         print("No activity selected")
         quit(1)
-    return selected
+    return [pick_map[s] for s in selected] if multiple else pick_map[selected]
+
+def _show_activity(activity, flag_closed=True):
+    return " > ".join((activity.get('lineage', []) + [activity['id']])) + (" [CLOSED]" if flag_closed and activity.get('status') == "closed" else "")
 
 def extend(args, **global_args):
     segment, minutes = "last", 0
@@ -459,7 +463,7 @@ def list_activities(root_prefix, closed, all, **global_args):
     for a in res.get('activities', []):
         if root_prefix and not any(map(lambda x: x.startswith(root_prefix), a.get('lineage', []) + [a['id']])):
             continue
-        activities.append(" > ".join((a.get('lineage', []) + [a['id']])) + (" (closed)" if a.get('status') == "closed" else ""))
+        activities.append(_show_activity(a))
     for a in sorted(activities):
         print(a)
 
