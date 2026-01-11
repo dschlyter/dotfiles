@@ -26,4 +26,12 @@
         "key": "alt+shift+l",
         "command": "workbench.action.moveEditorRightInGroup"
     },
+    {
+        "key": "alt+j",
+        "command": "github.copilot.chat.review.next"
+    },
+    {
+        "key": "alt+k",
+        "command": "github.copilot.chat.review.previous"
+    },
 ]

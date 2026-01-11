@@ -68,5 +68,7 @@
     "gitlens.graph.minimap.enabled": false,
     "explorer.confirmDelete": false,
     "github.copilot.nextEditSuggestions.enabled": true,
-    "editor.multiCursorModifier": "ctrlCmd"
+    "editor.multiCursorModifier": "ctrlCmd",
+    "zig.zls.enabled": "on",
+    "explorer.confirmDragAndDrop": false
 }
