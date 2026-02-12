@@ -540,6 +540,9 @@ timing() {
 
 alias d=docker
 alias dco=docker-compose
+# docker images does not have created column any more - wtf?
+alias dimg='docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedSince}}\t{{.Size}}"'
+
 
 drun() {
     docker run -it --init --rm --name "$1" "$1"

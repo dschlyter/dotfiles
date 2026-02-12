@@ -64,7 +64,7 @@ alias e='h e'
 alias hc='h c'
 alias hy='h c -d 1'
 alias gr='h s -gr'
-alias gh='h r -g'
+alias grh='h r -g'
 alias hac='h s -m 9000 -a'
 alias hist='fc -ldD'
 alias sadd='harpo --vault david hi && echo Fetching from harpo... && ssh-add2 $HOME/.ssh/id_ed25519 "$(harpo --vault david get ssh-key-id_ed22519 password | tail -n 1)"'
@@ -79,6 +79,7 @@ alias zl="vim $HOME/.zshrc; rc"
 # note: alias R breaks fasd
 alias -g P='|'
 alias -g G='| grep -i'
+alias -g F='| fzf'
 alias -g W='| wc -l'
 alias -g L='| less --RAW-CONTROL-CHARS'
 alias -g H='| head'
@@ -119,6 +120,12 @@ alias -g THISHOUR-8='$(date "+%Y-%m-%dT%H" -d "-8 hour")'
 alias -g THISHOUR-24='$(date "+%Y-%m-%dT%H" -d "-24 hour")'
 
 # Functions
+
+function install-skill() {
+    local d="$HOME/.claude/skills/$(basename "$1")"
+    [[ -e "$d" ]] && echo "exists: $d" >&2 && return 1
+    ln -s "$(pwd)/$1" "$d"
+}
 
 # Enable per-pane history in tmux
 function lh {
