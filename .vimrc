@@ -23,6 +23,9 @@ nnoremap <leader>a :let @q = @q . @a<CR>
 nnoremap <leader>2 :set shiftwidth=2<cr>
 nnoremap <leader>4 :set shiftwidth=4<cr>
 
+" push row down to next group
+nnoremap <leader>d ddk}p<C-o>
+
 " snake_case <-> camelCase converstion
 vnoremap <leader>_ :s,\%V\([A-Z][a-z]\),_\l\1,g<CR>
 vnoremap <leader>C :s,\%V_\(\l\),\u\1,g<CR>
@@ -70,7 +73,6 @@ if !exists('g:vscode')
     nnoremap <leader>g :Gstatus<cr>
     nnoremap <leader>l :Gblame<cr>
     nnoremap <leader>r :GitGutterUndoHunk<CR>
-    nnoremap <leader>d :GitGutterPreviewHunk<CR>
 
     " other plugin leader hotkeys
     nnoremap <leader>u :GundoToggle<cr>

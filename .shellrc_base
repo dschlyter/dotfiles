@@ -414,7 +414,6 @@ ffinfo() {
 		done
 	) |
 	while IFS= read -r -d '' file; do
-		echo $file
         filesize=$(stat --format=%s "$file")  # Get the file size in bytes
         filesize_mb=$(echo "scale=2; $filesize / (1024*1024)" | bc)  # Convert bytes to MB
         ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,avg_frame_rate,bit_rate:format=duration \
