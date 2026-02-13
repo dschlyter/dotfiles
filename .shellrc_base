@@ -67,6 +67,7 @@ alias groot='cd "./$(git rev-parse --show-cdup)"'
 alias grootp='git rev-parse --show-cdup'
 
 alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc ~/.zgen_plugins ~/.dotfiles/.*.zsh; rc"
+alias ecl="vim ~/.claude/CLAUDE.md ~/.claude/settings.json"
 alias name='tmux rename-window'
 alias i='unset HISTFILE'
 

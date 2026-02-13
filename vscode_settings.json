@@ -70,5 +70,8 @@
     "github.copilot.nextEditSuggestions.enabled": true,
     "editor.multiCursorModifier": "ctrlCmd",
     "zig.zls.enabled": "on",
-    "explorer.confirmDragAndDrop": false
+    "explorer.confirmDragAndDrop": false,
+    // NOTE: add claude env settings in ~/.claude/settings.json instead
+    "claudeCode.preferredLocation": "panel",
+    "claudeCode.selectedModel": "claude-opus-4-6"
 }
