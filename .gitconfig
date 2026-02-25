@@ -60,6 +60,7 @@
     pp = !git pull --rebase && git pu
     pufl = push --force-with-lease
     br = branch -vv
+    wt = worktree
     rs = reset
     rb = rebase
     rba = rebase --autostash

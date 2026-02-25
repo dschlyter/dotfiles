@@ -28,6 +28,11 @@ Esc Esc - go back to previous conversation point
     custom hooks before/after commands - block file access, auto format, notify, etc
 /plugin - custom slash-commands can be installed from marketplace
 
+## Control
+
+ctrl-b (three times in tmux) - to run things in the background
+ctrl-v (not cmd-v) to paste a screenshot
+
 ## VS code integration
 
 cmd-esc to launch / focus

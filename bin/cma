@@ -15,6 +15,9 @@ def main():
     global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
     sub_ps = global_parser.add_subparsers()
 
+    sp = sub_ps.add_parser('list', help='list permissions in project settings')
+    sp.set_defaults(handler=list_permissions)
+
     sp = sub_ps.add_parser('lift', help='move last permission from project to global settings')
     sp.set_defaults(handler=lift)
 
@@ -23,33 +26,48 @@ def main():
     parsed_args.handler(**parsed_args.__dict__)
 
 
-def lift(**kwargs):
-    """Move the last permission from project .claude/settings.json to global ~/.claude/settings.json"""
-    # 1. Find git root (if in git repo), otherwise use current directory
+def load_project_settings():
+    """Load project settings, returning (path, settings, allow_list) or None on error."""
     try:
         git_root = sh_read("git rev-parse --show-toplevel 2>/dev/null")
     except subprocess.CalledProcessError:
         git_root = os.getcwd()
 
-    # 2. Read project settings (check both settings.local.json and settings.json)
     project_settings_path = Path(git_root) / ".claude" / "settings.local.json"
     if not project_settings_path.exists():
         project_settings_path = Path(git_root) / ".claude" / "settings.json"
         if not project_settings_path.exists():
             print(f"Error: No settings file found in {Path(git_root) / '.claude'}")
-            return
+            return None
 
     with open(project_settings_path, 'r') as f:
         project_settings = json.load(f)
 
-    # 3. Get and remove last permission
-    if 'permissions' not in project_settings or 'allow' not in project_settings['permissions']:
+    allow = project_settings.get('permissions', {}).get('allow', [])
+    if not allow:
         print("Error: No permissions found in project settings")
+        return None
+
+    return project_settings_path, project_settings, allow
+
+
+def list_permissions(**kwargs):
+    result = load_project_settings()
+    if not result:
         return
+    _, _, allow = result
+    for perm in allow:
+        print(perm)
+
+
+def lift(**kwargs):
+    result = load_project_settings()
+    if not result:
+        return
+    project_settings_path, project_settings, _ = result
 
     last_permission = project_settings['permissions']['allow'].pop()
 
-    # 4. Add to global settings
     global_settings_path = Path.home() / ".claude" / "settings.json"
     global_settings_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -67,6 +85,9 @@ def lift(**kwargs):
     # Avoid duplicates
     if last_permission not in global_settings['permissions']['allow']:
         global_settings['permissions']['allow'].append(last_permission)
+
+    # Sort global: uppercase before lowercase (ABCZabcz order)
+    global_settings['permissions']['allow'].sort(key=lambda s: (s[0].islower(), s))
 
     # Write both files
     with open(project_settings_path, 'w') as f:
