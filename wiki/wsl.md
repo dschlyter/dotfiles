@@ -13,6 +13,8 @@ wslview
 
 ## Accessing from another computer
 
+(not working, might be outdated for WSL 1)
+
 Get the IP inside WSL
 
     ip addr

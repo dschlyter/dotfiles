@@ -53,6 +53,7 @@ def main():
     sp.add_argument('args', help="[duration / end] [activity] ... (-N or HH:MM duration is interpreted as end)", nargs="*")
     sp.add_argument('--start', '-s', help='start of the segment')
     sp.add_argument('--end', '-e', help='end of the segment')
+    sp.add_argument('--lookback', '-l', type=int, help='days to look back for marks/segments when finding start time (default 1)')
 
     sp = root_p.add_parser('extend', aliases=['ex'], help='extend existing segment')
     sp.set_defaults(handler=extend)
@@ -350,7 +351,7 @@ def mark(minutes=None, **global_args):
     else:
         print("no mark created")
 
-def end(args, start, end, **global_args):
+def end(args, start, end, lookback, **global_args):
     payloads = []
     i = 0
 
@@ -389,7 +390,8 @@ def end(args, start, end, **global_args):
 
     for payload in payloads:
         if payload['activity'] != "ex":
-            res = api.post("api/time4/segments", payload)
+            lookback_param = f"?lookback={lookback}" if lookback is not None else ""
+            res = api.post(f"api/time4/segments{lookback_param}", payload)
             print("ended", _display_segment(res.get('segment')))
         else:
             extend([payload.get('duration') or "0"])

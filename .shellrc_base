@@ -66,8 +66,9 @@ alias p="PTPYTHON_CONFIG_HOME='$HOME/.config/ptpython' PYTHONSTARTUP='$HOME/.con
 alias groot='cd "./$(git rev-parse --show-cdup)"'
 alias grootp='git rev-parse --show-cdup'
 
-alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc ~/.zgen_plugins ~/.dotfiles/.*.zsh; rc"
-function ecl { vim ~/.claude/settings.json $([ -f .claude/settings.local.json ] && echo .claude/settings.local.json) ~/.claude/CLAUDE.md; }
+# -c 'argd *' to clear arg list and avoid error on quitting
+alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc ~/.zgen_plugins ~/.dotfiles/.*.zsh -c 'argd *'; rc"
+function ecl { vim ~/.claude/settings.json $([ -f .claude/settings.local.json ] && echo .claude/settings.local.json) ~/.claude/CLAUDE.md -c 'argd *'; }
 alias name='tmux rename-window'
 alias i='unset HISTFILE'
 
