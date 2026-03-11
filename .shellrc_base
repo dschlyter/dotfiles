@@ -68,7 +68,7 @@ alias grootp='git rev-parse --show-cdup'
 
 # -c 'argd *' to clear arg list and avoid error on quitting
 alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc ~/.zgen_plugins ~/.dotfiles/.*.zsh -c 'argd *'; rc"
-function ecl { vim ~/.claude/settings.json $([ -f .claude/settings.local.json ] && echo .claude/settings.local.json) ~/.claude/CLAUDE.md -c 'argd *'; }
+function ecl { vim ~/.claude/settings.json $([ -f .claude/settings.local.json ] && echo .claude/settings.local.json) $([ -f CLAUDE.md ] && echo CLAUDE.md) ~/.claude/CLAUDE.md -c 'argd *'; }
 alias name='tmux rename-window'
 alias i='unset HISTFILE'
 
