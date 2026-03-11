@@ -212,7 +212,7 @@
     brm = !old_name=$(git curr-br) && git br -m $1 && git push origin :$old_name $1 && git su "#"
     drop = !old_name=$(git curr-br) && git switch master $1 && git br -D "$old_name" "#"
     # branch cleanup
-    brc = !git branch --merged | grep -v \\* | grep -v master | grep -v develop | xargs -n 1 git branch -d && git delete-gone
+    brc = !git branch --merged | grep -v \\* | grep -v master | xargs -n 1 git branch -d && git delete-gone
     # delete branches that has upstream deleted
     delete-gone = !git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -n 1 git branch -D
     # quick alias for setting upstream

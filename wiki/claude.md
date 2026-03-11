@@ -32,6 +32,9 @@ Esc Esc - go back to previous conversation point
 
 ctrl-b (three times in tmux) - to run things in the background
 ctrl-v (not cmd-v) to paste a screenshot
+ctrl-e to explain a terminal command that is run
+
+/add-dir to add other repos as working dirs
 
 ## VS code integration
 

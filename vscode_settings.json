@@ -73,5 +73,5 @@
     "explorer.confirmDragAndDrop": false,
     // NOTE: add claude env settings in ~/.claude/settings.json instead
     "claudeCode.preferredLocation": "panel",
-    "claudeCode.selectedModel": "claude-opus-4-6"
+    "claudeCode.selectedModel": "opus"
 }
