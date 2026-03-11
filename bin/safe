@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+
+# Put the below in your CLAUDE.md:
+"""
+`safe run <command>` will run a command safely in a generic Linux container,
+with standard tools and read only access to current directory.
+You can also pipe your own input into the safe run.
+
+Examples:
+* `safe run git log | safe run python -c 'my custom script' | head -n 10
+* `safe run curl -s [public url]`
+
+ALWAYS use this for arbitrary read only code, to avoid permission issues.
+Don't use it if you expect to use local credentials.
+
+Install tools with: safe install apt-get install -y curl
+"""
+
+import argparse
+import shlex
+import shutil
+import subprocess
+import sys
+import os
+from typing import List
+
+SAFE_IMAGE = "safe"
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+DOCKER_DIR = os.path.join(SCRIPT_DIR, "..", "docker", "safe")
+
+
+def main():
+    # https://docs.python.org/3/library/argparse.html
+    global_parser = argparse.ArgumentParser(description='A safe playground for AI, run command in container with readonly access to current dir')
+
+    global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
+    sub_ps = global_parser.add_subparsers()
+
+    sp = sub_ps.add_parser('run', help="run a command, with zsh -c '<command>' in a container")
+    sp.set_defaults(handler=run)
+    sp.add_argument('command', nargs=argparse.REMAINDER, help='the command to run')
+
+    sp = sub_ps.add_parser('install', help='permanently install a tool in the readonly container, the command is added to the Dockerfile')
+    sp.set_defaults(handler=install)
+    sp.add_argument('command', nargs=argparse.REMAINDER, help='the install command to append to Dockerfile, e.g. apt install curl')
+
+    sp = sub_ps.add_parser('edit', help='open the Dockerfile in $EDITOR')
+    sp.set_defaults(handler=edit)
+
+    sp = sub_ps.add_parser('build', help='build the container image')
+    sp.set_defaults(handler=build)
+
+    parsed_args = global_parser.parse_args()
+    # Note: All handlers must have **kwargs to handle global args
+    parsed_args.handler(**parsed_args.__dict__)
+
+
+def container_cmd():
+    if shutil.which("podman"):
+        return "podman"
+    return "docker"
+
+
+def ensure_image():
+    cmd = container_cmd()
+    result = subprocess.run([cmd, "image", "inspect", SAFE_IMAGE], capture_output=True)
+    if result.returncode != 0:
+        print(f"Image '{SAFE_IMAGE}' not found, building...")
+        subprocess.check_call(["./build.sh"], cwd=DOCKER_DIR)
+
+
+def run(command, dry_run=False, **global_args):
+    ensure_image()
+    cmd = container_cmd()
+    cwd = os.getcwd()
+    cmd_str = shlex.join(command)
+    args = [cmd, "run", "--rm", "-i", "-v", f"{cwd}:/opt/app:ro", SAFE_IMAGE, "bash", "-c", cmd_str]
+    sys.exit(subprocess.call(args))
+
+
+def install(command, dry_run=False, **global_args):
+    dockerfile = os.path.join(DOCKER_DIR, "Dockerfile")
+    cmd_str = " ".join(command)
+    line = f"RUN {cmd_str}\n"
+    with open(dockerfile, "r") as f:
+        original = f.read()
+    append = ("" if original.endswith("\n") else "\n") + line
+    with open(dockerfile, "a") as f:
+        f.write(append)
+    print(f"Appended to Dockerfile: {line.strip()}")
+    print("Building image...")
+    try:
+        build(**global_args)
+    except subprocess.CalledProcessError:
+        print("Build failed, reverting Dockerfile change...")
+        with open(dockerfile, "w") as f:
+            f.write(original)
+        sys.exit(1)
+
+
+def build(**global_args):
+    subprocess.check_call(["./build.sh"], cwd=DOCKER_DIR)
+
+
+def edit(**global_args):
+    editor = os.environ.get("EDITOR", "vim")
+    dockerfile = os.path.join(DOCKER_DIR, "Dockerfile")
+    subprocess.call([editor, dockerfile])
+
+
+if __name__ == '__main__':
+        main()
