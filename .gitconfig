@@ -17,7 +17,7 @@
 [apply]
     whitespace=fix
 [core]
-    whitespace=-indent-with-non-tab,trailing-space,cr-at-eol
+    whitespace=-indent-with-non-tab,-trailing-space,cr-at-eol
     excludesfile = ~/.gitignore
     editor = vim
     autocrlf = input

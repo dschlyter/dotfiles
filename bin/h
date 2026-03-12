@@ -237,7 +237,7 @@ def display_segments(res):
     last_date = None
     for s in res.get('segments', []):
         s_date = s.get('date')
-        if last_date and last_date != s_date:
+        if not last_date or last_date != s_date:
             print("---", s_date, "---")
         last_date = s_date
 

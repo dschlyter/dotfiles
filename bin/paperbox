@@ -70,6 +70,7 @@ class Paperbox:
         self.store = JStore('paperbox')
 
     def sync_loop(self):
+        last_print_date = None
         while True:
             try:
                 # NOTE: This does not trigger on deletes.
@@ -77,7 +78,10 @@ class Paperbox:
                     self.sync_all()
                 else:
                     logging.debug("No sync needed")
-                    print("Last check", datetime.now(), "\r", end="")
+                    current_date = datetime.now().date()
+                    if last_print_date != current_date:
+                        print("Last check", datetime.now())
+                        last_print_date = current_date
             except Exception as e:
                 logging.error("Exception when syncing, will retry. " + str(e))
 
