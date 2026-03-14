@@ -3,7 +3,7 @@
 import argparse
 import shutil
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, date
 
 from dotlib.api import RestApi, api_err_print_and_exit
 from dotlib.fzf import fzf_match
@@ -16,7 +16,7 @@ def main():
     # https://docs.python.org/3/library/argparse.html
     global_parser = argparse.ArgumentParser(description='')
 
-    global_parser.set_defaults(handler=lambda *args, **kwargs: show_both(1, 0))
+    global_parser.set_defaults(handler=lambda *args, **kwargs: show_summary(1, 0))
     root_p = global_parser.add_subparsers()
 
     sp = root_p.add_parser('read', aliases=['r'], help='read time')
@@ -138,7 +138,7 @@ def main():
     sp.add_argument('name', help="name of habit")
     sp.add_argument('description', help="name of habit")
 
-    sp = habits_p.add_parser('remove', help='remove habit')
+    sp = habits_p.add_parser('delete', help='delete habit')
     sp.set_defaults(handler=delete_habit)
     sp.add_argument('name', help="name of habit")
 
@@ -154,6 +154,47 @@ def main():
     sp.add_argument('checks', nargs="*")
     sp.add_argument('--date', '-d', help="date or N days ago (inclusive, default 0)", default="0")
     sp.add_argument('--overwrite', '-o', help="overwrite existing checks", action="store_true")
+
+    goals_rp = root_p.add_parser('goals', aliases=['g'], help='manage goals (has subcommands)')
+    goals_rp.set_defaults(handler=lambda *args, **kwargs: list_goals(all=True))
+    goals_p = goals_rp.add_subparsers()
+
+    sp = goals_p.add_parser('read', aliases=['r'], help='read goals with health bars')
+    sp.set_defaults(handler=read_goals)
+    sp.add_argument('--all', '-a', help='list all goals (not just open)', action='store_true')
+    sp.add_argument('--closed', '-c', help='list closed goals', action='store_true')
+    sp.add_argument('--date', help='show standing as of this date (YYYY-MM-DD)', default=None)
+
+    sp = goals_p.add_parser('list', aliases=['l'], help='list goals')
+    sp.set_defaults(handler=list_goals)
+    sp.add_argument('--all', '-a', help='list all goals (not just open)', action='store_true')
+    sp.add_argument('--closed', '-c', help='list closed goals', action='store_true')
+    sp.add_argument('--date', help='show standing as of this date (YYYY-MM-DD)', default=None)
+
+    sp = goals_p.add_parser('add', aliases=['a'], help='add goal')
+    sp.set_defaults(handler=create_goal)
+    sp.add_argument('name', help='goal name (kebab-case)')
+    sp.add_argument('source', help='source (e.g. activity:code)')
+    sp.add_argument('target', help='target (e.g. constant:10)')
+    sp.add_argument('--start', help='start date YYYY-MM-DD (default: start of month)', default=None)
+    sp.add_argument('--end', help='end date YYYY-MM-DD (default: start of next month)', default=None)
+    sp.add_argument('--lt', action='store_true', help='use less-than (lt) condition; default is greater-than (gt)')
+
+    sp = goals_p.add_parser('update', aliases=['u'], help='update goal')
+    sp.set_defaults(handler=update_goal)
+    sp.add_argument('name', help='goal name (kebab-case)')
+    sp.add_argument('--description', '-d')
+    sp.add_argument('--start')
+    sp.add_argument('--end')
+    sp.add_argument('--source')
+    sp.add_argument('--target')
+    sp.add_argument('--condition', '-C', help='condition (gt or lt)')
+    sp.add_argument('--status', '-s', help='status (open or closed)')
+    sp.add_argument('--index', '-i', type=int)
+
+    sp = goals_p.add_parser('delete', aliases=['d'], help='delete goal')
+    sp.set_defaults(handler=delete_goal)
+    sp.add_argument('name', help='goal name (kebab-case)')
 
 
     parsed_args = global_parser.parse_args()
@@ -484,9 +525,12 @@ def activity_open(activity, **global_args):
 
 # Habits
 
-def show_both(start, end, **global_args):
+def show_summary(start, end, **global_args):
     res = api.get(f"api/time4/segments-and-checks?start={start}&end={end}")
     display_checks(res)
+    print()
+    for g in res.get('goals', []):
+        display_goal(g)
     print()
     display_segments(res)
 
@@ -584,6 +628,127 @@ def update_habit(name, description, status, index, **global_args):
     index = index-1 if index is not None else None
     api.put(f"api/time4/habits/{name}", {"description": description, "status": status, "index": index})
 
+# Goals
+
+def read_goals(all=False, closed=False, date=None, **global_args):
+    status = 'all' if all else 'closed' if closed else 'open'
+    url = f"api/time4/goals?status={status}"
+    if date:
+        url += f"&date={date}"
+    res = api.get(url)
+    for g in res.get('goals', []):
+        display_goal(g)
+
+def list_goals(all=False, closed=False, date=None, **global_args):
+    status = 'all' if all else 'closed' if closed else 'open'
+    url = f"api/time4/goals?status={status}"
+    if date:
+        url += f"&date={date}"
+    res = api.get(url)
+    rows = []
+    for g in res.get('goals', []):
+        cond = g.get('condition', 'gt')
+        cond_symbol = '>' if cond == 'gt' else '<' if cond == 'lt' else cond
+        goal = f"{g.get('source', '')} {cond_symbol} {g.get('target', '')}"
+        source_value = g.get('sourceValue', '')
+        target_value = g.get('targetValue', '')
+        value_col = f"{_fmt_val(source_value)}/{_fmt_val(target_value)}"
+        standing = g.get('standing', '').upper()
+        standing_colored = standing_color(standing)(standing)
+        rows.append([
+            g.get('index', ''),
+            g.get('id', ''),
+            g.get('status', ''),
+            g.get('start', ''),
+            g.get('end', ''),
+            goal,
+            value_col,
+            standing_colored
+        ])
+    print_table([
+        ["", "id", "status", "start", "end", "goal", "value", "standing"]
+    ] + rows, sep=" ")
+
+def standing_color(standing):
+    s = (standing or '').lower()
+    return {"pass": green, "ahead": green, "fail": red, "behind": yellow}.get(s, nothing)
+
+def display_goal(g):
+    shortname = goal_shortname(g.get('source', ''))
+    source_value = g.get('sourceValue', 0)
+    target_value = g.get('targetValue', 0)
+    estimate_value = g.get('estimateValue', source_value)
+    standing = g.get('standing', '')
+    value_col = f"{_fmt_val(source_value)}/{_fmt_val(target_value)}"
+    standing_upper = standing.upper()
+    standing_colored = standing_color(standing)(standing_upper)
+    health_bar = goal_health_bar(source_value, target_value, estimate_value, standing)
+    print(f"{health_bar} {standing_colored:10} {value_col:12} {shortname:15}")
+
+def goal_shortname(source):
+    first_part = source.split('+')[0]
+    return first_part.split(':')[-1]
+
+def goal_health_bar(sourceValue, targetValue, estimateValue, standing, bar_width=40):
+    if targetValue <= 0:
+        return ""
+    
+    source = float(sourceValue) if sourceValue is not None else 0
+    target = float(targetValue)
+    estimate = float(estimateValue) if estimateValue is not None else source
+    
+    min_val = min(source, estimate)
+    max_val = max(source, estimate)
+    
+    full_ratio = min(min_val / target, 1.0)
+    partial_ratio = min(max_val / target, 1.0)
+    
+    full_len = int(full_ratio * bar_width)
+    partial_len = int(partial_ratio * bar_width) - full_len
+    empty_len = bar_width - full_len - partial_len
+    
+    full_part = "=" * full_len
+    partial_part = "-" * partial_len
+    empty_part = " " * empty_len
+    
+    bar_content = full_part + partial_part + empty_part
+    color_fn = standing_color(standing)
+    
+    return "[" + color_fn(bar_content) + "]"
+
+def create_goal(name, source, target, start=None, end=None, lt=False, **global_args):
+    today = date.today()
+    if not start:
+        start = today.replace(day=1).strftime("%Y-%m-%d")
+    if not end:
+        year = today.year + (1 if today.month == 12 else 0)
+        month = 1 if today.month == 12 else today.month + 1
+        end = date(year, month, 1).strftime("%Y-%m-%d")
+    entry = {
+        "name": name,
+        "start": start,
+        "end": end,
+        "source": source,
+        "target": target,
+        "condition": "lt" if lt else "gt"
+    }
+    api.post("api/time4/goals", entry)
+
+def update_goal(name, description, start, end, source, target, condition, status, index, **global_args):
+    entry = {}
+    if description: entry["description"] = description
+    if start: entry["start"] = start
+    if end: entry["end"] = end
+    if source: entry["source"] = source
+    if target: entry["target"] = target
+    if condition: entry["condition"] = condition
+    if status: entry["status"] = status
+    if index is not None: entry["index"] = index
+    api.put(f"api/time4/goals/{name}", entry)
+
+def delete_goal(name, **global_args):
+    api.delete(f"api/time4/goals/{name}")
+
 
 # Utils
 
@@ -620,6 +785,12 @@ def _display_duration(minutes, show_zero_h=True):
     if not show_zero_h and minutes < 60:
         return f"{minutes}"
     return f"{minutes // 60}:{minutes % 60:02d}"
+
+def _fmt_val(val):
+    try:
+        return f"{float(val):.2f}"
+    except Exception:
+        return str(val)
 
 def get(list, i):
     return list[i] if len(list) > i else None
