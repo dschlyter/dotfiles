@@ -171,6 +171,10 @@ def main():
     sp.add_argument('--closed', '-c', help='list closed goals', action='store_true')
     sp.add_argument('--date', help='show standing as of this date (YYYY-MM-DD)', default=None)
 
+    sp = goals_p.add_parser('show', aliases=['s'], help='show single goal with breakdown')
+    sp.set_defaults(handler=show_goal)
+    sp.add_argument('id', help='goal id or numeric index')
+
     sp = goals_p.add_parser('add', aliases=['a'], help='add goal')
     sp.set_defaults(handler=create_goal)
     sp.add_argument('name', help='goal name (kebab-case)')
@@ -669,6 +673,20 @@ def list_goals(all=False, closed=False, date=None, **global_args):
         ["", "id", "status", "start", "end", "goal", "value", "standing"]
     ] + rows, sep=" ")
 
+def show_goal(id, **global_args):
+    goal = api.get(f"api/time4/goals/{id}").get('goal')
+    if not goal:
+        print("Goal not found")
+        return
+    
+    acc = goal.get('acc')
+    if acc:
+        for date, goal_state in sorted(acc.items()):
+            print(date, end=" ")
+            display_goal(goal_state)
+    else:
+        print("No breakdown data available")
+
 def standing_color(standing):
     s = (standing or '').lower()
     return {"pass": green, "ahead": green, "fail": red, "behind": yellow}.get(s, nothing)
@@ -677,41 +695,48 @@ def display_goal(g):
     shortname = goal_shortname(g.get('source', ''))
     source_value = g.get('sourceValue', 0)
     target_value = g.get('targetValue', 0)
-    estimate_value = g.get('estimateValue', source_value)
+    estimate_value = g.get('estimateValue')
     standing = g.get('standing', '')
     value_col = f"{_fmt_val(source_value)}/{_fmt_val(target_value)}"
-    standing_upper = standing.upper()
-    standing_colored = standing_color(standing)(standing_upper)
+    color_fn = standing_color(standing)
+    
+    diff_col = ""
+    if estimate_value is not None:
+        diff = source_value - estimate_value
+        diff_sign = "+" if diff >= 0 else ""
+        diff_text = f"{diff_sign}{_fmt_val(diff)}"
+        diff_col = color_fn(diff_text)
+
     health_bar = goal_health_bar(source_value, target_value, estimate_value, standing)
-    print(f"{health_bar} {standing_colored:10} {value_col:12} {shortname:15}")
+    
+    print(f"{health_bar} {diff_col} {value_col:12} {shortname:15}")
 
 def goal_shortname(source):
     first_part = source.split('+')[0]
     return first_part.split(':')[-1]
 
-def goal_health_bar(sourceValue, targetValue, estimateValue, standing, bar_width=40):
-    if targetValue <= 0:
+def goal_health_bar(source, target, estimate, standing, bar_width=40):
+    if target <= 0:
         return ""
     
-    source = float(sourceValue) if sourceValue is not None else 0
-    target = float(targetValue)
-    estimate = float(estimateValue) if estimateValue is not None else source
+    bar = [' '] * bar_width
     
-    min_val = min(source, estimate)
-    max_val = max(source, estimate)
+    fill_ratio = min(source / target, 1)
+    fill_len = int(fill_ratio * bar_width)
+    for i in range(fill_len):
+        bar[i] = '='
+
+    overflow_ratio = min((source - target) / target, 1)
+    overflow_len = int(overflow_ratio * bar_width)
+    for i in range(overflow_len):
+        bar[i] = '#'
     
-    full_ratio = min(min_val / target, 1.0)
-    partial_ratio = min(max_val / target, 1.0)
+    if estimate is not None:
+        estimate_pos = int((estimate / target) * bar_width)
+        if 0 <= estimate_pos < bar_width:
+            bar[estimate_pos] = '|'
     
-    full_len = int(full_ratio * bar_width)
-    partial_len = int(partial_ratio * bar_width) - full_len
-    empty_len = bar_width - full_len - partial_len
-    
-    full_part = "=" * full_len
-    partial_part = "-" * partial_len
-    empty_part = " " * empty_len
-    
-    bar_content = full_part + partial_part + empty_part
+    bar_content = ''.join(bar)
     color_fn = standing_color(standing)
     
     return "[" + color_fn(bar_content) + "]"
