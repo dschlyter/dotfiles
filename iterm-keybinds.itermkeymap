@@ -1,0 +1,50 @@
+{
+  "Key Mappings": {
+    "0x6b-0x100000-0x28": {
+      "Version": 1,
+      "Action": 10,
+      "Text": "k",
+      "Label": ""
+    },
+    "0x68-0x100000-0x4": {
+      "Version": 1,
+      "Action": 10,
+      "Text": "p",
+      "Label": ""
+    },
+    "0x48-0x120000-0x4": {
+      "Version": 2,
+      "Apply Mode": 0,
+      "Action": 10,
+      "Text": "P",
+      "Escaping": 2
+    },
+    "0xd-0x20000-0x24": {
+      "Version": 1,
+      "Keycode": 13,
+      "Action": 12,
+      "Text": "\\n",
+      "Modifiers": 131072
+    },
+    "0x6c-0x100000-0x25": {
+      "Version": 1,
+      "Action": 10,
+      "Text": "n",
+      "Label": ""
+    },
+    "0x6a-0x100000-0x26": {
+      "Version": 1,
+      "Action": 10,
+      "Text": "j",
+      "Label": ""
+    },
+    "0x4c-0x120000-0x25": {
+      "Version": 2,
+      "Apply Mode": 0,
+      "Action": 10,
+      "Text": "N",
+      "Escaping": 2
+    }
+  },
+  "Touch Bar Items": {}
+}
