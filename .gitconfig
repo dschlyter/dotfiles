@@ -166,11 +166,13 @@
     # automatically fixup the last commit where added files where changed (no stash change since this never conflicts)
     fixup-unsafe = !COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1 "#"
     fixup-last = !git fixup-unsafe $(git log -n 1 --pretty=format:%H -- $(git diff --cached --name-only))
-    select = !git log --pretty --oneline --decorate --color | fzf --ansi | awk '{print ""$""1}'
-    cps = !git cherry-pick $(git select)
+    select = !git log $@ --pretty --oneline --decorate --color | fzf -m --ansi | awk '{print ""$""1}' "#"
+    cps = !git cherry-pick $(git select $1) "#"
+    cpn = !git cherry-pick $2~$1..$2 "#"
     amend-date = !GIT_COMMITTER_DATE=\"$1\" git commit --amend --date=\"$1\" "#"
     # continue rebase with sanity check and auto add
-    rbc = !rg \"<<<<\" || git add -u && git rebase --continue
+    rbc = !rg \"<<<<\" || (git add -u && git rebase --continue)
+    cpc = !rg \"<<<<\" || (git add -u && git cherry-pick --continue)
 
     # switch/reset back n commits
     rsn = !COUNT=${1:-1}";" shift";" git reset HEAD~$COUNT \"$@\" "#"
@@ -217,8 +219,11 @@
     delete-gone = !git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -n 1 git branch -D
     # quick alias for setting upstream
     su = !git branch -u origin/$(git curr-br)
-    # when you forget to create a feature branch and commit on master
-    rbr = !branch=\"$(git symbolic-ref --short HEAD)\" && git branch -m \"$1\" && git branch \"$branch\" \"origin/$branch\" "#"
+    # move the last N commits to a branch (creates from master if new, cherry-picks to branch if existing)
+    split = !OLD=$(git curr-br) && END=$(git rev-parse HEAD) && START=$(git rev-parse HEAD~$1) && (git rev-parse --verify \"$2\" > /dev/null 2>&1 && git switch \"$2\" || git switch -c \"$2\" master) && (test $(git rev-parse HEAD) = $END || git cherry-pick $START..$END) && git switch \"$OLD\" && git reset --merge HEAD~$1 "#"
+    # create a combined branch by merging two branches together
+    combine = !git switch \"$1\" && git switch -C \"$1--combine--$2\" && git merge --no-edit --autostash \"$2\" "#"
+    recombine = !git combine $(git curr-br | awk -F'--combine--' '{print $1, $2}')
     # move the added files to a new branch from master, save unstaged as a WIP commit. for when you start new work on the wrong branch.
     nbr = !git invert && git wipa-stash && git switch master -c
     tmp = !git switch -C tmp
