@@ -600,10 +600,33 @@ fasd_setup() {
         source "$FASD_SH"
         eval "$(fasd --init auto)"
 
-        alias j="z"
         alias v="f -e vim -B viminfo"
         unalias s # used by function
         unalias d # used by function
+    fi
+}
+
+# Simple augment of "j", allow for manual mark of dirs, but fall back to fasd / z otherwise
+JM_DIR="$HOME/.config/j-marks"
+
+jm() {
+    mkdir -p "$JM_DIR"
+    if [ "$1" = "-d" ]; then
+        rm -f "$JM_DIR/$2"
+    elif [ "$1" = "-l" ] || [ -z "$1" ]; then
+        for f in "$JM_DIR"/*; do
+            [ -f "$f" ] && printf "%s\t%s\n" "$(basename "$f")" "$(cat "$f")"
+        done
+    elif [ -n "$1" ]; then
+        pwd > "$JM_DIR/$1"
+    fi
+}
+
+function j {
+    if [ -n "$1" ] && [ -f "$JM_DIR/$1" ]; then
+        cd "$(cat "$JM_DIR/$1")"
+    else
+        z "$@"
     fi
 }
 
