@@ -182,7 +182,7 @@
     rbn = !git rebase -i HEAD~$1 "#"
     rsm = branch -f master origin/master
     # remove no commit content
-    nocommit-reset = !git reset $(git dic --name-only -G NOCOMMIT)
+    noc = !git reset $(git dis --name-only -G NOCOMMIT)
 
     # pulling changes more productively
     # fetch, prune removed remote branches and shortlog fetched changes
@@ -224,6 +224,9 @@
     # create a combined branch by merging two branches together
     combine = !git switch \"$1\" && git switch -C \"$1--combine--$2\" && git merge --no-edit --autostash \"$2\" "#"
     recombine = !git combine $(git curr-br | awk -F'--combine--' '{print $1, $2}')
+    # undo a rebase of one branch on another - rebase back or origin or master
+    unbase = !TARGET=$(git rev-parse --verify @{u} 2>/dev/null || echo master) && git rebase --onto $TARGET $(git parent-branch)
+    parent-branch = !git branch --merged HEAD --sort=-committerdate --format='%(refname:short)' | grep -v "$(git branch --show-current)" | head -n 1
     # move the added files to a new branch from master, save unstaged as a WIP commit. for when you start new work on the wrong branch.
     nbr = !git invert && git wipa-stash && git switch master -c
     tmp = !git switch -C tmp

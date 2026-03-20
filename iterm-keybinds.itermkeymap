@@ -1,16 +1,25 @@
 {
   "Key Mappings": {
+    "0x4a-0x120000-0x26": {
+      "Version": 2,
+      "Apply Mode": 0,
+      "Action": 10,
+      "Text": "J",
+      "Escaping": 2
+    },
     "0x6b-0x100000-0x28": {
-      "Version": 1,
+      "Version": 2,
+      "Apply Mode": 0,
       "Action": 10,
       "Text": "k",
-      "Label": ""
+      "Escaping": 2
     },
-    "0x68-0x100000-0x4": {
-      "Version": 1,
+    "0x4b-0x120000-0x28": {
+      "Version": 2,
+      "Apply Mode": 0,
       "Action": 10,
-      "Text": "p",
-      "Label": ""
+      "Text": "K",
+      "Escaping": 2
     },
     "0x48-0x120000-0x4": {
       "Version": 2,
@@ -19,24 +28,33 @@
       "Text": "P",
       "Escaping": 2
     },
+    "0x68-0x100000-0x4": {
+      "Version": 2,
+      "Apply Mode": 0,
+      "Action": 10,
+      "Text": "p",
+      "Escaping": 2
+    },
     "0xd-0x20000-0x24": {
-      "Version": 1,
-      "Keycode": 13,
+      "Version": 2,
+      "Apply Mode": 0,
       "Action": 12,
       "Text": "\\n",
-      "Modifiers": 131072
+      "Escaping": 2
     },
     "0x6c-0x100000-0x25": {
-      "Version": 1,
+      "Version": 2,
+      "Apply Mode": 0,
       "Action": 10,
       "Text": "n",
-      "Label": ""
+      "Escaping": 2
     },
     "0x6a-0x100000-0x26": {
-      "Version": 1,
+      "Version": 2,
+      "Apply Mode": 0,
       "Action": 10,
       "Text": "j",
-      "Label": ""
+      "Escaping": 2
     },
     "0x4c-0x120000-0x25": {
       "Version": 2,
