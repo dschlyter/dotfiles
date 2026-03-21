@@ -156,7 +156,7 @@ def main():
     sp.add_argument('--overwrite', '-o', help="overwrite existing checks", action="store_true")
 
     goals_rp = root_p.add_parser('goals', aliases=['g'], help='manage goals (has subcommands)')
-    goals_rp.set_defaults(handler=lambda *args, **kwargs: list_goals(all=True))
+    goals_rp.set_defaults(handler=lambda *args, **kwargs: show_goal("1"))
     goals_p = goals_rp.add_subparsers()
 
     sp = goals_p.add_parser('read', aliases=['r'], help='read goals with health bars')
