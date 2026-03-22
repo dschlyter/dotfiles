@@ -1,6 +1,16 @@
 // Place your key bindings in this file to override the defaults
 // vscode_keybindings_linux.json also works on windows, but instead on install.sh: Shift-Ctrl P -> Open Keyboard Shortcuts (JSON), and copy-paste
+
+// Finding command ids: Shift-Ctrl P -> Press Cogwheel -> Right click on command -> Copy Command ID
+
+// https://code.visualstudio.com/api/references/when-clause-contexts
+
 [
+    {
+        "key": "ctrl+shift+j",
+        "command": "workbench.action.terminal.focus"
+    },
+    // fileView shortcuts
     {
         "key": "ctrl+n",
         "command": "explorer.newFile"
@@ -9,6 +19,7 @@
         "key": "ctrl+n",
         "command": "-workbench.action.files.newUntitledFile"
     },
+    // Tab shortcuts
     // Note to self: change split with Ctrl-1,2,3
     {
         "key": "alt+h",
@@ -25,6 +36,12 @@
     {
         "key": "alt+shift+l",
         "command": "workbench.action.moveEditorRightInGroup"
+    },
+    // Editor shortcuts
+    {
+        "key": "ctrl+cmd+l",
+        "command": "gitlens.toggleFileBlame",
+        "when": "editorTextFocus"
     },
     {
         "key": "alt+j",

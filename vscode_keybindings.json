@@ -1,5 +1,9 @@
-// Place your key bindings in this file to override the defaultsauto[]
+// Place your key bindings in this file to override the defaults
+
+// Finding command ids: Shift-Ctrl P -> Press Cogwheel -> Right click on command -> Copy Command ID
+
 // https://code.visualstudio.com/api/references/when-clause-contexts
+
 [
     // UI
     // cmd-j seems to also work?
@@ -22,7 +26,8 @@
         "key": "cmd+n",
         "command": "-workbench.action.files.newUntitledFile"
     },
-    // Editor
+    // Tab shortcuts
+    // Note to self: change split with cmd-1,2,3 ???
     {
         "key": "ctrl+cmd+l",
         "command": "gitlens.toggleFileBlame",
