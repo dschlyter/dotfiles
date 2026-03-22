@@ -19,6 +19,11 @@
         "key": "ctrl+n",
         "command": "-workbench.action.files.newUntitledFile"
     },
+    {
+        "key": "ctrl+d",
+        "command": "compareSelected",
+        "when": "focusedView == 'workbench.explorer.fileView'"
+    },
     // Tab shortcuts
     // Note to self: change split with Ctrl-1,2,3
     {
@@ -37,18 +42,23 @@
         "key": "alt+shift+l",
         "command": "workbench.action.moveEditorRightInGroup"
     },
+    {
+        "key": "alt+j",
+        "command": "workbench.action.focusNextGroup"
+    },
+    {
+        "key": "alt+k",
+        "command": "workbench.action.focusPreviousGroup"
+    },
     // Editor shortcuts
     {
         "key": "ctrl+cmd+l",
         "command": "gitlens.toggleFileBlame",
         "when": "editorTextFocus"
     },
+    // Claude
     {
-        "key": "alt+j",
-        "command": "github.copilot.chat.review.next"
-    },
-    {
-        "key": "alt+k",
-        "command": "github.copilot.chat.review.previous"
+        "key": "ctrl+alt+space",
+        "command": "claude-vscode.editor.open"
     },
 ]

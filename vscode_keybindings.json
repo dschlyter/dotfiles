@@ -18,13 +18,13 @@
         "when": "focusedView == 'workbench.explorer.fileView'"
     },
     {
+        "key": "cmd+n",
+        "command": "-workbench.action.files.newUntitledFile"
+    },
+    {
         "key": "cmd+d",
         "command": "compareSelected",
         "when": "focusedView == 'workbench.explorer.fileView'"
-    },
-    {
-        "key": "cmd+n",
-        "command": "-workbench.action.files.newUntitledFile"
     },
     // Tab shortcuts
     // Note to self: change split with cmd-1,2,3 ???
@@ -49,7 +49,20 @@
         "key": "cmd+shift+l",
         "command": "workbench.action.moveEditorRightInGroup"
     },
-    // Cusor specific commands
+    {
+        "key": "alt+j",
+        "command": "workbench.action.focusNextGroup"
+    },
+    {
+        "key": "alt+k",
+        "command": "workbench.action.focusPreviousGroup"
+    },
+    // Claude
+    {
+        "key": "cmd+alt+space",
+        "command": "claude-vscode.editor.open"
+    },
+    // Cusor specific commands (deprecate?)
     {
         "key": "cmd+i",
         "command": "composerMode.agent"

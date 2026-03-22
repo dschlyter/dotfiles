@@ -58,12 +58,14 @@ fi
 time_str=""
 if [ -n "$duration_ms" ]; then
     dur_s=$(( duration_ms / 1000 ))
-    dur_m=$(( dur_s / 60 ))
+    dur_h=$(( dur_s / 3600 ))
+    dur_m=$(( (dur_s % 3600) / 60 ))
     dur_s_rem=$(( dur_s % 60 ))
     api_s=$(( api_ms / 1000 ))
-    api_m=$(( api_s / 60 ))
+    api_h=$(( api_s / 3600 ))
+    api_m=$(( (api_s % 3600) / 60 ))
     api_s_rem=$(( api_s % 60 ))
-    time_str=" ${GRAY}${dur_m}m${dur_s_rem}s (api ${api_m}m${api_s_rem}s)${RST}"
+    time_str=$(printf " ${GRAY}%d:%02d:%02d (api %d:%02d:%02d)${RST}" "$dur_h" "$dur_m" "$dur_s_rem" "$api_h" "$api_m" "$api_s_rem")
 fi
 
 lines_str=""

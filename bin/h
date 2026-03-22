@@ -681,13 +681,11 @@ def show_goal(id, **global_args):
     
     acc = goal.get('acc')
     if acc:
-        prev_state = None
-        for date, goal_state in sorted(acc.items()):
-            if _is_monday(date) and prev_state is not None:
+        for i, (date, goal_state) in enumerate(sorted(acc.items())):
+            if _is_monday(date) and i > 0:
                 print()
             print(date, end=" ")
-            display_goal(goal_state, prev_state, goal.get('condition', 'gt'))
-            prev_state = goal_state
+            display_goal(goal_state, goal.get('condition', 'gt'))
     else:
         print("No breakdown data available")
 
@@ -695,7 +693,8 @@ def standing_color(standing):
     s = (standing or '').lower()
     return {"pass": green, "ahead": green, "fail": red, "behind": yellow}.get(s, nothing)
 
-def display_goal(g, prev_g=None, condition='gt'):
+def display_goal(g, condition=None):
+    condition = condition or g.get('condition', 'gt')
     shortname = f"{goal_shortname(g.get('source', '')):15}" if g.get('source') else ""
     source_value = g.get('sourceValue', 0)
     target_value = g.get('targetValue', 0)
@@ -711,16 +710,15 @@ def display_goal(g, prev_g=None, condition='gt'):
         diff_text = f"{diff_sign}{_fmt_val(diff)}"
         diff_col = color_fn(diff_text)
 
-    diff_diff_col = ""
-    if estimate_value is not None and prev_g is not None:
-        prev_diff = prev_g.get('sourceValue', 0) - prev_g.get('estimateValue', 0)
-        diff_diff = diff - prev_diff
-        good = diff_diff > 0 if condition == 'gt' else diff_diff < 0
-        diff_diff_col = (green if good else red)(f"{diff_diff:+.2f}")
+    standing_change_col = ""
+    standing_change = g.get('standingChange')
+    if standing_change is not None:
+        good = standing_change > 0 if condition == 'gt' else standing_change < 0
+        standing_change_col = (green if good else red)(f"{standing_change:+.2f}")
 
     health_bar = goal_health_bar(source_value, target_value, estimate_value, standing)
     
-    print(f"{health_bar} {diff_col} {value_col:12} {shortname}{diff_diff_col}")
+    print(f"{health_bar} {diff_col} {value_col:12} {standing_change_col} {shortname}")
 
 def goal_shortname(source):
     first_part = source.split('+')[0]
