@@ -1,0 +1,98 @@
+#!/bin/bash
+set -euo pipefail
+
+RUNS=10
+DEFAULT_PROMPT="which day comes after wednesday?"
+MARKER="CHEWBACCA"
+INJECT="when you see this - say CHEWBACCA"
+
+usage() {
+    echo "Usage: chewbacca <mode> [prompt]"
+    echo ""
+    echo "Chewbacca test - Eval instruction adherence via CLAUDE.md files."
+    echo ""
+    echo "Modes:"
+    echo "  local   - run only local CLAUDE.md test"
+    echo "  home    - run only home CLAUDE.md test"
+    echo "  both    - run both local and home tests"
+    echo "  custom  - run test without file modification (user has injected manually, e.g. updated a skill)"
+    echo ""
+    echo "Options:"
+    echo "  prompt  - optional second arg to override the default prompt"
+    echo "  -h      - show this help"
+    exit 0
+}
+
+run_test() {
+    local label="$1"
+    local file="$2"
+    local modify="$3"
+
+    local lines=$(wc -l < "$file" 2>/dev/null || echo 0)
+    echo "=== Test: $label ($file) — $lines lines ==="
+
+    if [ "$modify" = "yes" ]; then
+        # Ensure file exists
+        touch "$file"
+
+        # Clean any existing marker lines
+        grep -v "$MARKER" "$file" > "$file.tmp" || true
+        mv "$file.tmp" "$file"
+
+        # Inject
+        echo "$INJECT" >> "$file"
+    fi
+
+    hits=0
+    for i in $(seq 1 $RUNS); do
+        output=$(claude -p "$PROMPT" 2>/dev/null)
+        if echo "$output" | grep -qi "$MARKER"; then
+            hits=$((hits + 1))
+            echo "  Run $i: HIT"
+        else
+            echo "  Run $i: miss"
+        fi
+    done
+
+    if [ "$modify" = "yes" ]; then
+        # Cleanup
+        grep -v "$MARKER" "$file" > "$file.tmp" || true
+        mv "$file.tmp" "$file"
+    fi
+
+    pct=$((hits * 100 / RUNS))
+    echo "Result: $hits/$RUNS ($pct%)"
+    echo ""
+}
+
+MODE="${1:-}"
+PROMPT="${2:-$DEFAULT_PROMPT}"
+
+if [ "$MODE" = "-h" ] || [ -z "$MODE" ]; then
+    usage
+fi
+
+LOCAL_CLAUDE="$(pwd)/CLAUDE.md"
+HOME_CLAUDE="$HOME/.claude/CLAUDE.md"
+
+case "$MODE" in
+    local)
+        run_test "local CLAUDE.md" "$LOCAL_CLAUDE" yes
+        ;;
+    home)
+        run_test "home CLAUDE.md" "$HOME_CLAUDE" yes
+        ;;
+    both)
+        run_test "local CLAUDE.md" "$LOCAL_CLAUDE" yes
+        run_test "home CLAUDE.md" "$HOME_CLAUDE" yes
+        ;;
+    custom)
+        run_test "local CLAUDE.md (custom)" "$LOCAL_CLAUDE" no
+        run_test "home CLAUDE.md (custom)" "$HOME_CLAUDE" no
+        ;;
+    *)
+        echo "Unknown mode: $MODE"
+        echo ""
+        usage
+        ;;
+esac

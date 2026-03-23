@@ -626,7 +626,7 @@ function j {
     if [ -n "$1" ] && [ -f "$JM_DIR/$1" ]; then
         cd "$(cat "$JM_DIR/$1")"
     else
-        z "$@"
+        fasd_cd -d "$@"
     fi
 }
 
