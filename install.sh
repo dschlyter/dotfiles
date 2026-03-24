@@ -144,7 +144,6 @@ link .tmux.conf
 link .tmux-scripts
 
 mkdir -p "$HOME/.claude"
-link claude-statusline.sh "$HOME/.claude/claude-statusline.sh"
 
 link_settings "$HOME/.config" ptpython config.py ptpython-config.py
 link_settings "$HOME/.config" ptpython startup.py ptpython-startup.py
