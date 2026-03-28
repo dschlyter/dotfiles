@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import sys
+import time
+from datetime import datetime, date
+
+# Add dotlib to path
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, SCRIPT_DIR)
+
+from dotlib.json_file import JsonDir
+
+"""
+x   implement file storage
+
+=   features - chat
+i   (assume all chatters run in tmux, and TMUX_PANE env var is identity)
+x   prm register <name> - register with kebab-case name
+x   prm list - list agents and their status
+    prm clean - clean agents with no matching tmux sessions (if defined), or inactive for 24h
+
+x   prm msg - message an agent
+x   prm broadcast - broadcast to all
+x   prm poll - read messages and requests
+x   prm read - read new messages and requests (blocking)
+
+=   features - task list
+    prm create - create new task
+    prm complete
+    prm doc
+    prm subtask
+
+human view
+prm - interactive task list (with textual ??)
+"""
+
+db = JsonDir(os.environ.get("PRM_DIR", os.path.expanduser("~/.prm")))
+
+AGENTS_FILE = "agents.json"
+MESSAGES_FILE = "messages.json"
+
+def main():
+    client_parser = argparse.ArgumentParser(add_help=False)
+    client_parser.add_argument("-c", "--client", default=None, help="client name (default: lookup by TMUX_PANE)")
+
+    p = argparse.ArgumentParser(description="prm - process/agent message bus")
+    p.set_defaults(handler=lambda **kw: p.print_help())
+    sub = p.add_subparsers()
+
+    sp = sub.add_parser("register", aliases=["r"], help="register a client, kebab-case name as first arg")
+    sp.set_defaults(handler=cmd_register)
+    sp.add_argument("name", help="client name (kebab-case)")
+
+    sp = sub.add_parser("list", aliases=["l"], help="list registered clients")
+    sp.set_defaults(handler=cmd_list)
+
+    sp = sub.add_parser("msg", aliases=["m"], help="send a message", parents=[client_parser])
+    sp.set_defaults(handler=cmd_msg)
+    sp.add_argument("target", help="recipient client name")
+    sp.add_argument("body", help="message body (use - for stdin)")
+
+    sp = sub.add_parser("broadcast", aliases=["b"], help="send a message to all other clients", parents=[client_parser])
+    sp.set_defaults(handler=cmd_broadcast)
+    sp.add_argument("body", help="message body (use - for stdin)")
+
+    sp = sub.add_parser("poll", aliases=["p"], help="read new messages (non-blocking)", parents=[client_parser])
+    sp.set_defaults(handler=cmd_poll)
+
+    sp = sub.add_parser("read", help="read new messages (blocking)", parents=[client_parser])
+    sp.set_defaults(handler=cmd_read)
+    sp.add_argument("--timeout", "-t", type=float, default=None, help="timeout in seconds")
+
+    args = p.parse_args()
+    args.handler(**vars(args))
+
+#
+# Chat - Registration and client management
+#
+
+def cmd_register(name, **kw):
+    pane = os.environ.get("TMUX_PANE")
+    def update(agents):
+        agents[name] = {
+            "pane": pane,
+            "registered_at": time.time(),
+            "last_poll": 0,
+        }
+    db.modify(AGENTS_FILE, update, default={})
+    print(f"registered {name}" + (f" (pane {pane})" if pane else ""))
+
+
+def cmd_list(**kw):
+    agents = db.read(AGENTS_FILE, default={})
+    if not agents:
+        print("no registered agents")
+        return
+    for name, info in agents.items():
+        pane = info.get("pane") or "-"
+        print(f"  {name}\tpane={pane}")
+
+
+def resolve_client(client_arg):
+    """Resolve client name from -c flag or TMUX_PANE env var."""
+    agents = db.read(AGENTS_FILE, default={})
+    if client_arg:
+        if client_arg not in agents:
+            print(f"error: unknown client '{client_arg}'", file=sys.stderr)
+            sys.exit(1)
+        return client_arg
+    pane = os.environ.get("TMUX_PANE")
+    if not pane:
+        print("error: no -c flag and TMUX_PANE not set", file=sys.stderr)
+        sys.exit(1)
+    for name, info in agents.items():
+        if info.get("pane") == pane:
+            return name
+    print(f"error: no registered client for pane {pane} - register with: prm register my-name", file=sys.stderr)
+    sys.exit(1)
+
+#
+# Chat - Send messages
+#
+
+def cmd_msg(target, body, client, **kw):
+    sender = resolve_client(client)
+    agents = db.read(AGENTS_FILE, default={})
+    if target not in agents:
+        print(f"error: unknown target '{target}'", file=sys.stderr)
+        sys.exit(1)
+    send_message(sender, target, read_body(body))
+
+
+def cmd_broadcast(body, client, **kw):
+    sender = resolve_client(client)
+    send_message(sender, None, read_body(body), type="broadcast")
+
+
+def read_body(body):
+    """Read message body from arg or stdin if '-'."""
+    if body == "-":
+        return sys.stdin.read().rstrip("\n")
+    return body
+
+#
+# Chat - Read messages
+#
+
+def cmd_poll(client, **kw):
+    print_messages(poll_messages(resolve_client(client)))
+
+
+def cmd_read(client, timeout, **kw):
+    me = resolve_client(client)
+    deadline = time.time() + timeout if timeout else None
+    while True:
+        new = poll_messages(me)
+        if new:
+            print_messages(new)
+            return
+        if deadline and time.time() >= deadline:
+            return
+        time.sleep(0.5)
+
+
+def send_message(sender, target, body, type="direct"):
+    """Append a message to the message log."""
+    db.modify(MESSAGES_FILE, lambda msgs: msgs.append({
+        "type": type,
+        "from": sender,
+        "to": target,
+        "body": body,
+        "ts": time.time(),
+    }), default=[])
+
+
+def poll_messages(me):
+    """Return new messages for client, updating last_poll timestamp."""
+    messages = db.read(MESSAGES_FILE, default=[])
+    new = []
+    def update_poll(agents):
+        nonlocal new
+        last_poll = agents.get(me, {}).get("last_poll", 0)
+        new = [m for m in messages if m["ts"] > last_poll and (
+            m["to"] == me or (m.get("type") == "broadcast" and m["from"] != me)
+        )]
+        if new and me in agents:
+            agents[me]["last_poll"] = time.time()
+    db.modify(AGENTS_FILE, update_poll, default={})
+    return new
+
+
+def format_ts(ts):
+    dt = datetime.fromtimestamp(ts)
+    if dt.date() == date.today():
+        return dt.strftime("%H:%M:%S")
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def print_messages(messages):
+    for m in messages:
+        print(f"{format_ts(m['ts'])} [{m['from']}] {m['body']}")
+
+#
+# Project management
+#
+
+
+if __name__ == "__main__":
+    main()
