@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import subprocess
 import sys
 import time
 from datetime import datetime, date
@@ -19,7 +20,7 @@ x   implement file storage
 i   (assume all chatters run in tmux, and TMUX_PANE env var is identity)
 x   prm register <name> - register with kebab-case name
 x   prm list - list agents and their status
-    prm clean - clean agents with no matching tmux sessions (if defined), or inactive for 24h
+x   prm clean - clean agents with no matching tmux sessions (if defined), or inactive for 24h
 
 x   prm msg - message an agent
 x   prm broadcast - broadcast to all
@@ -53,8 +54,15 @@ def main():
     sp.set_defaults(handler=cmd_register)
     sp.add_argument("name", help="client name (kebab-case)")
 
-    sp = sub.add_parser("list", aliases=["l"], help="list registered clients")
-    sp.set_defaults(handler=cmd_list)
+    sp = sub.add_parser("who", aliases=["w"], help="list registered clients")
+    sp.set_defaults(handler=cmd_who)
+
+    sp = sub.add_parser("unregister", help="unregister a client", parents=[client_parser])
+    sp.set_defaults(handler=cmd_unregister)
+    sp.add_argument("name", nargs="?", default=None, help="client to remove (default: self)")
+
+    sp = sub.add_parser("clean", help="remove stale clients and old messages")
+    sp.set_defaults(handler=cmd_clean)
 
     sp = sub.add_parser("msg", aliases=["m"], help="send a message", parents=[client_parser])
     sp.set_defaults(handler=cmd_msg)
@@ -91,14 +99,69 @@ def cmd_register(name, **kw):
     print(f"registered {name}" + (f" (pane {pane})" if pane else ""))
 
 
-def cmd_list(**kw):
+def cmd_who(**kw):
     agents = db.read(AGENTS_FILE, default={})
     if not agents:
         print("no registered agents")
         return
     for name, info in agents.items():
-        pane = info.get("pane") or "-"
-        print(f"  {name}\tpane={pane}")
+        pane = info.get("pane")
+        suffix = f" (pane:{pane.lstrip('%')})" if pane else ""
+        print(f"{name}{suffix}")
+
+
+def cmd_unregister(name, client, **kw):
+    target = name or resolve_client(client)
+    removed = []
+    def update(agents):
+        if target not in agents:
+            print(f"error: unknown client '{target}'", file=sys.stderr)
+            sys.exit(1)
+        del agents[target]
+        removed.append(target)
+    db.modify(AGENTS_FILE, update, default={})
+    print(f"unregistered {removed[0]}")
+
+
+def cmd_clean(**kw):
+    now = time.time()
+    cutoff = now - 24 * 3600
+    live_panes = get_tmux_panes()
+    removed = []
+    def clean_agents(agents):
+        to_remove = []
+        for name, info in agents.items():
+            pane = info.get("pane")
+            if pane and live_panes is not None and pane not in live_panes:
+                to_remove.append(name)
+            elif info.get("last_poll", 0) < cutoff and info.get("registered_at", 0) < cutoff:
+                to_remove.append(name)
+        for name in to_remove:
+            del agents[name]
+            removed.append(name)
+    db.modify(AGENTS_FILE, clean_agents, default={})
+    cleaned_msgs = [0]
+    def clean_messages(msgs):
+        before = len(msgs)
+        msgs[:] = [m for m in msgs if m["ts"] > cutoff]
+        cleaned_msgs[0] = before - len(msgs)
+    db.modify(MESSAGES_FILE, clean_messages, default=[])
+    if removed:
+        print(f"removed clients: {', '.join(removed)}")
+    if cleaned_msgs[0]:
+        print(f"removed {cleaned_msgs[0]} old messages")
+
+
+def get_tmux_panes():
+    """Return set of live tmux pane ids, or None if tmux is not running."""
+    try:
+        out = subprocess.check_output(
+            ["tmux", "list-panes", "-a", "-F", "#{pane_id}"],
+            stderr=subprocess.DEVNULL
+        ).decode().strip()
+        return set(out.splitlines())
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
 
 
 def resolve_client(client_arg):
