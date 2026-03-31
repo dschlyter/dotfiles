@@ -61,3 +61,6 @@ _qstyx*
 sbt.json
 
 .claude
+.claude/settings.local.json
+CLAUDE.local.md
+AGENTS.local.md

@@ -61,11 +61,25 @@ if [ -n "$duration_ms" ]; then
     dur_h=$(( dur_s / 3600 ))
     dur_m=$(( (dur_s % 3600) / 60 ))
     dur_s_rem=$(( dur_s % 60 ))
+    if [ "$dur_h" -ge 24 ]; then
+        dur_d=$(( dur_h / 24 ))
+        dur_h=$(( dur_h % 24 ))
+        dur_fmt=$(printf "%dd %02d:%02d:%02d" "$dur_d" "$dur_h" "$dur_m" "$dur_s_rem")
+    else
+        dur_fmt=$(printf "%d:%02d:%02d" "$dur_h" "$dur_m" "$dur_s_rem")
+    fi
     api_s=$(( api_ms / 1000 ))
     api_h=$(( api_s / 3600 ))
     api_m=$(( (api_s % 3600) / 60 ))
     api_s_rem=$(( api_s % 60 ))
-    time_str=$(printf " ${GRAY}%d:%02d:%02d (api %d:%02d:%02d)${RST}" "$dur_h" "$dur_m" "$dur_s_rem" "$api_h" "$api_m" "$api_s_rem")
+    if [ "$api_h" -ge 24 ]; then
+        api_d=$(( api_h / 24 ))
+        api_h=$(( api_h % 24 ))
+        api_fmt=$(printf "%dd %02d:%02d:%02d" "$api_d" "$api_h" "$api_m" "$api_s_rem")
+    else
+        api_fmt=$(printf "%d:%02d:%02d" "$api_h" "$api_m" "$api_s_rem")
+    fi
+    time_str=" ${GRAY}${dur_fmt} (api ${api_fmt})${RST}"
 fi
 
 lines_str=""

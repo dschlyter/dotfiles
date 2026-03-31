@@ -123,9 +123,36 @@ alias -g THISHOUR-24='$(date "+%Y-%m-%dT%H" -d "-24 hour")'
 # Functions
 
 function install-skill() {
+    local copy=0 force=0
+    while getopts "cf" opt; do
+        case $opt in
+            c) copy=1 ;;
+            f) force=1 ;;
+        esac
+    done
+    shift $((OPTIND - 1))
+
     local d="$HOME/.claude/skills/$(basename "$1")"
-    [[ -e "$d" ]] && echo "exists: $d" >&2 && return 1
-    ln -s "$(pwd)/$1" "$d"
+    if [[ -e "$d" || -L "$d" ]]; then
+        local info="exists: $d"
+        if [[ -L "$d" ]]; then
+            info="$info (links to: $(readlink "$d"))"
+        else
+            info="$info (local copy)"
+        fi
+        if [[ $force -eq 0 ]]; then
+            echo "$info" >&2
+            return 1
+        fi
+        echo "$info, overwriting" >&2
+        rm -rf "$d"
+    fi
+
+    if [[ $copy -eq 1 ]]; then
+        cp -r "$(pwd)/$1" "$d"
+    else
+        ln -s "$(pwd)/$1" "$d"
+    fi
 }
 
 # Enable per-pane history in tmux

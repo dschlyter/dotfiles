@@ -59,7 +59,7 @@
     },
     // Claude
     {
-        "key": "cmd+alt+space",
+        "key": "cmd+shift+space",
         "command": "claude-vscode.editor.open"
     },
     // Cusor specific commands (deprecate?)
