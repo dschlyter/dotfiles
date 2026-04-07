@@ -1,0 +1,127 @@
+#!/bin/bash
+
+# git sprout <branch-name> [commits...]
+# Creates or updates a branch with cherry-picked commits using a worktree,
+# leaving the current worktree completely untouched.
+#
+# Commit arguments:
+#   <number>       - sprout the last N commits from HEAD
+#   <sha> [<sha>]  - sprout specific commit(s)
+#   (empty)        - interactive selection via fzf
+
+set -euo pipefail
+
+# --pluck flag: also remove sprouted commits from current branch
+PLUCK=false
+if [[ "${1:-}" == "--pluck" ]]; then
+    PLUCK=true
+    shift
+fi
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    cat <<'EOF'
+Usage: git sprout <branch-name> [N | commit1 commit2 ... ]
+
+Cherry-pick commits to a separate branch using a temporary worktree.
+Your current working directory and branch are never touched.
+
+  <branch-name>          Target branch (created from master if new)
+  -<suffix>              Append suffix to current branch (e.g. -tests on feat1 → feat1-tests)
+  N                      Sprout the last N commits from HEAD
+  commit1 [commit2 ...]  Sprout specific commits
+  (no commits)           Interactive selection via git select
+
+Examples:
+  git sprout feat-tests 3           # last 3 commits
+  git sprout -tests 3               # same, if on branch "feat"
+  git sprout feat-schema abc123     # specific commit
+  git sprout feat-tests             # pick interactively
+
+See also: git split <branch> N  (sprout + remove from current branch)
+EOF
+    exit 1
+fi
+
+BRANCH_NAME="${1:-}"
+if [[ -z "$BRANCH_NAME" ]]; then
+    echo "Usage: git sprout <branch-name> [N | commit1 commit2 ... ]"
+    echo "Run 'git sprout -h' for more info."
+    exit 1
+fi
+shift
+
+# If branch name starts with "-", treat as suffix to current branch name
+if [[ "$BRANCH_NAME" == -* ]]; then
+    BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD)$BRANCH_NAME"
+fi
+
+# Resolve the base branch (default: master)
+BASE_BRANCH="master"
+
+# Resolve commits to cherry-pick
+COMMITS=()
+if [[ $# -eq 0 ]]; then
+    # Interactive selection via git select
+    while IFS= read -r sha; do
+        COMMITS+=("$sha")
+    done < <(git select)
+    if [[ ${#COMMITS[@]} -eq 0 ]]; then
+        echo "No commits selected."
+        exit 1
+    fi
+elif [[ $# -eq 1 ]] && [[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -gt 0 ]] && [[ "$1" -lt 100 ]]; then
+    # Number N - last N commits from HEAD
+    N="$1"
+    while IFS= read -r sha; do
+        COMMITS+=("$sha")
+    done < <(git rev-list --reverse HEAD~"$N"..HEAD)
+else
+    # Explicit commit SHAs
+    COMMITS=("$@")
+fi
+
+if [[ ${#COMMITS[@]} -eq 0 ]]; then
+    echo "No commits to sprout."
+    exit 1
+fi
+
+echo "Sprouting ${#COMMITS[@]} commit(s) to branch '$BRANCH_NAME'..."
+
+# Create a temporary worktree
+WORKTREE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/git-sprout.XXXXXX")
+
+cleanup() {
+    if [[ -d "$WORKTREE_DIR" ]]; then
+        git worktree remove --force "$WORKTREE_DIR" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT
+
+# Check if branch already exists (local or remote)
+if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+    echo "Using existing branch '$BRANCH_NAME'"
+    git worktree add "$WORKTREE_DIR" "$BRANCH_NAME"
+elif git rev-parse --verify "origin/$BRANCH_NAME" >/dev/null 2>&1; then
+    echo "Using existing remote branch 'origin/$BRANCH_NAME'"
+    git worktree add "$WORKTREE_DIR" -b "$BRANCH_NAME" "origin/$BRANCH_NAME"
+else
+    echo "Creating new branch '$BRANCH_NAME' from '$BASE_BRANCH'"
+    git worktree add "$WORKTREE_DIR" -b "$BRANCH_NAME" "$BASE_BRANCH"
+fi
+
+# Cherry-pick commits in the worktree
+pushd "$WORKTREE_DIR" > /dev/null
+for commit in "${COMMITS[@]}"; do
+    echo "Cherry-picking $(git log --oneline -1 "$commit")"
+    # re-use committer date to minimize branch divergence
+    if ! GIT_COMMITTER_DATE="$(git log -1 --format=%cD "$commit")" git cherry-pick "$commit"; then
+        echo "Cherry-pick failed for $commit. Aborting."
+        git cherry-pick --abort
+        exit 1
+    fi
+done
+popd > /dev/null
+
+if [[ "$PLUCK" == true ]]; then
+    git pluck "${COMMITS[@]}"
+fi

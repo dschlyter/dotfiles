@@ -52,11 +52,13 @@
     dis = diff --staged
     diw = diff HEAD --color-words='[^[:space:]]|([[:alnum:]]|UTF_8_GUARD)+'
     au = add -u
+    ca = commit -v -a -m
     cm = commit -v
     cma = !git cm --amend
     f = fetch
     m = merge
     pu = push -u --follow-tags
+    po = push -u --follow-tags origin
     pp = !git pull --rebase && git pu
     pufl = push --force-with-lease
     br = branch -vv
@@ -140,19 +142,19 @@
     ai = !git status --porcelain | grep -E '^.[^ ]' | fzf -m --tac | colrm 1 3 | xargs git add
     ri = !git status --porcelain | grep -E '^[^ ?]' | fzf -m --tac | colrm 1 3 | xargs git reset
     ni = !git status --porcelain | grep -E '^[^?]' | fzf -m --tac | colrm 1 3 | xargs git restore
-    vask-unstaged = !git stash --keep-index && git stash drop
     # stage all unstaged, and unstage all staged (note: partially staged becomes fully staged)
     invert = !UNSTAGED=$(git status --porcelain | grep -E '^.[^ ]' | colrm 1 3) && git reset > /dev/null && git add $UNSTAGED
-    add-again = !git status --porcelain | grep -E '^[^ ?][^ ]' | colrm 1 3 | xargs git add
+    # add the files that are already staged
+    as = !git status --porcelain | grep -E '^[^ ?][^ ]' | colrm 1 3 | xargs git add
     # wip commit, to be used in combination with post-switch auto pop of all commits named "wip-stash"
     wip = !git add -A";" git wipa
     wipa = !git commit -m 'wip-commit'
     wip-stash = !git add -A";" git wipa-stash
     wipa-stash = !git commit --no-verify -m 'wip-stash'
     ws = wip-stash
-    # don't commit but save state to reflog
-    checkpoint = !git commit --no-verify -am \"checkpoint: $*\" && git reset 'HEAD~1' "#"
-    nuke = !git checkpoint "nuking repo" && git reset --hard
+    # don't commit but save state to reflog (+ add to staging area, to separate changes from newer ones)
+    draft = !git commit --no-verify -am \"draft: $*\" && git reset --soft 'HEAD~1' "#"
+    nuke = !git draft "nuking repo" && git reset --hard
     # remove all whitespace changes
     rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git restore "${@:-.}" && git reset'
 
@@ -197,6 +199,10 @@
     # lazy fetch, for having fetch in commands that may be chained together, without fetching multiple times
     last-fetch = !echo $(( $(date +%s) - $(${GNU_PREFIX}stat -c %Y .git/FETCH_HEAD) )) "#"
     lazy-fe = !test $(git last-fetch) -gt 20 && git fe || true
+    
+    # pushing
+    # fzf select branch to push
+    ps = !git braf | sed 's,origin/,,' | xargs -I{} git push -u --follow-tags origin {} "#"
 
     # branch management
     cl = !sh -c 'DIR="${2:-$(basename "$1" .git)}" && git clone "$@" && cd "$DIR" && test "$(git curr-br)" = "main" && git br -m master && git br || true' -
@@ -204,9 +210,9 @@
     # when done with branch after squash (this will do a hard delete of the branch)
     done = !git switch master && git pull --prune && git brc
     # list all branches - but local last
-    brl = branch --sort=committerdate --format='%(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(authorname) '
+    brl = branch --sort=committerdate --format='%(color:yellow)%(refname:short)%(color:reset) %(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) '
     bra = !git --no-pager brl --color --remotes && git --no-pager brl --color
-    braf = !git bra --color | fzf --tac --ansi --exact | awk '{print $5}' "#"
+    braf = !git bra --color | fzf --tac --ansi --exact | awk '{print $1}' "#"
     s = !git braf | sed 's,origin/,,' | xargs git sw "#"
     # branch cleanup
     # delete or rename branch, both locally and remotely
@@ -219,8 +225,14 @@
     delete-gone = !git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -n 1 git branch -D
     # quick alias for setting upstream
     su = !git branch -u origin/$(git curr-br)
-    # move the last N commits to a branch (creates from master if new, cherry-picks to branch if existing)
-    split = !OLD=$(git curr-br) && END=$(git rev-parse HEAD) && START=$(git rev-parse HEAD~$1) && (git rev-parse --verify \"$2\" > /dev/null 2>&1 && git switch \"$2\" || git switch -c \"$2\" master) && (test $(git rev-parse HEAD) = $END || git cherry-pick $START..$END) && git switch \"$OLD\" && git reset --merge HEAD~$1 "#"
+
+    # special tricky branch management
+    # sprout commits to a separate branch via worktree (does not touch working dir)
+    sprout = !$HOME/.git-scripts/entry sprout
+    # remove specific commits from current branch (non-interactive rebase)
+    pluck = !$HOME/.git-scripts/entry pluck
+    # sprout + remove commits from current branch
+    split = !git sprout --pluck \"$@\" "#"
     # create a combined branch by merging two branches together
     combine = !git switch \"$1\" && git switch -C \"$1--combine--$2\" && git merge --no-edit --autostash \"$2\" "#"
     recombine = !git combine $(git curr-br | awk -F'--combine--' '{print $1, $2}')
@@ -232,8 +244,8 @@
     tmp = !git switch -C tmp
     # quickly just add everything to a branch
     qb = !git switch -c "$(echo $* | tr ' ' '-')" && git add . && git commit -am \"$*\" "#"
-    # or just when you are too lazy to write -am ""
-    cam = !git commit -am \"$*\" "#"
+
+    # create empty commits (for testing stuff)
     ce = !git commit --allow-empty -am \"$*\" "#"
 
     # tag management

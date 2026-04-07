@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# git pluck [commits...]
+# Remove specific commits from the current branch (non-interactive rebase).
+#
+# Commit arguments:
+#   <number>       - remove the last N commits from HEAD
+#   <sha> [<sha>]  - remove specific commit(s)
+#   (empty)        - interactive selection via git select
+
+set -euo pipefail
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    cat <<'EOF'
+Usage: git pluck [N | commit1 commit2 ... ]
+
+Remove specific commits from the current branch using a non-interactive rebase.
+
+  N                      Remove the last N commits (keeps changes unstaged)
+  commit1 [commit2 ...]  Remove specific commits via rebase
+  (no args)              Interactive selection via git select
+
+Examples:
+  git pluck 2                   # drop last 2 commits (mixed reset)
+  git pluck abc123 def456       # drop specific commits
+  git pluck                     # pick interactively
+EOF
+    exit 1
+fi
+
+# Resolve commits to remove
+COMMITS=()
+if [[ $# -eq 0 ]]; then
+    while IFS= read -r sha; do
+        COMMITS+=("$sha")
+    done < <(git select)
+    if [[ ${#COMMITS[@]} -eq 0 ]]; then
+        echo "No commits selected."
+        exit 1
+    fi
+elif [[ $# -eq 1 ]] && [[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -gt 0 ]] && [[ "$1" -lt 100 ]]; then
+    # Number N - simple reset is sufficient
+    N="$1"
+    git reset HEAD~"$N"
+    echo "Removed last $N commit(s) from current branch (changes kept unstaged)."
+    exit 0
+else
+    COMMITS=("$@")
+fi
+
+# Build sed expression to drop the commits from rebase todo
+SED_EXPR=""
+for commit in "${COMMITS[@]}"; do
+    short=$(git rev-parse --short "$commit")
+    SED_EXPR+="/^pick $short/d;"
+done
+
+# Find how far back to rebase — need to go before the earliest commit to drop
+# Use merge-base with master as a safe rebase base
+REBASE_BASE=$(git merge-base master HEAD)
+
+echo "Removing ${#COMMITS[@]} commit(s) from current branch..."
+GIT_SEQUENCE_EDITOR="sed -i '' '${SED_EXPR}'" git rebase -i "$REBASE_BASE"
+echo "Done."
