@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+"""
+Convert unicode box-drawing tables from stdin into markdown tables.
+
+Usage: pbpaste | untable | pbcopy
+"""
+
+import sys
+import re
+
+
+def strip_box_chars(line):
+    """Remove leading/trailing whitespace and box-drawing border chars."""
+    line = line.strip()
+    # Remove leading and trailing box-drawing borders
+    line = re.sub(r'^[│┃|]', '', line)
+    line = re.sub(r'[│┃|]$', '', line)
+    return line
+
+
+def is_border_line(line):
+    """Check if a line is a horizontal border (─, ┌, ┐, ├, ┤, └, ┘, ┬, ┴, ┼, ═, etc.)."""
+    stripped = line.strip()
+    if not stripped:
+        return True
+    return bool(re.match(r'^[\s┌┐├┤└┘┬┴┼─━═╔╗╠╣╚╝╦╩╬╒╕╞╡╘╙╤╧╪]+$', stripped))
+
+
+def split_cells(line):
+    """Split a content line by column separators (│)."""
+    return [cell.strip() for cell in re.split(r'[│┃|]', strip_box_chars(line))]
+
+
+def is_table_line(line):
+    """Check if a line is part of a box-drawing table (has box chars)."""
+    return bool(re.search(r'[│┃─━═┌┐├┤└┘┬┴┼╔╗╠╣╚╝╦╩╬╒╕╞╡╘╙╤╧╪]', line))
+
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ('-h', '--help'):
+        print(__doc__.strip())
+        return
+
+    raw = sys.stdin.read()
+    lines = raw.splitlines()
+
+    # Filter to only lines that are part of a table
+    table_lines = [(i, line) for i, line in enumerate(lines) if is_table_line(line)]
+
+    if not table_lines:
+        print(raw)
+        return
+
+    # Separate border lines from content lines
+    content_lines = []
+    border_indices = []
+    for i, line in table_lines:
+        if is_border_line(line):
+            border_indices.append(i)
+        else:
+            content_lines.append((i, line))
+
+    if not content_lines:
+        print(raw)
+        return
+
+    # Detect number of columns from first content line
+    num_cols = len(split_cells(content_lines[0][1]))
+
+    # Group consecutive content lines between borders into logical rows
+    # (multi-line cells get joined)
+    rows = []
+    current_row = None
+    prev_idx = None
+
+    for idx, line in content_lines:
+        cells = split_cells(line)
+        # Pad or trim to match column count
+        while len(cells) < num_cols:
+            cells.append('')
+        cells = cells[:num_cols]
+
+        # Check if this is a continuation of the previous row (no border between them)
+        is_continuation = False
+        if prev_idx is not None:
+            # If no border line exists between prev_idx and idx, it's a continuation
+            is_continuation = not any(b for b in border_indices if prev_idx < b < idx)
+
+        if is_continuation and current_row is not None:
+            # Merge cells: append non-empty text
+            for j in range(num_cols):
+                if cells[j]:
+                    if current_row[j]:
+                        current_row[j] += ' ' + cells[j]
+                    else:
+                        current_row[j] = cells[j]
+        else:
+            if current_row is not None:
+                rows.append(current_row)
+            current_row = cells
+
+        prev_idx = idx
+
+    if current_row is not None:
+        rows.append(current_row)
+
+    if not rows:
+        print(raw)
+        return
+
+    # Output as markdown
+    header = rows[0]
+    print('| ' + ' | '.join(header) + ' |')
+    print('| ' + ' | '.join('---' for _ in header) + ' |')
+    for row in rows[1:]:
+        print('| ' + ' | '.join(row) + ' |')
+
+
+if __name__ == '__main__':
+    main()
