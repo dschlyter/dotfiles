@@ -1,0 +1,149 @@
+#!/bin/bash
+
+# git resorb [branch-name]
+# Reabsorb a sprouted branch that has been squash-merged to master.
+# Removes the sprouted commits from the current branch via a 2-step rebase
+# in a temporary worktree (current worktree is never touched).
+#
+# Algorithm:
+#   1. git rebase other-branch    (reorders; cherry-picked commits get skipped)
+#   2. git rebase --onto master other-branch  (cuts away the sprouted range)
+#
+# With no argument: auto-detects a suffix branch whose upstream is gone (merged).
+
+set -euo pipefail
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    cat <<'EOF'
+Usage: git resorb [branch-name]
+
+Reabsorb a sprouted branch after it has been squash-merged to master.
+Removes the sprouted commits from the current branch cleanly.
+
+  branch-name    The sprouted branch to resorb
+  (no args)      Auto-detect: find a suffix branch with upstream gone
+
+The operation runs in a temporary worktree — your working directory
+and current branch are only updated on success.
+
+Examples:
+  git resorb feat-auth          # resorb the feat-auth branch
+  git resorb                    # auto-detect sprouted branch
+
+See also: git sprout, git pluck
+EOF
+    exit 0
+fi
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [[ "$CURRENT_BRANCH" == "HEAD" ]]; then
+    echo "Error: not on a branch (detached HEAD)."
+    exit 1
+fi
+
+# Resolve the branch to resorb
+if [[ $# -ge 1 ]]; then
+    OTHER_BRANCH="$1"
+    if ! git rev-parse --verify "$OTHER_BRANCH" >/dev/null 2>&1; then
+        echo "Error: branch '$OTHER_BRANCH' does not exist."
+        exit 1
+    fi
+else
+    # Auto-detect: find branches that are suffixes of current branch with upstream gone
+    echo "Looking for sprouted branches of '$CURRENT_BRANCH' with upstream gone..."
+    OTHER_BRANCH=""
+    while IFS= read -r line; do
+        branch=$(echo "$line" | awk '{print $1}')
+        # Check if branch is a suffix of current branch (e.g. feat-tests is suffix of feat)
+        if [[ "$branch" == "${CURRENT_BRANCH}-"* || "$branch" == "${CURRENT_BRANCH}/"* ]]; then
+            OTHER_BRANCH="$branch"
+            echo "Found: $branch"
+            break
+        fi
+    done < <(git branch -vv | grep ': gone]' || true)
+
+    if [[ -z "$OTHER_BRANCH" ]]; then
+        echo "No sprouted branch found. Specify one explicitly: git resorb <branch>"
+        exit 1
+    fi
+fi
+
+BASE_BRANCH="master"
+
+# Verify other-branch shares history with master (they have a common ancestor)
+MERGE_BASE=$(git merge-base "$BASE_BRANCH" "$OTHER_BRANCH" 2>/dev/null || true)
+if [[ -z "$MERGE_BASE" ]]; then
+    echo "Error: '$OTHER_BRANCH' shares no history with '$BASE_BRANCH'."
+    exit 1
+fi
+
+# Fetch latest master
+echo "Fetching latest master..."
+git fetch origin "$BASE_BRANCH" 2>/dev/null || true
+
+MASTER_REF="origin/$BASE_BRANCH"
+if ! git rev-parse --verify "$MASTER_REF" >/dev/null 2>&1; then
+    MASTER_REF="$BASE_BRANCH"
+fi
+
+# Show what we're about to do
+SPROUTED_COUNT=$(git rev-list "$MERGE_BASE".."$OTHER_BRANCH" | wc -l | tr -d ' ')
+TOTAL_COUNT=$(git rev-list "$MERGE_BASE".."$CURRENT_BRANCH" | wc -l | tr -d ' ')
+
+echo ""
+echo "Resorbing '$OTHER_BRANCH' ($SPROUTED_COUNT sprouted commit(s)) from '$CURRENT_BRANCH' ($TOTAL_COUNT total commit(s))"
+echo ""
+
+# Create a temporary worktree
+WORKTREE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/git-resorb.XXXXXX")
+TEMP_BRANCH="resorb-tmp-$$"
+
+cleanup() {
+    if [[ -d "$WORKTREE_DIR" ]]; then
+        git worktree remove --force "$WORKTREE_DIR" 2>/dev/null || true
+    fi
+    git branch -D "$TEMP_BRANCH" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# Create worktree with a temporary branch starting from current branch
+git worktree add "$WORKTREE_DIR" -b "$TEMP_BRANCH" "$CURRENT_BRANCH"
+
+pushd "$WORKTREE_DIR" > /dev/null
+
+# Step 1: Rebase onto other-branch (reorders commits, skips cherry-picks via patch-id)
+echo "Step 1: Rebasing onto '$OTHER_BRANCH'..."
+if ! git rebase "$OTHER_BRANCH"; then
+    echo ""
+    echo "Error: rebase onto '$OTHER_BRANCH' failed. Aborting."
+    git rebase --abort 2>/dev/null || true
+    popd > /dev/null
+    exit 1
+fi
+
+# Step 2: Rebase --onto master, cutting away the sprouted commits
+echo "Step 2: Rebasing onto '$MASTER_REF', removing sprouted commits..."
+if ! git rebase --onto "$MASTER_REF" "$OTHER_BRANCH"; then
+    echo ""
+    echo "Error: rebase onto '$MASTER_REF' failed. Aborting."
+    git rebase --abort 2>/dev/null || true
+    popd > /dev/null
+    exit 1
+fi
+
+popd > /dev/null
+
+# Success — update the original branch to point to the result
+NEW_HEAD=$(git -C "$WORKTREE_DIR" rev-parse HEAD)
+RESULT_COUNT=$(git rev-list "$MASTER_REF".."$NEW_HEAD" | wc -l | tr -d ' ')
+
+echo ""
+echo "Success! Updating '$CURRENT_BRANCH' ($RESULT_COUNT commit(s) on top of master)"
+git reset --merge "$NEW_HEAD"
+
+# Clean up the sprouted branch
+echo "Deleting resorbed branch '$OTHER_BRANCH'"
+git branch -D "$OTHER_BRANCH" 2>/dev/null || true
+
+echo "Done. Run 'git log --oneline' to verify."

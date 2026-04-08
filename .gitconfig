@@ -227,12 +227,14 @@
     su = !git branch -u origin/$(git curr-br)
 
     # special tricky branch management
-    # sprout commits to a separate branch via worktree (does not touch working dir)
+    # sprout commits to a separate branch via worktree (does not touch working dir) - for smaller PRs, etc
     sprout = !$HOME/.git-scripts/entry sprout
     # remove specific commits from current branch (non-interactive rebase)
     pluck = !$HOME/.git-scripts/entry pluck
     # sprout + remove commits from current branch
     split = !git sprout --pluck \"$@\" "#"
+    # reabsorb a sprouted branch after squash-merge to master
+    resorb = !$HOME/.git-scripts/entry resorb
     # create a combined branch by merging two branches together
     combine = !git switch \"$1\" && git switch -C \"$1--combine--$2\" && git merge --no-edit --autostash \"$2\" "#"
     recombine = !git combine $(git curr-br | awk -F'--combine--' '{print $1, $2}')
