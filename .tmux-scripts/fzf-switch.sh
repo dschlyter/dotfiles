@@ -1,5 +1,6 @@
 #!/bin/bash
 # Fast fzf switcher for tmux windows across all sessions
+~/.tmux-scripts/prevent-false-activity.sh
 current=$(tmux display-message -p '#{session_name}:#{window_index}')
 
 tmux list-windows -aF '#{session_name}:#{window_index} #{window_name} #{pane_current_command} #{pane_current_path}' \
