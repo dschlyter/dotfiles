@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Symlinks and installs all dotfiles on a machine
+# Can run multiple times, and should update new links on subsequent runs
+
 set -euo pipefail
 
 pushd `dirname $0` > /dev/null
@@ -122,7 +125,6 @@ link bin
 
 link .zshrc_base
 link .zgen_plugins
-# NOCOMMIT temp linking
 link .bashrc_base
 link .shellrc_base
 link .kubectl_aliases
@@ -143,8 +145,6 @@ link .ideavimrc
 link .tmux.conf
 link .tmux-scripts
 
-mkdir -p "$HOME/.claude"
-
 link_settings "$HOME/.config" ptpython config.py ptpython-config.py
 link_settings "$HOME/.config" ptpython startup.py ptpython-startup.py
 
@@ -154,6 +154,13 @@ inject 'source "$HOME/.shellrc_base"' "$HOME/.shellrc" first
 inject 'source "$HOME/.bashrc_base"' "$HOME/.bashrc" first
 inject '[include]
     path = .gitconfig_base' "$HOME/.gitconfig" first
+
+if [ -d "$HOME/.claude/skills" ]; then
+    for skill in "$DOTFILES"/skills/*; do
+        skill_name="$(basename "$skill")"
+        link "skills/$skill_name" "$HOME/.claude/skills/$skill_name"
+    done
+fi
 
 case "$(uname -s)" in
     Darwin)

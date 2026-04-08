@@ -536,48 +536,6 @@ timing() {
     fi
 }
 
-#
-# Docker utils
-#
-
-alias d=docker
-alias dco=docker-compose
-# docker images does not have created column any more - wtf?
-alias dimg='docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedSince}}\t{{.Size}}"'
-
-
-drun() {
-    docker run -it --init --rm --name "$1" "$1"
-}
-
-dsh() {
-    CONTAINER="$(docker ps --filter name="$1" --format "{{.ID}}" | head -n 1)"
-    docker exec -it "$CONTAINER" bash
-}
-
-drm() {
-    docker ps -a | drop 1 | fzf -m | cl 1 | xargs docker rm -f
-}
-
-# alias docker to docker-restricted if available, when running as sudo alias will be ignored
-if type docker-restricted &> /dev/null; then
-    alias docker="sudo $(which docker-restricted)"
-else
-    dcleanup(){
-        docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
-        docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2>/dev/null
-    }
-
-    # "docker stats" with names instead of hash, until https://github.com/docker/docker/issues/20973 is solved
-    dstat() {
-        docker stats $(docker ps --format={{.Names}})
-    }
-
-    dports() {
-        docker inspect "$1" | jq '.[].HostConfig.PortBindings'
-    }
-fi
-
 source_if_exists() {
     if [ -f "$1" ]; then
         source "$1"

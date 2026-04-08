@@ -212,7 +212,7 @@
     # list all branches - but local last
     brl = branch --sort=committerdate --format='%(color:yellow)%(refname:short)%(color:reset) %(color:green)%(committerdate:relative)%(color:reset) %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) '
     bra = !git --no-pager brl --color --remotes && git --no-pager brl --color
-    braf = !git bra --color | fzf --tac --ansi --exact | awk '{print $1}' "#"
+    braf = !git bra --color | fzf --tac --ansi --exact -m | awk '{print $1}' "#"
     s = !git braf | sed 's,origin/,,' | xargs git sw "#"
     # branch cleanup
     # delete or rename branch, both locally and remotely
