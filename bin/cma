@@ -2,53 +2,447 @@
 
 import argparse
 import subprocess
+import sys
 import os
 import unittest
 import json
+from datetime import datetime, timezone
 from pathlib import Path
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'dotlib'))
+from json_file import modify_json, read_json
+from util import print_table
+
+SESSIONS_FILE = "/tmp/claude-sessions.json"
 
 
 def main():
     # https://docs.python.org/3/library/argparse.html
-    global_parser = argparse.ArgumentParser(description='Claude manager - utilities to manage Claude')
+    global_parser = argparse.ArgumentParser(description='Claude manager - utilities to manage Claude + tmux aware session tracking')
 
     global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
     sub_ps = global_parser.add_subparsers()
 
-    sp = sub_ps.add_parser('list', help='list permissions in project settings')
+    sp = sub_ps.add_parser('list', aliases=['l', 'ls', 's', 'st'], help='list active claude sessions')
+    sp.set_defaults(handler=list_sessions)
+
+    sp = sub_ps.add_parser('next', aliases=['n'], help='switch to next waiting/done session')
+    sp.set_defaults(handler=next_session)
+
+    sp = sub_ps.add_parser('perms', help='list permissions in project settings')
     sp.set_defaults(handler=list_permissions)
 
     sp = sub_ps.add_parser('lift', help='move last permission from project to global settings')
     sp.set_defaults(handler=lift)
+
+    sp = sub_ps.add_parser('hook', help='hook handlers (called by Claude hooks)')
+    sp.set_defaults(handler=lambda *args, **kwargs: sp.print_help())
+    hook_sub = sp.add_subparsers()
+
+    hook_sp = hook_sub.add_parser('install', help='install cma hooks into ~/.claude/settings.json')
+    hook_sp.set_defaults(handler=hook_install)
+
+    hook_sp = hook_sub.add_parser('uninstall', help='remove cma hooks from ~/.claude/settings.json')
+    hook_sp.set_defaults(handler=hook_uninstall)
+
+    hook_sp = hook_sub.add_parser('session-start', help='SessionStart: register session')
+    hook_sp.set_defaults(handler=hook_session_start)
+
+    hook_sp = hook_sub.add_parser('submit', help='UserPromptSubmit: mark session as working')
+    hook_sp.set_defaults(handler=hook_submit)
+
+    hook_sp = hook_sub.add_parser('notification', help='Notification/permission_prompt: mark session as waiting')
+    hook_sp.set_defaults(handler=hook_notification)
+
+    hook_sp = hook_sub.add_parser('stop', help='Stop: mark session as idle/done')
+    hook_sp.set_defaults(handler=hook_stop)
+
+    hook_sp = hook_sub.add_parser('session-end', help='SessionEnd: clean up session')
+    hook_sp.set_defaults(handler=hook_session_end)
+
+    hook_sp = hook_sub.add_parser('pane-focus', help='tmux pane-focus-in: transition done -> idle')
+    hook_sp.set_defaults(handler=hook_pane_focus)
 
     parsed_args = global_parser.parse_args()
     # Note: All handlers must have **kwargs to handle global args
     parsed_args.handler(**parsed_args.__dict__)
 
 
-def load_project_settings():
-    """Load project settings, returning (path, settings, allow_list) or None on error."""
+def _fmt_age(iso_str):
+    """Format an ISO timestamp as a relative age string, or empty if missing."""
+    if not iso_str:
+        return ""
     try:
-        git_root = sh_read("git rev-parse --show-toplevel 2>/dev/null")
-    except subprocess.CalledProcessError:
-        git_root = os.getcwd()
+        dt = datetime.fromisoformat(iso_str)
+        mins = int((datetime.now(timezone.utc) - dt).total_seconds() // 60)
+        if mins < 60:
+            return f"{mins}m ago"
+        return f"{mins // 60}h{mins % 60}m ago"
+    except ValueError:
+        return ""
 
-    project_settings_path = Path(git_root) / ".claude" / "settings.local.json"
-    if not project_settings_path.exists():
-        project_settings_path = Path(git_root) / ".claude" / "settings.json"
-        if not project_settings_path.exists():
-            print(f"Error: No settings file found in {Path(git_root) / '.claude'}")
-            return None
 
-    with open(project_settings_path, 'r') as f:
-        project_settings = json.load(f)
-
-    allow = project_settings.get('permissions', {}).get('allow', [])
-    if not allow:
-        print("Error: No permissions found in project settings")
+def _pane_key():
+    """Get the pane key (numeric part of TMUX_PANE) for the current pane."""
+    tmux_pane = os.environ.get("TMUX_PANE", "")
+    if not tmux_pane:
         return None
+    return tmux_pane.lstrip('%')
 
-    return project_settings_path, project_settings, allow
+
+def _modify_sessions(fn):
+    """Read-modify-write the sessions file. fn receives the full data dict."""
+    modify_json(SESSIONS_FILE, fn, default={"panes": {}})
+
+
+def _ensure_pane(data, key):
+    """Ensure a pane entry exists, creating a minimal one if needed."""
+    if key not in data["panes"]:
+        data["panes"][key] = {
+            "tmux_pane": os.environ.get("TMUX_PANE", f"%{key}"),
+            "cwd": os.environ.get("CLAUDE_WORKING_DIRECTORY", os.getcwd()),
+            "status": "idle",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+
+def _update_pane_status(status_value):
+    """Set status on the current pane's session."""
+    key = _pane_key()
+    if not key:
+        return
+    def update(data):
+        _ensure_pane(data, key)
+        data["panes"][key]["status"] = status_value
+        data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
+    _modify_sessions(update)
+
+
+def _cleanup_stale(data):
+    """Remove panes that no longer exist in tmux. Mutates data."""
+    try:
+        pane_output = sh_read("tmux list-panes -a -F '#{pane_id}'")
+        active_panes = {p.lstrip('%') for p in pane_output.strip().splitlines()}
+    except subprocess.CalledProcessError:
+        return
+    stale = [k for k in data["panes"] if k not in active_panes]
+    for k in stale:
+        del data["panes"][k]
+
+
+def _tmux_pane_info():
+    """Get session:window mapping for all panes."""
+    try:
+        output = sh_read("tmux list-panes -a -F '#{pane_id} #{session_name}:#{window_name}'")
+        return dict(line.split(" ", 1) for line in output.strip().splitlines())
+    except subprocess.CalledProcessError:
+        return {}
+
+
+def list_sessions(**kwargs):
+    """List active claude sessions."""
+    data = read_json(SESSIONS_FILE, default={"panes": {}})
+    pane_info = _tmux_pane_info()
+    # Filter to panes that still exist in tmux
+    active_keys = [(k, s) for k, s in data["panes"].items() if s.get("tmux_pane") in pane_info]
+
+    if not active_keys:
+        print("No active sessions.")
+        return
+
+    rows = []
+    for key, s in sorted(active_keys, key=lambda kv: pane_info.get(kv[1].get("tmux_pane", ""), "~")):
+        created = _fmt_age(s.get("created_at"))
+        status_str = s.get("status", "?")
+        status_age = _fmt_age(s.get("status_since"))
+        status_col = f"{status_str} ({status_age})" if status_age else status_str
+        sid = s.get("session_id", "")[:12]
+        pane = s.get("tmux_pane", f"%{key}")
+        location = pane_info.get(pane, "?")
+        rows.append([f"{location}:{key}", status_col, created, s.get("cwd", "?"), sid])
+    print_table(rows, sep="  ")
+
+
+def next_session(**kwargs):
+    """Switch to next waiting/done session, cycling back to origin when done."""
+    _modify_sessions(lambda data: _cleanup_stale(data))
+    data = read_json(SESSIONS_FILE, default={"panes": {}})
+
+    # 1. Find next candidate — waiting before done, most recent first
+    candidates = []
+    for k, s in data["panes"].items():
+        st = s.get("status")
+        if st in ("waiting", "done"):
+            priority = 0 if st == "waiting" else 1
+            candidates.append((priority, s.get("status_since", ""), k, s))
+    candidates.sort(key=lambda c: (c[0], c[1]), reverse=True)
+    candidates.sort(key=lambda c: c[0])
+
+    # 2. Load nav state (expire if > 1 minute old)
+    nav = data.get("next")
+    if nav:
+        try:
+            age = (datetime.now(timezone.utc) - datetime.fromisoformat(nav["timestamp"])).total_seconds()
+            if age > 60:
+                nav = None
+        except (ValueError, KeyError):
+            nav = None
+
+    # 3. Nothing to do
+    if not candidates and not nav:
+        return
+
+    # 4. No candidates — cycle complete, go back to origin
+    if not candidates:
+        original = nav["original_pane"]
+        try:
+            sh(f"tmux switch-client -t '{original}'")
+        except subprocess.CalledProcessError:
+            pass
+        def clear_nav(data):
+            data.pop("next", None)
+        _modify_sessions(clear_nav)
+        return
+
+    # 5. Determine original pane: keep it if we're continuing a cycle
+    current_pane = os.environ.get("TMUX_PANE", "")
+    if nav and current_pane == nav.get("next_pane"):
+        original_pane = nav["original_pane"]
+    else:
+        original_pane = current_pane
+
+    # 6. Switch to next candidate
+    _, _, pick_key, s = candidates[0]
+    target_pane = s.get("tmux_pane", f"%{pick_key}")
+
+    def save_nav(data):
+        data["next"] = {
+            "original_pane": original_pane,
+            "next_pane": target_pane,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    _modify_sessions(save_nav)
+
+    try:
+        sh(f"tmux switch-client -t '{target_pane}'")
+    except subprocess.CalledProcessError:
+        def remove_stale(data):
+            data["panes"].pop(pick_key, None)
+        _modify_sessions(remove_stale)
+        print(f"Removed stale session {target_pane}")
+
+
+HOOKS = {
+    "SessionStart": {
+        "matcher": "",
+        "hooks": [{"type": "command", "command": "cma hook session-start", "timeout": 5}],
+    },
+    "UserPromptSubmit": {
+        "matcher": "",
+        "hooks": [{"type": "command", "command": "cma hook submit", "timeout": 5}],
+    },
+    "Notification": {
+        "matcher": "permission_prompt",
+        "hooks": [{"type": "command", "command": "cma hook notification", "timeout": 5}],
+    },
+    "Stop": {
+        "matcher": "",
+        "hooks": [{"type": "command", "command": "cma hook stop", "timeout": 5}],
+    },
+    "SessionEnd": {
+        "matcher": "",
+        "hooks": [{"type": "command", "command": "cma hook session-end", "timeout": 5}],
+    },
+}
+
+def _modify_claude_hooks(action):
+    """Install or uninstall cma hooks in ~/.claude/settings.json.
+    action: 'install' or 'uninstall'. Returns (changed, skipped) event lists."""
+    settings_path = Path.home() / ".claude" / "settings.json"
+    with open(settings_path, 'r') as f:
+        settings = json.load(f)
+
+    hooks = settings.setdefault("hooks", {})
+    changed = []
+    skipped = []
+
+    for event, entry in HOOKS.items():
+        existing = hooks.get(event, [])
+        our_cmds = {h["command"] for h in entry["hooks"]}
+        has_ours = any(
+            h["command"] in our_cmds
+            for rule in existing
+            for h in rule.get("hooks", [])
+        )
+
+        if action == "install":
+            if has_ours:
+                skipped.append(event)
+            else:
+                existing.append(entry)
+                hooks[event] = existing
+                changed.append(event)
+        elif action == "uninstall":
+            if not has_ours:
+                skipped.append(event)
+            else:
+                hooks[event] = [
+                    rule for rule in existing
+                    if not any(h["command"] in our_cmds for h in rule.get("hooks", []))
+                ]
+                if not hooks[event]:
+                    del hooks[event]
+                changed.append(event)
+
+    if changed:
+        with open(settings_path, 'w') as f:
+            json.dump(settings, f, indent=2)
+
+    return changed, skipped
+
+
+TMUX_CONF = Path.home() / ".tmux.conf"
+TMUX_HOOK_LINES = [
+    "# Claude session manager - transition \"done\" -> \"idle\" when pane gets focus",
+    "set-hook -g after-select-pane 'run-shell -b \"TMUX_PANE=#{pane_id} cma hook pane-focus\"'",
+    "set-hook -g after-select-window 'run-shell -b \"TMUX_PANE=#{pane_id} cma hook pane-focus\"'",
+    "set-hook -g client-session-changed 'run-shell -b \"TMUX_PANE=#{pane_id} cma hook pane-focus\"'",
+]
+TMUX_HOOK_MARKER = "cma hook pane-focus"
+
+
+def _modify_tmux_hooks(action):
+    """Add or remove cma lines in .tmux.conf. Returns 'installed'/'removed'/'already'/'not present'."""
+    if not TMUX_CONF.exists():
+        if action == "install":
+            TMUX_CONF.write_text("\n".join(TMUX_HOOK_LINES) + "\n")
+            return "installed"
+        return "not present"
+
+    content = TMUX_CONF.read_text()
+    has_hook = TMUX_HOOK_MARKER in content
+
+    if action == "install":
+        if has_hook:
+            return "already present"
+        insert_block = "\n".join(TMUX_HOOK_LINES)
+        TMUX_CONF.write_text(content.rstrip("\n") + "\n\n" + insert_block + "\n")
+        return "installed"
+    elif action == "uninstall":
+        if not has_hook:
+            return "not present"
+        new_lines = [l for l in content.split("\n") if TMUX_HOOK_MARKER not in l and l not in TMUX_HOOK_LINES]
+        TMUX_CONF.write_text("\n".join(new_lines))
+        return "removed"
+
+
+def hook_install(**kwargs):
+    """Install cma hooks."""
+    changed, skipped = _modify_claude_hooks("install")
+    if changed:
+        print(f"Claude hooks installed: {', '.join(changed)}")
+    if skipped:
+        print(f"Claude hooks already present: {', '.join(skipped)}")
+
+    result = _modify_tmux_hooks("install")
+    print(f"Tmux hooks: {result}")
+
+
+def hook_uninstall(**kwargs):
+    """Remove cma hooks."""
+    changed, skipped = _modify_claude_hooks("uninstall")
+    if changed:
+        print(f"Claude hooks removed: {', '.join(changed)}")
+    if skipped:
+        print(f"Claude hooks not present: {', '.join(skipped)}")
+
+    result = _modify_tmux_hooks("uninstall")
+    print(f"Tmux hooks: {result}")
+
+
+def hook_session_start(**kwargs):
+    """Register a new session."""
+    input_data = json.loads(sys.stdin.read())
+    session_id = input_data.get('session_id')
+    if not session_id:
+        return
+
+    key = _pane_key()
+    tmux_pane = os.environ.get("TMUX_PANE", "unknown")
+    cwd = os.environ.get("CLAUDE_WORKING_DIRECTORY", os.getcwd())
+
+    def update(data):
+        data["panes"][key or session_id[:12]] = {
+            "session_id": session_id,
+            "tmux_pane": tmux_pane,
+            "cwd": cwd,
+            "status": "idle",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    _modify_sessions(update)
+
+
+def hook_submit(**kwargs):
+    _update_pane_status("working")
+
+
+def hook_notification(**kwargs):
+    _update_pane_status("waiting")
+
+
+def _is_pane_focused():
+    """Check if the current pane is visible and focused by the user."""
+    pane = os.environ.get("TMUX_PANE", "")
+    if not pane:
+        return False
+    try:
+        pane_info = sh_read(f"tmux display-message -p -t '{pane}' '#{{pane_active}}#{{window_active}} #{{session_name}}'")
+        flags, pane_session = pane_info.split(" ", 1)
+        if flags != "11":
+            return False
+        # Check if the client is actually viewing this session
+        client_session = sh_read("tmux display-message -p '#{client_session}'")
+        return pane_session == client_session
+    except subprocess.CalledProcessError:
+        return False
+
+
+def hook_stop(**kwargs):
+    key = _pane_key()
+    if not key:
+        return
+    is_focused = _is_pane_focused()
+
+    def update(data):
+        _ensure_pane(data, key)
+        data["panes"][key]["status"] = "idle" if is_focused else "done"
+        data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
+    _modify_sessions(update)
+
+
+def hook_pane_focus(**kwargs):
+    """Tmux after-select-pane: transition done -> idle for the focused pane."""
+    key = _pane_key()
+    if not key:
+        return
+
+    def update(data):
+        pane = data["panes"].get(key)
+        if pane and pane.get("status") == "done":
+            pane["status"] = "idle"
+            pane["status_since"] = datetime.now(timezone.utc).isoformat()
+    _modify_sessions(update)
+
+
+def hook_session_end(**kwargs):
+    """Remove session on exit."""
+    key = _pane_key()
+    if not key:
+        return
+
+    def update(data):
+        data["panes"].pop(key, None)
+    _modify_sessions(update)
 
 
 def list_permissions(**kwargs):
@@ -97,6 +491,31 @@ def lift(**kwargs):
         json.dump(global_settings, f, indent=2)
 
     print(f"✓ Moved to global: {last_permission}")
+
+
+def load_project_settings():
+    """Load project settings, returning (path, settings, allow_list) or None on error."""
+    try:
+        git_root = sh_read("git rev-parse --show-toplevel 2>/dev/null")
+    except subprocess.CalledProcessError:
+        git_root = os.getcwd()
+
+    project_settings_path = Path(git_root) / ".claude" / "settings.local.json"
+    if not project_settings_path.exists():
+        project_settings_path = Path(git_root) / ".claude" / "settings.json"
+        if not project_settings_path.exists():
+            print(f"Error: No settings file found in {Path(git_root) / '.claude'}")
+            return None
+
+    with open(project_settings_path, 'r') as f:
+        project_settings = json.load(f)
+
+    allow = project_settings.get('permissions', {}).get('allow', [])
+    if not allow:
+        print("Error: No permissions found in project settings")
+        return None
+
+    return project_settings_path, project_settings, allow
 
 
 def sh(command):

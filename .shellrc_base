@@ -375,14 +375,6 @@ u() {
     fi
 }
 
-function c() {
-    s "$@"
-
-    if [ -d "$1" ]; then
-        cd "$1" || return
-    fi
-}
-
 # explore a file tree with a combined ls and cat
 function s() {
     if [ -d "$1" ]; then

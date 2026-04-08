@@ -59,6 +59,7 @@ profiling_log "plugins loaded"
 
 ## Conveniences
 alias b='popd'
+alias c='cma'
 alias ha='harpo'
 alias e='h e'
 alias hc='h c'
