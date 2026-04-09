@@ -2,7 +2,7 @@
 # Switch session with false activity prevention
 # Usage: switch-session.sh next|prev
 
-~/.tmux-scripts/prevent-false-activity.sh
+# ~/.tmux-scripts/prevent-false-activity.sh
 
 case "$1" in
     next) tmux switch-client -n ;;

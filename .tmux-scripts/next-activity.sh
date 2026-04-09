@@ -28,7 +28,7 @@ fi
 if [ -n "$target" ]; then
     target_session=$(echo "$target" | cut -d: -f1)
     if [ "$target_session" != "$current_session" ]; then
-        ~/.tmux-scripts/prevent-false-activity.sh
+        # ~/.tmux-scripts/prevent-false-activity.sh
     fi
     tmux switch-client -t "$target"
 else

@@ -9,9 +9,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'dotlib'))
-from json_file import modify_json, read_json
-from util import print_table
+from dotlib.json_file import modify_json, read_json
+from dotlib.util import print_table
 
 SESSIONS_FILE = "/tmp/claude-sessions.json"
 
@@ -26,6 +25,7 @@ def main():
     sp = sub_ps.add_parser('list', aliases=['l', 'ls'], help='list active claude sessions')
     sp.add_argument('-d', action='store_true', help='only show sessions in current directory')
     sp.add_argument('-s', action='store_true', help='only show sessions in current tmux session')
+    sp.add_argument('-v', action='store_true', help='verbose: show session UUID and total age')
     sp.set_defaults(handler=list_sessions)
 
     sp = sub_ps.add_parser('next', aliases=['n'], help='switch to next waiting/done session')
@@ -89,7 +89,7 @@ def main():
             raise
 
 
-def list_sessions(d=False, s=False, **kwargs):
+def list_sessions(d=False, s=False, v=False, **kwargs):
     """List active claude sessions."""
     data = read_json(SESSIONS_FILE, default={"panes": {}})
     pane_info = _tmux_pane_info()
@@ -129,7 +129,13 @@ def list_sessions(d=False, s=False, **kwargs):
         session_name, window_name, window_index = pane_info.get(pane, ("?", "?", "?"))
         window_name = _strip_emoji_prefix(window_name) or window_index
         cwd = os.path.basename(s.get("cwd", "?"))
-        rows.append([key, session_name, window_name, status_col, created, cwd, sid])
+        row = [key, session_name, window_name, status_col]
+        if v:
+            row.append(created)
+        row.append(cwd)
+        if v:
+            row.append(sid)
+        rows.append(row)
     print_table(rows, sep="  ")
 
 
