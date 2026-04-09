@@ -391,6 +391,14 @@ HOOKS = {
         "matcher": "",
         "hooks": [{"type": "command", "command": "cma hook stop", "timeout": 5}],
     },
+    "StopFailure": {
+        "matcher": "",
+        "hooks": [{"type": "command", "command": "cma hook stop", "timeout": 5}],
+    },
+    "PostToolUseFailure": {
+        "matcher": "",
+        "hooks": [{"type": "command", "command": "cma hook stop", "timeout": 5}],
+    },
     "SessionEnd": {
         "matcher": "",
         "hooks": [{"type": "command", "command": "cma hook session-end", "timeout": 5}],
@@ -545,6 +553,7 @@ def hook_submit(**kwargs):
 def hook_notification(**kwargs):
     _update_pane_status("waiting")
     _update_window_name()
+    _alert_sound()
 
 
 def hook_stop(**kwargs):
@@ -559,6 +568,8 @@ def hook_stop(**kwargs):
         data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
     _modify_sessions(update)
     _update_window_name()
+    if not is_focused:
+        _alert_sound()
 
 
 def hook_pane_focus(**kwargs):
@@ -586,6 +597,19 @@ def hook_session_end(**kwargs):
         data["panes"].pop(key, None)
     _modify_sessions(update)
     _update_window_name()
+
+
+def _alert_sound():
+    """Play a notification sound on macOS. No-op if no tmux session or non-macOS."""
+    if not _pane_key():
+        return
+    if sys.platform != "darwin":
+        return
+    try:
+        subprocess.Popen(["afplay", "/System/Library/Sounds/Glass.aiff"],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
 
 
 def _update_pane_status(status_value):
