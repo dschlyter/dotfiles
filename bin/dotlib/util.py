@@ -27,10 +27,12 @@ def printable(table: List[List[str]], rjust=False):
     for row in str_table:
         for i,_ in enumerate(row):
             w = col_width[i]
-            if rjust:
-                row[i] = row[i].rjust(w)
-            else:
-                row[i] = row[i].ljust(w)
+            pad = w - length_without_color(row[i])
+            if pad > 0:
+                if rjust:
+                    row[i] = " " * pad + row[i]
+                else:
+                    row[i] = row[i] + " " * pad
 
     return str_table
 
@@ -40,8 +42,18 @@ def length_without_color(text):
     ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
     # Remove ANSI escape sequences
     clean_text = ansi_escape.sub('', text)
-    # Return the length of the cleaned text
-    return len(clean_text)
+    # Return display width, accounting for wide chars (emoji, CJK)
+    return _display_width(clean_text)
+
+
+def _display_width(text):
+    """Calculate display width accounting for wide characters (emoji, CJK)."""
+    import unicodedata
+    w = 0
+    for ch in text:
+        eaw = unicodedata.east_asian_width(ch)
+        w += 2 if eaw in ('W', 'F') else 1
+    return w
 
 
 def trim_to_terminal(table, sep):

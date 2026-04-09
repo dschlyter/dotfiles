@@ -23,11 +23,24 @@ def main():
     global_parser.set_defaults(handler=lambda *args, **kwargs: global_parser.print_help())
     sub_ps = global_parser.add_subparsers()
 
-    sp = sub_ps.add_parser('list', aliases=['l', 'ls', 's', 'st'], help='list active claude sessions')
+    sp = sub_ps.add_parser('list', aliases=['l', 'ls'], help='list active claude sessions')
+    sp.add_argument('-d', action='store_true', help='only show sessions in current directory')
+    sp.add_argument('-s', action='store_true', help='only show sessions in current tmux session')
     sp.set_defaults(handler=list_sessions)
 
     sp = sub_ps.add_parser('next', aliases=['n'], help='switch to next waiting/done session')
     sp.set_defaults(handler=next_session)
+
+    sp = sub_ps.add_parser('fork', aliases=['f'], help='fork a claude session from current window')
+    sp.set_defaults(handler=fork_session)
+
+    sp = sub_ps.add_parser('mark', aliases=['m'], help='mark a session as done')
+    sp.add_argument('pane', nargs='?', default=None, help='pane id (default: current pane)')
+    sp.set_defaults(handler=mark_session)
+
+    sp = sub_ps.add_parser('drop', aliases=['d'], help='remove session from state')
+    sp.add_argument('pane', nargs='?', default=None, help='pane id (default: current pane)')
+    sp.set_defaults(handler=drop_session)
 
     sp = sub_ps.add_parser('perms', help='list permissions in project settings')
     sp.set_defaults(handler=list_permissions)
@@ -65,7 +78,72 @@ def main():
 
     parsed_args = global_parser.parse_args()
     # Note: All handlers must have **kwargs to handle global args
-    parsed_args.handler(**parsed_args.__dict__)
+    try:
+        parsed_args.handler(**parsed_args.__dict__)
+    except Exception:
+        # Hooks must not return non-zero; log to stderr for debugging
+        if "hook" in sys.argv:
+            import traceback
+            print(traceback.format_exc(), file=sys.stderr)
+        else:
+            raise
+
+
+def list_sessions(d=False, s=False, **kwargs):
+    """List active claude sessions."""
+    data = read_json(SESSIONS_FILE, default={"panes": {}})
+    pane_info = _tmux_pane_info()
+    # Filter to panes that still exist in tmux
+    active_keys = [(k, v) for k, v in data["panes"].items() if v.get("tmux_pane") in pane_info]
+
+    if d:
+        cwd = os.getcwd()
+        active_keys = [(k, v) for k, v in active_keys if v.get("cwd") == cwd]
+
+    if s:
+        try:
+            current_session = sh_read("tmux display-message -p '#{session_name}'")
+            active_keys = [(k, v) for k, v in active_keys
+                           if pane_info.get(v.get("tmux_pane"), ("", "", ""))[0] == current_session]
+        except subprocess.CalledProcessError:
+            pass
+
+    if not active_keys:
+        print("No active sessions.")
+        return
+
+    def sort_key(kv):
+        k, v = kv
+        session_name, _, window_index = pane_info.get(v.get("tmux_pane", ""), ("~", "", "9999"))
+        return (session_name, int(window_index) if window_index.isdigit() else 9999, int(k) if k.isdigit() else 9999)
+
+    rows = []
+    for key, s in sorted(active_keys, key=sort_key):
+        created = _fmt_age(s.get("created_at"))
+        status_str = s.get("status", "?")
+        icon = STATUS_ICONS.get(status_str, "")
+        status_age = _fmt_age(s.get("status_since"))
+        status_col = f"{icon} {status_str} ({status_age})" if status_age else f"{icon} {status_str}"
+        sid = s.get("session_id", "")
+        pane = s.get("tmux_pane", f"%{key}")
+        session_name, window_name, window_index = pane_info.get(pane, ("?", "?", "?"))
+        window_name = _strip_emoji_prefix(window_name) or window_index
+        cwd = os.path.basename(s.get("cwd", "?"))
+        rows.append([key, session_name, window_name, status_col, created, cwd, sid])
+    print_table(rows, sep="  ")
+
+
+def _tmux_pane_info():
+    """Get pane_id -> (session_name, window_name) mapping for all panes."""
+    try:
+        output = sh_read("tmux list-panes -a -F '#{pane_id}|||#{session_name}|||#{window_name}|||#{window_index}'")
+        result = {}
+        for line in output.strip().splitlines():
+            pane_id, session_name, window_name, window_index = line.split("|||", 3)
+            result[pane_id] = (session_name, window_name, window_index)
+        return result
+    except subprocess.CalledProcessError:
+        return {}
 
 
 def _fmt_age(iso_str):
@@ -80,87 +158,6 @@ def _fmt_age(iso_str):
         return f"{mins // 60}h{mins % 60}m ago"
     except ValueError:
         return ""
-
-
-def _pane_key():
-    """Get the pane key (numeric part of TMUX_PANE) for the current pane."""
-    tmux_pane = os.environ.get("TMUX_PANE", "")
-    if not tmux_pane:
-        return None
-    return tmux_pane.lstrip('%')
-
-
-def _modify_sessions(fn):
-    """Read-modify-write the sessions file. fn receives the full data dict."""
-    modify_json(SESSIONS_FILE, fn, default={"panes": {}})
-
-
-def _ensure_pane(data, key):
-    """Ensure a pane entry exists, creating a minimal one if needed."""
-    if key not in data["panes"]:
-        data["panes"][key] = {
-            "tmux_pane": os.environ.get("TMUX_PANE", f"%{key}"),
-            "cwd": os.environ.get("CLAUDE_WORKING_DIRECTORY", os.getcwd()),
-            "status": "idle",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
-
-
-def _update_pane_status(status_value):
-    """Set status on the current pane's session."""
-    key = _pane_key()
-    if not key:
-        return
-    def update(data):
-        _ensure_pane(data, key)
-        data["panes"][key]["status"] = status_value
-        data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
-    _modify_sessions(update)
-
-
-def _cleanup_stale(data):
-    """Remove panes that no longer exist in tmux. Mutates data."""
-    try:
-        pane_output = sh_read("tmux list-panes -a -F '#{pane_id}'")
-        active_panes = {p.lstrip('%') for p in pane_output.strip().splitlines()}
-    except subprocess.CalledProcessError:
-        return
-    stale = [k for k in data["panes"] if k not in active_panes]
-    for k in stale:
-        del data["panes"][k]
-
-
-def _tmux_pane_info():
-    """Get session:window mapping for all panes."""
-    try:
-        output = sh_read("tmux list-panes -a -F '#{pane_id} #{session_name}:#{window_name}'")
-        return dict(line.split(" ", 1) for line in output.strip().splitlines())
-    except subprocess.CalledProcessError:
-        return {}
-
-
-def list_sessions(**kwargs):
-    """List active claude sessions."""
-    data = read_json(SESSIONS_FILE, default={"panes": {}})
-    pane_info = _tmux_pane_info()
-    # Filter to panes that still exist in tmux
-    active_keys = [(k, s) for k, s in data["panes"].items() if s.get("tmux_pane") in pane_info]
-
-    if not active_keys:
-        print("No active sessions.")
-        return
-
-    rows = []
-    for key, s in sorted(active_keys, key=lambda kv: pane_info.get(kv[1].get("tmux_pane", ""), "~")):
-        created = _fmt_age(s.get("created_at"))
-        status_str = s.get("status", "?")
-        status_age = _fmt_age(s.get("status_since"))
-        status_col = f"{status_str} ({status_age})" if status_age else status_str
-        sid = s.get("session_id", "")[:12]
-        pane = s.get("tmux_pane", f"%{key}")
-        location = pane_info.get(pane, "?")
-        rows.append([f"{location}:{key}", status_col, created, s.get("cwd", "?"), sid])
-    print_table(rows, sep="  ")
 
 
 def next_session(**kwargs):
@@ -230,6 +227,145 @@ def next_session(**kwargs):
             data["panes"].pop(pick_key, None)
         _modify_sessions(remove_stale)
         print(f"Removed stale session {target_pane}")
+
+
+def drop_session(pane=None, **kwargs):
+    """Remove a session from state."""
+    key = pane if pane else _pane_key()
+    if not key:
+        print("No pane specified and TMUX_PANE not set.")
+        return
+
+    data = read_json(SESSIONS_FILE, default={"panes": {}})
+    if key not in data.get("panes", {}):
+        print(f"No session found for pane {key}")
+        return
+
+    def remove(data):
+        data["panes"].pop(key, None)
+    _modify_sessions(remove)
+    _update_window_name(f"%{key}")
+    print(f"Dropped session for pane {key}")
+
+
+def mark_session(pane=None, **kwargs):
+    """Mark a session as done."""
+    key = pane if pane else _pane_key()
+    if not key:
+        print("No pane specified and TMUX_PANE not set.")
+        return
+
+    def update(data):
+        if key in data["panes"]:
+            data["panes"][key]["status"] = "done"
+            data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
+    _modify_sessions(update)
+    _update_window_name(f"%{key}")
+
+
+def fork_session(**kwargs):
+    """Fork a claude session from the current window."""
+    data = read_json(SESSIONS_FILE, default={"panes": {}})
+    pane_info = _tmux_pane_info()
+    current_key = _pane_key()
+
+    # Find the current window
+    try:
+        current_window = sh_read(f"tmux display-message -p '#{{window_id}}'")
+        panes_output = sh_read(f"tmux list-panes -t '{current_window}' -F '#{{pane_id}}'")
+        window_panes = {p.lstrip('%') for p in panes_output.strip().splitlines()}
+    except subprocess.CalledProcessError:
+        print("Error: not in a tmux session")
+        return
+
+    # Find sessions in this window with session_id, excluding current pane
+    candidates = []
+    for k, s in data.get("panes", {}).items():
+        sid = s.get("session_id")
+        if k in window_panes and sid and k != current_key:
+            session_name, window_name, window_index = pane_info.get(s.get("tmux_pane", ""), ("?", "?", "?"))
+            window_name = _strip_emoji_prefix(window_name) or window_index
+            cwd = os.path.basename(s.get("cwd", "?"))
+            candidates.append((k, s, f"{k}  {session_name}  {window_name}  {cwd}  {sid}"))
+
+    if not candidates:
+        print("No forkable sessions in this window.")
+        return
+
+    if len(candidates) == 1:
+        _, s, _ = candidates[0]
+        sid = s["session_id"]
+    else:
+        # Use fzf to select
+        fzf_input = "\n".join(c[2] for c in candidates)
+        try:
+            selected = sh_read(f"echo '{fzf_input}' | fzf --prompt='Fork session> '")
+            # Extract session_id (last field)
+            sid = selected.strip().rsplit("  ", 1)[-1]
+        except subprocess.CalledProcessError:
+            return  # User cancelled fzf
+
+    print(f"Forking session {sid}")
+    os.execvp("claude", ["claude", "--resume", sid, "--fork-session"])
+
+
+STATUS_ICONS = {"done": "🔴", "waiting": "🔴", "working": "🟡", "idle": "🟢"}
+STATUS_PRIORITY = {"done": 0, "waiting": 0, "working": 1, "idle": 2}
+ALL_ICONS = set(STATUS_ICONS.values())
+
+
+def _strip_emoji_prefix(name):
+    """Remove status emoji prefix from a window name."""
+    for emoji in ALL_ICONS:
+        if name.startswith(emoji):
+            return name[len(emoji):].lstrip()
+    return name
+
+
+def _update_window_name(pane_id=None):
+    """Update the window name emoji for the window containing the given pane."""
+    if not pane_id:
+        pane_id = os.environ.get("TMUX_PANE", "")
+    if not pane_id:
+        return
+
+    try:
+        # Get window id and current name for this pane
+        info = sh_read(f"tmux display-message -p -t '{pane_id}' '#{{window_id}}|||#{{window_name}}'")
+        parts = info.split("|||", 1)
+        window_id = parts[0]
+        window_name = parts[1] if len(parts) > 1 else ""
+        # Get all panes in this window
+        panes_output = sh_read(f"tmux list-panes -t '{window_id}' -F '#{{pane_id}}'")
+        window_panes = {p.lstrip('%') for p in panes_output.strip().splitlines()}
+    except subprocess.CalledProcessError:
+        return
+
+    # Find worst status among registered panes in this window
+    data = read_json(SESSIONS_FILE, default={"panes": {}})
+    worst_status = None
+    worst_priority = 999
+    for key, s in data.get("panes", {}).items():
+        if key in window_panes:
+            st = s.get("status", "idle")
+            p = STATUS_PRIORITY.get(st, 999)
+            if p < worst_priority:
+                worst_priority = p
+                worst_status = st
+
+    base_name = _strip_emoji_prefix(window_name)
+
+    icon = STATUS_ICONS.get(worst_status)
+    if icon:
+        new_name = f"{icon} {base_name}" if base_name else icon
+    else:
+        new_name = base_name
+
+    if new_name != window_name:
+        try:
+            sh(f"tmux rename-window -t '{window_id}' '{new_name}'")
+        except subprocess.CalledProcessError:
+            pass
 
 
 HOOKS = {
@@ -380,14 +516,90 @@ def hook_session_start(**kwargs):
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
     _modify_sessions(update)
+    _update_window_name()
 
 
 def hook_submit(**kwargs):
-    _update_pane_status("working")
+    input_data = json.loads(sys.stdin.read())
+    session_id = input_data.get("session_id", "")
+    key = _pane_key()
+    if not key:
+        return
+
+    def update(data):
+        _ensure_pane(data, key)
+        data["panes"][key]["status"] = "working"
+        data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
+        if session_id and data["panes"][key].get("session_id") != session_id:
+            data["panes"][key]["session_id"] = session_id
+    _modify_sessions(update)
+    _update_window_name()
 
 
 def hook_notification(**kwargs):
     _update_pane_status("waiting")
+    _update_window_name()
+
+
+def hook_stop(**kwargs):
+    key = _pane_key()
+    if not key:
+        return
+    is_focused = _is_pane_focused()
+
+    def update(data):
+        _ensure_pane(data, key)
+        data["panes"][key]["status"] = "idle" if is_focused else "done"
+        data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
+    _modify_sessions(update)
+    _update_window_name()
+
+
+def hook_pane_focus(**kwargs):
+    """Tmux after-select-pane: transition done -> idle for the focused pane."""
+    key = _pane_key()
+    if not key:
+        return
+
+    def update(data):
+        pane = data["panes"].get(key)
+        if pane and pane.get("status") == "done":
+            pane["status"] = "idle"
+            pane["status_since"] = datetime.now(timezone.utc).isoformat()
+    _modify_sessions(update)
+    _update_window_name()
+
+
+def hook_session_end(**kwargs):
+    """Remove session on exit."""
+    key = _pane_key()
+    if not key:
+        return
+
+    def update(data):
+        data["panes"].pop(key, None)
+    _modify_sessions(update)
+    _update_window_name()
+
+
+def _update_pane_status(status_value):
+    """Set status on the current pane's session."""
+    key = _pane_key()
+    if not key:
+        return
+    def update(data):
+        _ensure_pane(data, key)
+        data["panes"][key]["status"] = status_value
+        data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
+    _modify_sessions(update)
+
+
+def _pane_key():
+    """Get the pane key (numeric part of TMUX_PANE) for the current pane."""
+    tmux_pane = os.environ.get("TMUX_PANE", "")
+    if not tmux_pane:
+        return None
+    return tmux_pane.lstrip('%')
 
 
 def _is_pane_focused():
@@ -407,42 +619,35 @@ def _is_pane_focused():
         return False
 
 
-def hook_stop(**kwargs):
-    key = _pane_key()
-    if not key:
+def _modify_sessions(fn):
+    """Read-modify-write the sessions file. fn receives the full data dict."""
+    modify_json(SESSIONS_FILE, fn, default={"panes": {}})
+
+
+def _ensure_pane(data, key):
+    """Ensure a pane entry exists, creating a minimal one if needed."""
+    if key not in data["panes"]:
+        data["panes"][key] = {
+            "tmux_pane": os.environ.get("TMUX_PANE", f"%{key}"),
+            "cwd": os.environ.get("CLAUDE_WORKING_DIRECTORY", os.getcwd()),
+            "status": "idle",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+
+def _cleanup_stale(data):
+    """Remove panes that no longer exist in tmux. Mutates data."""
+    try:
+        pane_output = sh_read("tmux list-panes -a -F '#{pane_id}'")
+        active_panes = {p.lstrip('%') for p in pane_output.strip().splitlines()}
+    except subprocess.CalledProcessError:
         return
-    is_focused = _is_pane_focused()
-
-    def update(data):
-        _ensure_pane(data, key)
-        data["panes"][key]["status"] = "idle" if is_focused else "done"
-        data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
-    _modify_sessions(update)
+    stale = [k for k in data["panes"] if k not in active_panes]
+    for k in stale:
+        del data["panes"][k]
 
 
-def hook_pane_focus(**kwargs):
-    """Tmux after-select-pane: transition done -> idle for the focused pane."""
-    key = _pane_key()
-    if not key:
-        return
-
-    def update(data):
-        pane = data["panes"].get(key)
-        if pane and pane.get("status") == "done":
-            pane["status"] = "idle"
-            pane["status_since"] = datetime.now(timezone.utc).isoformat()
-    _modify_sessions(update)
-
-
-def hook_session_end(**kwargs):
-    """Remove session on exit."""
-    key = _pane_key()
-    if not key:
-        return
-
-    def update(data):
-        data["panes"].pop(key, None)
-    _modify_sessions(update)
+# Permissions management
 
 
 def list_permissions(**kwargs):
