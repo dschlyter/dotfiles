@@ -76,6 +76,8 @@ alias rc='source ~/.zshrc'
 alias rh='fc -R'
 alias zl="vim $HOME/.zshrc; rc"
 
+alias claf='claude --fork-session -r'
+
 ## Global aliases
 # note: alias R breaks fasd
 alias -g P='|'
@@ -96,6 +98,9 @@ alias -g GS='$(git select)'
 alias -g FS='$(fd --type f | fzf --multi)'
 alias -g DL='"$(echo $HOME/?ownloads)/$(ls -1 -tr $HOME/?ownloads | tail -n 1)"'
 alias -g LAST='"$(ls -tr | tail -n 1)"'
+
+alias -g SESS='$(tmux display-message -p "#{session_name}" | sed "s/^[^a-zA-Z0-9_-]*//" | sed "s/^[[:space:]]*//;s/[[:space:]]*$//")'
+alias -g WIND='$(tmux display-message -p "#{?window_name,#{window_name},#{window_index}}" | sed "s/^[^a-zA-Z0-9_-]*//" | sed "s/^[[:space:]]*//;s/[[:space:]]*$//")'
 
 if command -v abbr >/dev/null 2>&1; then
     # -S don't store in ~/.config/zsh-abbr/user-abbreviations, -q for quiet, -g for global

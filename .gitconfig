@@ -59,8 +59,9 @@
     m = merge
     pu = push -u --follow-tags
     po = push -u --follow-tags origin
-    pp = !git pull --rebase && git pu
     pufl = push --force-with-lease
+    pof = push --force-with-lease origin
+    pp = !git pull --rebase && git pu
     br = branch -vv
     wt = worktree
     rs = reset
@@ -83,6 +84,8 @@
     wsreset = !$HOME/.git-scripts/entry wsreset
     update-hooks = !$HOME/.git-scripts/entry update-hooks
     web = !$HOME/.git-scripts/entry web
+    # run a command on a branch via temporary worktree (does not touch working dir)
+    worktree-run = !$HOME/.git-scripts/entry worktree-run
 
     # easy merge and split of repos, with preserved history (hash-identical roundtrip when testing)
     filter-repo = !$HOME/.git-scripts/filter-repo
@@ -194,10 +197,12 @@
     # fast forward branch without checking them out
     up = !git lazy-fe $1 && git merge-base --is-ancestor $1 origin/$1 && (! git same $1 origin/$1 && git branch -f $1 origin/$1 || true)"#"
     urb = !git up $1 && git rebase --autostash $1 "#"
+    # rebase another branch without checking it out (via worktree)
+    orb = !git worktree-run $1 git rebase --autostash ${2:-master} "#"
     mup = !git up master
     mur = !git urb master
     # lazy fetch, for having fetch in commands that may be chained together, without fetching multiple times
-    last-fetch = !echo $(( $(date +%s) - $(${GNU_PREFIX}stat -c %Y .git/FETCH_HEAD) )) "#"
+    last-fetch = !f=$(stat -c %Y .git/FETCH_HEAD 2>/dev/null || stat -f %m .git/FETCH_HEAD 2>/dev/null) && echo $(( $(date +%s) - $f )) || echo 999 "#"
     lazy-fe = !test $(git last-fetch) -gt 20 && git fe || true
     
     # pushing

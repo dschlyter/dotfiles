@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# git worktree-run <branch> <command...>
+# Runs a command in a temporary worktree for the given branch,
+# leaving the current worktree completely untouched.
+# The worktree is cleaned up afterwards, even if the command fails.
+
+set -euo pipefail
+
+if [[ $# -lt 2 || "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    cat <<'EOF'
+Usage: git worktree-run <branch> <command...>
+
+Run a command in a temporary worktree for the given branch.
+Your current working directory and branch are never touched.
+The worktree is cleaned up afterwards, even if the command fails.
+
+Examples:
+  git worktree-run feat-branch git rebase master
+  git worktree-run my-branch git merge --no-edit main
+EOF
+    exit 1
+fi
+
+BRANCH="$1"
+shift
+
+if ! git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
+    echo "Branch '$BRANCH' does not exist."
+    exit 1
+fi
+
+WORKTREE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/git-worktree-run.XXXXXX")
+
+cleanup() {
+    if [[ -d "$WORKTREE_DIR" ]]; then
+        git worktree remove --force "$WORKTREE_DIR" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT
+
+git worktree add "$WORKTREE_DIR" "$BRANCH"
+
+pushd "$WORKTREE_DIR" > /dev/null
+"$@"
+popd > /dev/null
