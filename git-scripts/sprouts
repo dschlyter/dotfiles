@@ -1,0 +1,152 @@
+#!/bin/bash
+
+# git sprouts
+# Show status of all sprouted (suffix) branches for the current feature branch.
+# For each sprout: commit count, merged status, unresorbed commits.
+# For the feature branch: unsprouted commits (not in any sprout).
+
+set -euo pipefail
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    cat <<'EOF'
+Usage: git sprouts
+
+Show the status of all sprouted branches for the current feature branch.
+A sprouted branch is any branch named <current>-*.
+
+Displays:
+  - Each sprout with commit count and merge status
+  - Unresorbed commits on each sprout (on sprout but not on feature)
+  - Unsprouted commits on feature (on feature but not on any sprout)
+
+See also: git sprout, git resorb, git fledge
+EOF
+    exit 0
+fi
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+BASE_BRANCH="master"
+
+if [[ "$CURRENT_BRANCH" == "HEAD" ]]; then
+    echo "Error: not on a branch (detached HEAD)."
+    exit 1
+fi
+
+# Colors
+C_RESET=$'\033[0m'
+C_YELLOW=$'\033[33m'
+C_GREEN=$'\033[32m'
+C_RED=$'\033[31m'
+C_CYAN=$'\033[36m'
+C_DIM=$'\033[2m'
+C_BOLD=$'\033[1m'
+
+# Find all suffix branches
+SPROUTS=()
+while IFS= read -r branch; do
+    branch=$(echo "$branch" | xargs)
+    if [[ "$branch" == "${CURRENT_BRANCH}-"* ]]; then
+        SPROUTS+=("$branch")
+    fi
+done < <(git branch --format='%(refname:short)')
+
+# Collect patch-ids of all commits on all sprouts (for unsprouted detection)
+declare -A SPROUTED_PATCHES  # patch-id -> sprout branch name
+
+# Feature branch commits (above master)
+FEATURE_BASE=$(git merge-base "$BASE_BRANCH" "$CURRENT_BRANCH" 2>/dev/null || true)
+if [[ -z "$FEATURE_BASE" ]]; then
+    echo "Error: '$CURRENT_BRANCH' shares no history with '$BASE_BRANCH'."
+    exit 1
+fi
+
+FEATURE_COMMITS=()
+while IFS= read -r sha; do
+    FEATURE_COMMITS+=("$sha")
+done < <(git rev-list "$FEATURE_BASE".."$CURRENT_BRANCH")
+
+FEATURE_COUNT=${#FEATURE_COMMITS[@]}
+
+echo "${C_BOLD}${CURRENT_BRANCH}${C_RESET} — ${FEATURE_COUNT} commit(s) on top of ${BASE_BRANCH}"
+echo ""
+
+if [[ ${#SPROUTS[@]} -eq 0 ]]; then
+    echo "  No sprouts found."
+    exit 0
+fi
+
+# For each sprout, show status and find unresorbed commits
+for sprout in "${SPROUTS[@]}"; do
+    sprout_base=$(git merge-base "$BASE_BRANCH" "$sprout" 2>/dev/null || true)
+    if [[ -z "$sprout_base" ]]; then
+        continue
+    fi
+
+    sprout_count=$(git rev-list "$sprout_base".."$sprout" | wc -l | tr -d ' ')
+
+    # Check if merged to master
+    merged=""
+    if git merge-base --is-ancestor "$sprout" "$BASE_BRANCH" 2>/dev/null; then
+        merged="${C_GREEN}merged${C_RESET}"
+    else
+        # Check if upstream is gone (remote deleted after merge)
+        upstream_gone=$(git branch -vv --list "$sprout" | grep ': gone]' || true)
+        if [[ -n "$upstream_gone" ]]; then
+            merged="${C_GREEN}upstream gone${C_RESET} ${C_DIM}(probably merged)${C_RESET}"
+        else
+            merged="${C_YELLOW}open${C_RESET}"
+        fi
+    fi
+
+    # Find unresorbed commits: on sprout but not on feature
+    unresorbed=()
+    while IFS= read -r line; do
+        sign=${line:0:1}
+        sha=${line:2}
+        if [[ "$sign" == "+" ]]; then
+            unresorbed+=("$sha")
+        fi
+    done < <(git cherry "$CURRENT_BRANCH" "$sprout" "$sprout_base")
+
+    # Collect patch-ids of sprout commits (for unsprouted detection)
+    while IFS= read -r sha; do
+        pid=$(git show "$sha" 2>/dev/null | git patch-id --stable 2>/dev/null | awk '{print $1}' || true)
+        if [[ -n "$pid" ]]; then
+            SPROUTED_PATCHES["$pid"]="$sprout"
+        fi
+    done < <(git rev-list "$sprout_base".."$sprout")
+
+    # Display
+    suffix="${sprout#"$CURRENT_BRANCH"}"
+    echo "  ${C_CYAN}${suffix}${C_RESET}  ${sprout_count} commit(s)  ${merged}"
+
+    if [[ ${#unresorbed[@]} -gt 0 ]]; then
+        echo "    ${C_RED}${#unresorbed[@]} unresorbed${C_RESET} ${C_DIM}(on sprout, not on feature — git resorb ${suffix})${C_RESET}"
+        for sha in "${unresorbed[@]}"; do
+            echo "    ${C_DIM}$(git log --oneline -1 "$sha")${C_RESET}"
+        done
+    fi
+done
+
+# Find unsprouted commits on feature
+unsprouted=()
+for sha in "${FEATURE_COMMITS[@]}"; do
+    pid=$(git show "$sha" 2>/dev/null | git patch-id --stable 2>/dev/null | awk '{print $1}' || true)
+    if [[ -z "$pid" ]]; then
+        # Empty commits (merge commits, etc) — skip
+        continue
+    fi
+    if [[ -z "${SPROUTED_PATCHES[$pid]:-}" ]]; then
+        unsprouted+=("$sha")
+    fi
+done
+
+echo ""
+if [[ ${#unsprouted[@]} -gt 0 ]]; then
+    echo "  ${C_YELLOW}${#unsprouted[@]} unsprouted${C_RESET} commit(s) on ${CURRENT_BRANCH} ${C_DIM}(not in any sprout)${C_RESET}"
+    for sha in "${unsprouted[@]}"; do
+        echo "    ${C_DIM}$(git log --oneline -1 "$sha")${C_RESET}"
+    done
+else
+    echo "  ${C_GREEN}All feature commits are sprouted.${C_RESET}"
+fi

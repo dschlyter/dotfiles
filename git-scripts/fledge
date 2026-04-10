@@ -56,7 +56,7 @@ else
     while IFS= read -r line; do
         branch=$(echo "$line" | awk '{print $1}')
         # Check if branch is a suffix of current branch (e.g. feat-tests is suffix of feat)
-        if [[ "$branch" == "${CURRENT_BRANCH}-"* || "$branch" == "${CURRENT_BRANCH}/"* ]]; then
+        if [[ "$branch" == "${CURRENT_BRANCH}-"* ]]; then
             OTHER_BRANCH="$branch"
             echo "Found: $branch"
             break

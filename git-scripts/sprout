@@ -26,7 +26,7 @@ Cherry-pick commits to a separate branch using a temporary worktree.
 Your current working directory and branch are never touched.
 
   <branch-name>          Target branch (created from master if new)
-  -<suffix>              Append suffix to current branch (e.g. -tests on feat1 → feat1-tests)
+  -<suffix>              Append suffix to current branch (e.g. -tests on feat → feat-tests)
   N                      Sprout the last N commits from HEAD
   commit1 [commit2 ...]  Sprout specific commits
   (no commits)           Interactive selection via git select

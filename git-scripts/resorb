@@ -96,7 +96,7 @@ else
     FOUND=()
     while IFS= read -r branch; do
         branch=$(echo "$branch" | xargs)  # trim whitespace
-        if [[ "$branch" == "${CURRENT_BRANCH}-"* || "$branch" == "${CURRENT_BRANCH}/"* ]]; then
+        if [[ "$branch" == "${CURRENT_BRANCH}-"* ]]; then
             FOUND+=("$branch")
         fi
     done < <(git branch --format='%(refname:short)')
