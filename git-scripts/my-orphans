@@ -1,0 +1,17 @@
+#!/bin/bash
+set -euo pipefail
+
+# usage: git orphans [days] - default 1 day
+days=${1:-1}
+me=$(git config user.email)
+
+# candidates: recent reflog commits by me
+git reflog --format="%H %ae" --since="$days days ago" \
+    | awk -v me="$me" '$2==me{print $1}' \
+    | sort -u \
+    | while read -r sha; do
+        # skip if reachable from any branch/tag
+        git branch -a --contains "$sha" --no-column 2>/dev/null | grep -q . && continue
+        echo "$sha"
+    done \
+| xargs -r git log --date='format:%Y-%m-%d %H:%M' --pretty=format:'%C(red)%h%C(reset) %C(green)%ad%C(reset): %s%C(reset)%C(yellow)%d%C(reset) - %C(bold blue)%an%C(reset)' --no-walk

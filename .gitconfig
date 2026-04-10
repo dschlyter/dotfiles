@@ -132,6 +132,7 @@
     lS = log --color --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ai) %C(bold blue)<%an>%Creset' --abbrev-commit -S
     # log including all branchless (rebased, amended, dropped) commits
     la = !git ll $(git fsck --unreachable --no-reflog | grep commit | grep -o '[^ ]*$')
+    orphans = !$HOME/.git-scripts/entry my-orphans
     mine = !git ll --since='2 weeks ago' --author='David Schlyter' --author-date-order
 
     # display commits
@@ -160,6 +161,7 @@
     # don't commit but save state to reflog (+ add to staging area, to separate changes from newer ones)
     draft = !git commit --no-verify -am \"draft: $*\" && git reset --soft 'HEAD~1' "#"
     nuke = !git draft "nuking repo" && git reset --hard
+    nuku = !git stash push --staged && git checkpoint "nuking unstaged changes" && git reset --hard && git stash pop --index
     # remove all whitespace changes
     rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git restore "${@:-.}" && git reset'
 

@@ -14,7 +14,7 @@
                 {
                     "command": "editor.action.insertSnippet",
                     "args": {
-                        "snippet": "${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}"
+                        "snippet": " ${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}"
                     }
                 }
             ]
@@ -33,7 +33,7 @@
         },
         {
             "before": [ "<leader>", "t" ],
-            "commands": [ { "command": "editor.action.insertSnippet", "args": { "snippet": "${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}" } } ]
+            "commands": [ { "command": "editor.action.insertSnippet", "args": { "snippet": " ${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}" } } ]
         }
     ],
     "vim.visualModeKeyBindings": [
@@ -59,21 +59,23 @@
     "vim.foldfix": true,
 
     "files.autoSave": "onFocusChange",
+
+    "gitlens.graph.minimap.enabled": false,
+    "explorer.confirmDelete": false,
+    "explorer.confirmDragAndDrop": false,
+    "editor.multiCursorModifier": "ctrlCmd",
+
     "github.copilot.enable": {
         "*": true,
         "plaintext": false,
         "markdown": false,
         "scminput": false
     },
-    "gitlens.graph.minimap.enabled": false,
-    "explorer.confirmDelete": false,
     "github.copilot.nextEditSuggestions.enabled": true,
-    "editor.multiCursorModifier": "ctrlCmd",
-    "zig.zls.enabled": "on",
-    "explorer.confirmDragAndDrop": false,
+
+    "workbench.editor.editorActionsLocation": "titleBar",
+    "workbench.editor.wrapTabs": true
     // NOTE: add claude env settings in ~/.claude/settings.json instead
     "claudeCode.preferredLocation": "panel",
     "claudeCode.selectedModel": "opus",
-    "workbench.editor.editorActionsLocation": "titleBar",
-    "workbench.editor.wrapTabs": true
 }
