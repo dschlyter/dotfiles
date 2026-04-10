@@ -123,7 +123,7 @@ def list_sessions(d=False, s=False, v=False, **kwargs):
         status_str = s.get("status", "?")
         icon = STATUS_ICONS.get(status_str, "")
         status_age = _fmt_age(s.get("status_since"))
-        status_col = f"{icon} {status_str} ({status_age})" if status_age else f"{icon} {status_str}"
+        status_col = f"{icon} {status_str} {status_age}" if status_age else f"{icon} {status_str}"
         sid = s.get("session_id", "")
         pane = s.get("tmux_pane", f"%{key}")
         session_name, window_name, window_index = pane_info.get(pane, ("?", "?", "?"))
@@ -153,15 +153,16 @@ def _tmux_pane_info():
 
 
 def _fmt_age(iso_str):
-    """Format an ISO timestamp as a relative age string, or empty if missing."""
+    """Format an ISO timestamp as d:hh:mm elapsed time, or empty if missing."""
     if not iso_str:
         return ""
     try:
         dt = datetime.fromisoformat(iso_str)
-        mins = int((datetime.now(timezone.utc) - dt).total_seconds() // 60)
-        if mins < 60:
-            return f"{mins}m ago"
-        return f"{mins // 60}h{mins % 60}m ago"
+        total_mins = int((datetime.now(timezone.utc) - dt).total_seconds() // 60)
+        days = total_mins // (60 * 24)
+        hours = (total_mins % (60 * 24)) // 60
+        mins = total_mins % 60
+        return f"{days}:{hours:02d}:{mins:02d}"
     except ValueError:
         return ""
 

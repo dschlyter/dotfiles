@@ -137,6 +137,8 @@
     # display commits
     # show the first commit from log that matches sha-prefix, eg. git sc 72F
     sf = !git log | grep '^commit '\"$1\" | head -n 1 | cut -d' ' -f2- | xargs git show "#"
+    # show patch id - 
+    pid = !git show "$1" | git patch-id "#"
     diff-commit = !bash -c 'diff -u --color <(git show $1) <(git show $2)' dummy
 
     # commit
