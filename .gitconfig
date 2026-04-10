@@ -242,8 +242,10 @@
     pluck = !$HOME/.git-scripts/entry pluck
     # sprout + remove commits from current branch
     split = !git sprout --pluck \"$@\" "#"
-    # reabsorb a sprouted branch after squash-merge to master
+    # reverse sprout: cherry-pick unapplied commits from another branch
     resorb = !$HOME/.git-scripts/entry resorb
+    # after a sprouted branch is squash-merge to master, fledge it away from this branch
+    fledge = !$HOME/.git-scripts/entry fledge
     # create a combined branch by merging two branches together
     combine = !git switch \"$1\" && git switch -C \"$1--combine--$2\" && git merge --no-edit --autostash \"$2\" "#"
     recombine = !git combine $(git curr-br | awk -F'--combine--' '{print $1, $2}')
@@ -258,6 +260,7 @@
 
     # create empty commits (for testing stuff)
     ce = !git commit --allow-empty -am \"$*\" "#"
+    test-commit = !echo "$1" >> "$1.txt" && git add "$1.txt" && git commit -m "$1" "#"
 
     # tag management
     # tag a version, make sure it is an annotated tag, but avoid hassle with duplicating version in commit message

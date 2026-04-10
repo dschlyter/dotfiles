@@ -1,11 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# Test script for git resorb
+# Test script for git fledge
 # Creates temporary repos in /tmp and cleans up after
 
 SCRIPT_DIR="$HOME/.git-scripts"
-TEST_DIR="/tmp/test-resorb-$$"
+TEST_DIR="/tmp/test-fledge-$$"
 REMOTE_DIR="$TEST_DIR/remote.git"
 REPO_DIR="$TEST_DIR/repo"
 
@@ -37,7 +37,7 @@ setup_remote_repo() {
 }
 
 # ============================================================
-echo "=== Test 1: Basic resorb with explicit branch name ==="
+echo "=== Test 1: Basic fledge with explicit branch name ==="
 # ============================================================
 
 setup_remote_repo
@@ -64,7 +64,7 @@ git push 2>/dev/null
 
 # Now resorb
 git checkout feature
-"$SCRIPT_DIR/resorb" feature-auth
+"$SCRIPT_DIR/fledge" feature-auth
 
 # Verify: feature should have 3 commits on top of master (A, C, E)
 COUNT=$(git rev-list master..feature | wc -l | tr -d ' ')
@@ -87,11 +87,11 @@ git merge-base --is-ancestor master feature || fail "feature should be based on 
 DIRTY=$(git status --porcelain)
 [[ -z "$DIRTY" ]] || fail "Working tree should be clean, got: $DIRTY"
 
-pass "Basic resorb"
+pass "Basic fledge"
 
 # ============================================================
 echo ""
-echo "=== Test 1b: Resorb preserves uncommitted changes ==="
+echo "=== Test 1b: Fledge preserves uncommitted changes ==="
 # ============================================================
 
 setup_remote_repo
@@ -114,7 +114,7 @@ git checkout feature
 # Add uncommitted changes
 echo "wip" > wip.txt
 
-"$SCRIPT_DIR/resorb" feature-auth
+"$SCRIPT_DIR/fledge" feature-auth
 
 # Verify: uncommitted file is preserved
 [[ -f wip.txt ]] || fail "Uncommitted file wip.txt should be preserved"
@@ -124,7 +124,7 @@ echo "wip" > wip.txt
 DELETIONS=$(git status --porcelain | grep "^D" || true)
 [[ -z "$DELETIONS" ]] || fail "Should have no staged deletions, got: $DELETIONS"
 
-pass "Resorb preserves uncommitted changes"
+pass "Fledge preserves uncommitted changes"
 
 # ============================================================
 echo ""
@@ -156,7 +156,7 @@ git fetch --prune 2>/dev/null
 
 # Now auto-detect from feature branch
 git checkout feature
-"$SCRIPT_DIR/resorb"
+"$SCRIPT_DIR/fledge"
 
 # Verify: feature should have 2 commits on top of master (A, C)
 COUNT=$(git rev-list master..feature | wc -l | tr -d ' ')
@@ -171,7 +171,7 @@ pass "Auto-detect sprouted branch"
 
 # ============================================================
 echo ""
-echo "=== Test 3: Resorb with no matching branch fails gracefully ==="
+echo "=== Test 3: Fledge with no matching branch fails gracefully ==="
 # ============================================================
 
 setup_remote_repo
@@ -180,7 +180,7 @@ cd "$REPO_DIR"
 git checkout -b feature
 echo "aaa" > a.txt && git add . && git commit -m "commit A"
 
-if "$SCRIPT_DIR/resorb" 2>&1; then
+if "$SCRIPT_DIR/fledge" 2>&1; then
     fail "Should have exited with error when no branch found"
 fi
 
@@ -188,11 +188,11 @@ pass "No matching branch fails gracefully"
 
 # ============================================================
 echo ""
-echo "=== Test 4: Resorb nonexistent branch fails gracefully ==="
+echo "=== Test 4: Fledge nonexistent branch fails gracefully ==="
 # ============================================================
 
 cd "$REPO_DIR"
-if "$SCRIPT_DIR/resorb" nonexistent-branch 2>&1; then
+if "$SCRIPT_DIR/fledge" nonexistent-branch 2>&1; then
     fail "Should have exited with error for nonexistent branch"
 fi
 

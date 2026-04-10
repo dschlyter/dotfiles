@@ -1,36 +1,33 @@
 #!/bin/bash
 
-# git resorb [branch-name]
-# Reabsorb a sprouted branch that has been squash-merged to master.
-# Removes the sprouted commits from the current branch via a 2-step rebase
-# in a temporary worktree (current worktree is never touched).
+# git resorb [branch-name | -suffix]
+# Resorb (reverse sprout): cherry-pick commits from another branch that
+# haven't been applied to the current branch yet. Uses `git cherry` to
+# detect already-applied commits (works even after rebase/amend).
 #
-# Algorithm:
-#   1. git rebase other-branch    (reorders; cherry-picked commits get skipped)
-#   2. git rebase --onto master other-branch  (cuts away the sprouted range)
-#
-# With no argument: auto-detects a suffix branch whose upstream is gone (merged).
+# With no argument: find all suffix branches of the current branch and
+# resorb them all.
 
 set -euo pipefail
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     cat <<'EOF'
-Usage: git resorb [branch-name]
+Usage: git resorb [branch-name | -suffix]
 
-Reabsorb a sprouted branch after it has been squash-merged to master.
-Removes the sprouted commits from the current branch cleanly.
+Cherry-pick unapplied commits from another branch into the current branch.
+Uses `git cherry` (patch-id matching) so it works even when branches have
+been rebased or amended.
 
-  branch-name    The sprouted branch to resorb
-  (no args)      Auto-detect: find a suffix branch with upstream gone
-
-The operation runs in a temporary worktree — your working directory
-and current branch are only updated on success.
+  branch-name    Resorb commits from this branch
+  -suffix        Shorthand for <current-branch>-suffix
+  (no args)      Auto-detect: resorb all suffix branches of current branch
 
 Examples:
-  git resorb feat-auth          # resorb the feat-auth branch
-  git resorb                    # auto-detect sprouted branch
+  git resorb feat-auth          # cherry-pick unapplied commits from feat-auth
+  git resorb -auth              # same, if on branch "feat"
+  git resorb                    # resorb all suffix branches (feat-auth, feat-tests, etc)
 
-See also: git sprout, git pluck
+See also: git sprout, git fledge
 EOF
     exit 0
 fi
@@ -42,108 +39,77 @@ if [[ "$CURRENT_BRANCH" == "HEAD" ]]; then
     exit 1
 fi
 
-# Resolve the branch to resorb
-if [[ $# -ge 1 ]]; then
-    OTHER_BRANCH="$1"
-    if ! git rev-parse --verify "$OTHER_BRANCH" >/dev/null 2>&1; then
-        echo "Error: branch '$OTHER_BRANCH' does not exist."
-        exit 1
+# Resorb a single branch: cherry-pick its unapplied commits onto current branch
+resorb_branch() {
+    local other="$1"
+
+    if ! git rev-parse --verify "$other" >/dev/null 2>&1; then
+        echo "Error: branch '$other' does not exist."
+        return 1
     fi
-else
-    # Auto-detect: find branches that are suffixes of current branch with upstream gone
-    echo "Looking for sprouted branches of '$CURRENT_BRANCH' with upstream gone..."
-    OTHER_BRANCH=""
+
+    # Find the merge base between current branch and the other branch
+    local base
+    base=$(git merge-base "$CURRENT_BRANCH" "$other" 2>/dev/null || true)
+    if [[ -z "$base" ]]; then
+        echo "Error: '$other' shares no history with '$CURRENT_BRANCH'."
+        return 1
+    fi
+
+    # Use git cherry to find commits on other branch not yet applied here.
+    # git cherry <upstream> <head> outputs "+ sha" for unapplied, "- sha" for applied.
+    local unapplied=()
     while IFS= read -r line; do
-        branch=$(echo "$line" | awk '{print $1}')
-        # Check if branch is a suffix of current branch (e.g. feat-tests is suffix of feat)
-        if [[ "$branch" == "${CURRENT_BRANCH}-"* || "$branch" == "${CURRENT_BRANCH}/"* ]]; then
-            OTHER_BRANCH="$branch"
-            echo "Found: $branch"
-            break
+        local sign=${line:0:1}
+        local sha=${line:2}
+        if [[ "$sign" == "+" ]]; then
+            unapplied+=("$sha")
         fi
-    done < <(git branch -vv | grep ': gone]' || true)
+    done < <(git cherry "$CURRENT_BRANCH" "$other" "$base")
 
-    if [[ -z "$OTHER_BRANCH" ]]; then
-        echo "No sprouted branch found. Specify one explicitly: git resorb <branch>"
+    if [[ ${#unapplied[@]} -eq 0 ]]; then
+        echo "No unapplied commits on '$other' — nothing to resorb."
+        return 0
+    fi
+
+    echo "Resorbing ${#unapplied[@]} commit(s) from '$other'..."
+    for sha in "${unapplied[@]}"; do
+        echo "  Cherry-picking $(git log --oneline -1 "$sha")"
+        if ! GIT_COMMITTER_DATE="$(git log -1 --format=%cD "$sha")" git cherry-pick "$sha"; then
+            echo ""
+            echo "Cherry-pick failed. Resolve conflicts and run 'git cherry-pick --continue'."
+            return 1
+        fi
+    done
+    echo "Done — resorbed ${#unapplied[@]} commit(s) from '$other'."
+}
+
+if [[ $# -ge 1 ]]; then
+    OTHER="$1"
+    # If starts with "-", treat as suffix of current branch
+    if [[ "$OTHER" == -* ]]; then
+        OTHER="${CURRENT_BRANCH}${OTHER}"
+    fi
+    resorb_branch "$OTHER"
+else
+    # Auto-detect: find all local branches that are suffixes of current branch
+    FOUND=()
+    while IFS= read -r branch; do
+        branch=$(echo "$branch" | xargs)  # trim whitespace
+        if [[ "$branch" == "${CURRENT_BRANCH}-"* || "$branch" == "${CURRENT_BRANCH}/"* ]]; then
+            FOUND+=("$branch")
+        fi
+    done < <(git branch --format='%(refname:short)')
+
+    if [[ ${#FOUND[@]} -eq 0 ]]; then
+        echo "No suffix branches found for '$CURRENT_BRANCH'."
         exit 1
     fi
-fi
 
-BASE_BRANCH="master"
-
-# Verify other-branch shares history with master (they have a common ancestor)
-MERGE_BASE=$(git merge-base "$BASE_BRANCH" "$OTHER_BRANCH" 2>/dev/null || true)
-if [[ -z "$MERGE_BASE" ]]; then
-    echo "Error: '$OTHER_BRANCH' shares no history with '$BASE_BRANCH'."
-    exit 1
-fi
-
-# Fetch latest master
-echo "Fetching latest master..."
-git fetch origin "$BASE_BRANCH" 2>/dev/null || true
-
-MASTER_REF="origin/$BASE_BRANCH"
-if ! git rev-parse --verify "$MASTER_REF" >/dev/null 2>&1; then
-    MASTER_REF="$BASE_BRANCH"
-fi
-
-# Show what we're about to do
-SPROUTED_COUNT=$(git rev-list "$MERGE_BASE".."$OTHER_BRANCH" | wc -l | tr -d ' ')
-TOTAL_COUNT=$(git rev-list "$MERGE_BASE".."$CURRENT_BRANCH" | wc -l | tr -d ' ')
-
-echo ""
-echo "Resorbing '$OTHER_BRANCH' ($SPROUTED_COUNT sprouted commit(s)) from '$CURRENT_BRANCH' ($TOTAL_COUNT total commit(s))"
-echo ""
-
-# Create a temporary worktree
-WORKTREE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/git-resorb.XXXXXX")
-TEMP_BRANCH="resorb-tmp-$$"
-
-cleanup() {
-    if [[ -d "$WORKTREE_DIR" ]]; then
-        git worktree remove --force "$WORKTREE_DIR" 2>/dev/null || true
-    fi
-    git branch -D "$TEMP_BRANCH" 2>/dev/null || true
-}
-trap cleanup EXIT
-
-# Create worktree with a temporary branch starting from current branch
-git worktree add "$WORKTREE_DIR" -b "$TEMP_BRANCH" "$CURRENT_BRANCH"
-
-pushd "$WORKTREE_DIR" > /dev/null
-
-# Step 1: Rebase onto other-branch (reorders commits, skips cherry-picks via patch-id)
-echo "Step 1: Rebasing onto '$OTHER_BRANCH'..."
-if ! git rebase "$OTHER_BRANCH"; then
+    echo "Found ${#FOUND[@]} suffix branch(es): ${FOUND[*]}"
     echo ""
-    echo "Error: rebase onto '$OTHER_BRANCH' failed. Aborting."
-    git rebase --abort 2>/dev/null || true
-    popd > /dev/null
-    exit 1
+    for branch in "${FOUND[@]}"; do
+        resorb_branch "$branch"
+        echo ""
+    done
 fi
-
-# Step 2: Rebase --onto master, cutting away the sprouted commits
-echo "Step 2: Rebasing onto '$MASTER_REF', removing sprouted commits..."
-if ! git rebase --onto "$MASTER_REF" "$OTHER_BRANCH"; then
-    echo ""
-    echo "Error: rebase onto '$MASTER_REF' failed. Aborting."
-    git rebase --abort 2>/dev/null || true
-    popd > /dev/null
-    exit 1
-fi
-
-popd > /dev/null
-
-# Success — update the original branch to point to the result
-NEW_HEAD=$(git -C "$WORKTREE_DIR" rev-parse HEAD)
-RESULT_COUNT=$(git rev-list "$MASTER_REF".."$NEW_HEAD" | wc -l | tr -d ' ')
-
-echo ""
-echo "Success! Updating '$CURRENT_BRANCH' ($RESULT_COUNT commit(s) on top of master)"
-git reset --merge "$NEW_HEAD"
-
-# Clean up the sprouted branch
-echo "Deleting resorbed branch '$OTHER_BRANCH'"
-git branch -D "$OTHER_BRANCH" 2>/dev/null || true
-
-echo "Done. Run 'git log --oneline' to verify."
