@@ -1,0 +1,403 @@
+#!/usr/bin/env python3
+"""git overview — high level repository summary.
+
+Inspired by https://piechowski.io/post/git-commands-before-reading-code/
+
+Shows:
+  1. Top authors, overall + per-month bar graph (width = commit count).
+  2. Top changed files, overall + per-year table.
+  3. Top changed files for bugfix commits only, overall + per-year.
+"""
+
+import argparse
+import shutil
+import subprocess
+import sys
+from collections import Counter, defaultdict
+from datetime import date, datetime, timedelta
+
+
+RESET = "\033[0m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+BG_COLORS = [
+    "\033[48;5;24m",   # blue
+    "\033[48;5;29m",   # green
+    "\033[48;5;95m",   # brown
+    "\033[48;5;131m",  # red
+    "\033[48;5;97m",   # purple
+    "\033[48;5;136m",  # yellow
+    "\033[48;5;30m",   # teal
+    "\033[48;5;132m",  # pink
+    "\033[48;5;100m",  # olive
+    "\033[48;5;66m",   # grey-blue
+    "\033[48;5;244m",  # grey
+]
+BG_EMPTY = "\033[48;5;236m"
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="git overview",
+        description="High-level repository summary: authors and hot files.",
+    )
+    today = date.today()
+    ap.add_argument("--start", help="start date (YYYY[-MM[-DD]]); "
+                                    "default 5y ago, or 12mo ago with --monthly")
+    ap.add_argument("--end", help="end date (YYYY[-MM[-DD]]), default today",
+                    default=today.isoformat())
+    ap.add_argument("--monthly", action="store_true",
+                    help="bucket by month instead of year")
+    ap.add_argument("--limit", type=int, default=15,
+                    help="top-N size for file tables (default 15)")
+    ap.add_argument("--depth", type=int, default=1,
+                    help="directory grouping depth for top-dirs (default 1)")
+    args = ap.parse_args()
+
+    if args.start:
+        start = parse_date(args.start)
+    elif args.monthly:
+        m = today.month - 12
+        y = today.year + (m - 1) // 12
+        start = today.replace(year=y, month=((m - 1) % 12) + 1, day=1)
+    else:
+        start = today.replace(year=today.year - 5)
+    end = parse_date(args.end)
+    if end < start:
+        raise SystemExit("end is before start")
+
+    if args.monthly:
+        bucket_fn = lambda d: d.strftime("%Y-%m")
+        bucket_label = "month"
+    else:
+        bucket_fn = lambda d: str(d.year)
+        bucket_label = "year"
+
+    print(f"{DIM}repo overview {start} .. {end}  ({bucket_label}ly){RESET}")
+
+    commits = collect_commits(start, end)
+    if not commits:
+        print("no commits in range")
+        return
+
+    top_authors(commits, bucket_fn, bucket_label)
+    top_dirs(commits, depth=args.depth, bucket_fn=bucket_fn, bucket_label=bucket_label)
+    files_table(commits, f"Top changed files (overall, per {bucket_label})",
+                bucket_fn=bucket_fn, limit=args.limit)
+
+    churn_table(start, end,
+                f"Top churn files — adds+deletes (overall, per {bucket_label})",
+                bucket_fn=bucket_fn, limit=args.limit)
+
+    bugs = bugfix_commits(start, end)
+    files_table(bugs, "Top changed files in bugfix commits "
+                      "(--grep='fix|bug|broken|rollback|revert')",
+                bucket_fn=bucket_fn, limit=args.limit)
+
+
+def parse_date(s):
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(s, "%Y-%m").date().replace(day=1)
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(s, "%Y").date().replace(month=1, day=1)
+    except ValueError:
+        raise SystemExit(f"cannot parse date: {s}")
+
+
+def top_authors(commits, bucket_fn, bucket_label, limit=10):
+    overall = Counter(a for _, a, _ in commits)
+    by_bucket = defaultdict(Counter)
+    for d, a, _ in commits:
+        by_bucket[bucket_fn(d)][a] += 1
+    graph_section("Top authors (overall)", f"Top authors per {bucket_label}",
+                  overall, by_bucket, "author", limit=limit,
+                  label_fn=lambda a: a.split()[0])
+
+
+def dir_key(path, depth):
+    parts = path.split("/")
+    if len(parts) <= depth:
+        return "/"
+    return "/".join(parts[:depth]) + "/"
+
+
+def top_dirs(commits, depth, bucket_fn, bucket_label, limit=10):
+    overall = Counter()
+    by_bucket = defaultdict(Counter)
+    for d, _, files in commits:
+        bk = bucket_fn(d)
+        for f in files:
+            k = dir_key(f, depth)
+            overall[k] += 1
+            by_bucket[bk][k] += 1
+    graph_section(f"Top dirs (overall, depth={depth})",
+                  f"Top dirs per {bucket_label} (depth={depth})",
+                  overall, by_bucket, "dir", limit=limit)
+
+
+def term_width():
+    return shutil.get_terminal_size((100, 20)).columns
+
+
+def print_table(rows, rjust_cols=None, sep="  "):
+    if not rows:
+        return
+    rjust_cols = rjust_cols or set()
+    widths = [0] * max(len(r) for r in rows)
+    for r in rows:
+        for i, c in enumerate(r):
+            widths[i] = max(widths[i], len(str(c)))
+    for r in rows:
+        out = []
+        for i, c in enumerate(r):
+            s = str(c)
+            pad = widths[i] - len(s)
+            if i in rjust_cols:
+                out.append(" " * pad + s)
+            else:
+                out.append(s + " " * pad)
+        print(sep.join(out).rstrip())
+
+
+def section(title):
+    print()
+    print(f"{BOLD}== {title} =={RESET}")
+    print()
+
+
+def collect_commits(start, end):
+    """Return list of (date, author, [files])."""
+    fmt = "%x1fC%x1f%H%x1f%ci%x1f%an"
+    out = run([
+        "log",
+        f"--since={start.isoformat()}",
+        f"--until={end.isoformat()}",
+        "--no-merges",
+        "--name-only",
+        f"--pretty=format:{fmt}",
+    ])
+    commits = []
+    cur = None
+    for line in out.split("\n"):
+        if line.startswith("\x1fC\x1f"):
+            if cur:
+                commits.append(cur)
+            parts = line.split("\x1f")
+            # parts: ['', 'C', sha, iso, author]
+            iso = parts[3]
+            author = parts[4]
+            d = datetime.strptime(iso[:10], "%Y-%m-%d").date()
+            cur = (d, author, [])
+        elif line.strip():
+            if cur:
+                cur[2].append(line)
+    if cur:
+        commits.append(cur)
+    return commits
+
+
+def graph_section(title_overall, title_graph, overall, by_bucket,
+                  entity_label, limit=10, label_fn=None):
+    """Render an overall ranking table + a per-month stacked bar graph."""
+    label_fn = label_fn or (lambda s: s)
+
+    section(title_overall)
+    total_all = sum(overall.values())
+    rows = [["#", entity_label, "count", "share"]]
+    for i, (k, n) in enumerate(overall.most_common(limit), 1):
+        rows.append([i, k, n, f"{100*n/total_all:.1f}%" if total_all else "0%"])
+    print_table(rows, rjust_cols={0, 2, 3})
+
+    section(title_graph)
+    if not by_bucket:
+        print("  (no data)")
+        return
+
+    top_keys = [k for k, _ in overall.most_common(len(BG_COLORS))]
+    color_of = {k: BG_COLORS[i] for i, k in enumerate(top_keys)}
+
+    buckets = sorted(by_bucket.keys())
+    max_total = max(sum(by_bucket[m].values()) for m in buckets)
+    label_w = max(len(b) for b in buckets) + 1
+    count_w = 6
+    bar_w = max(20, term_width() - label_w - count_w - 2)
+
+    for m in buckets:
+        cc = by_bucket[m]
+        total = sum(cc.values())
+        width = round(bar_w * total / max_total) if max_total else 0
+        ordered = cc.most_common()
+        acc = 0
+        segments = ""
+        drawn = 0
+        for k, n in ordered:
+            frac = n / total if total else 0
+            size = round((acc + frac) * width) - round(acc * width)
+            acc += frac
+            if size <= 0:
+                continue
+            col = color_of.get(k, BG_COLORS[-1])
+            label = label_fn(k)[:max(0, size - 1)]
+            text = label.ljust(size)[:size]
+            segments += f"{col}{text}{RESET}"
+            drawn += size
+        if drawn < width:
+            segments += f"{BG_EMPTY}{' ' * (width - drawn)}{RESET}"
+        print(f"{m:<{label_w}}{segments} {total:>{count_w-1}}")
+
+    print()
+    legend_parts = [f"{color_of[k]} {k} {RESET}" for k in top_keys]
+    print("  " + "  ".join(legend_parts))
+
+
+def files_table(commits, title, bucket_fn, file_filter=None, limit=15):
+    overall = Counter()
+    per_bucket = defaultdict(Counter)
+    for d, _, files in commits:
+        bk = bucket_fn(d)
+        for f in files:
+            if file_filter and not file_filter(f):
+                continue
+            overall[f] += 1
+            per_bucket[bk][f] += 1
+    render_files_table(title, overall, per_bucket, limit)
+
+
+def render_files_table(title, overall, per_bucket, limit):
+    section(title)
+    if not overall:
+        print("  (no files)")
+        return
+
+    buckets = sorted(per_bucket.keys())
+    columns = [("overall", overall)] + [(b, per_bucket[b]) for b in buckets]
+
+    sep = "  "
+
+    def fmt_entry(f, n):
+        return f"{n} {f}"
+
+    # Build each column as [header, entry, entry, ...] and compute natural width.
+    built = []
+    for name, counter in columns:
+        top = counter.most_common(limit)
+        cells = [name] + [fmt_entry(f, n) for f, n in top]
+        cells += [""] * (limit + 1 - len(cells))
+        width = max(len(c) for c in cells)
+        built.append((cells, width))
+
+    # Greedily pack columns into groups that fit the terminal width.
+    width_budget = term_width()
+    groups = []
+    cur, cur_w = [], 0
+    for cells, w in built:
+        add = w + (len(sep) if cur else 0)
+        if cur and cur_w + add > width_budget:
+            groups.append(cur)
+            cur, cur_w = [], 0
+            add = w
+        cur.append((cells, w))
+        cur_w += add
+    if cur:
+        groups.append(cur)
+
+    for gi, group in enumerate(groups):
+        if gi > 0:
+            print()
+        n_rows = max(
+            (i + 1 for cells, _ in group for i, c in enumerate(cells) if c),
+            default=0,
+        )
+        for i in range(n_rows):
+            line_parts = [cells[i].ljust(w) for cells, w in group]
+            print(sep.join(line_parts).rstrip())
+
+
+def churn_table(start, end, title, bucket_fn, limit=15):
+    """Rank files by churn (adds + dels) via `git log --numstat`."""
+    fmt = "%x1fC%x1f%ci"
+    out = run([
+        "log",
+        f"--since={start.isoformat()}",
+        f"--until={end.isoformat()}",
+        "--no-merges",
+        "--numstat",
+        f"--pretty=format:{fmt}",
+    ])
+    overall = Counter()
+    per_bucket = defaultdict(Counter)
+    cur_bk = None
+    for line in out.split("\n"):
+        if line.startswith("\x1fC\x1f"):
+            iso = line.split("\x1f")[2]
+            cur_bk = bucket_fn(datetime.strptime(iso[:10], "%Y-%m-%d").date())
+            continue
+        if not line.strip() or cur_bk is None:
+            continue
+        parts = line.split("\t")
+        if len(parts) != 3:
+            continue
+        adds, dels, path = parts
+        if adds == "-" or dels == "-":  # binary file
+            continue
+        churn = int(adds) + int(dels)
+        if churn == 0:
+            continue
+        overall[path] += churn
+        per_bucket[cur_bk][path] += churn
+    render_files_table(title, overall, per_bucket, limit)
+
+
+def bugfix_commits(start, end):
+    """Same as collect_commits but limited to bugfix-looking messages."""
+    fmt = "%x1fC%x1f%H%x1f%ci%x1f%an"
+    out = run([
+        "log",
+        f"--since={start.isoformat()}",
+        f"--until={end.isoformat()}",
+        "--no-merges",
+        "--name-only",
+        "-E",
+        "--grep=fix|bug|broken|rollback|revert",
+        "-i",
+        f"--pretty=format:{fmt}",
+    ])
+    commits = []
+    cur = None
+    for line in out.split("\n"):
+        if line.startswith("\x1fC\x1f"):
+            if cur:
+                commits.append(cur)
+            parts = line.split("\x1f")
+            iso = parts[3]
+            author = parts[4]
+            d = datetime.strptime(iso[:10], "%Y-%m-%d").date()
+            cur = (d, author, [])
+        elif line.strip():
+            if cur:
+                cur[2].append(line)
+    if cur:
+        commits.append(cur)
+    return commits
+
+
+def run(args):
+    return subprocess.check_output(["git"] + args, text=True, errors="replace")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except subprocess.CalledProcessError as e:
+        print(f"git error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        sys.exit(130)
