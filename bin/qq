@@ -45,11 +45,7 @@ def main():
     sp = sub_ps.add_parser('parse', help="adds or updates a markdown file with Q&A to the db, --help for more info",
                            formatter_class=argparse.RawDescriptionHelpFormatter,
                            description=textwrap.dedent("""
-                           There are three supported formats, the first matching one will be used.
-
-                           1. Explicit, questions are prefixed by 'Q:' and answers are indented on following lines
-                           2. Quick single line, question followed by '::' and then answer on the rest of the line
-                           3. Markdown headings, all the lowest level headings become questions
+                           Questions are prefixed by 'Q:' (case-insensitive) and answers are indented on following lines.
                            """), )
     sp.set_defaults(handler=parse)
     sp.add_argument('file', help='the file to parse, will create a question bank with the same name')
@@ -86,15 +82,9 @@ def parse(file, dry_run=False, **kwargs):
         lines = [line.rstrip() for line in fp]
 
     questions = _parse_explicit(lines)
-    # TODO should I just drop support for this ??
     if not questions:
-        questions = _parse_single_line(lines)
-    if not questions:
-        questions = _parse_markdown_headings(lines)
-
+        raise Exception(f"No questions found in {file}")
     print("Found", len(questions), "questions in the doc")
-    if len(questions) == 0:
-        sys.exit(1)
 
     if dry_run:
         _show(questions)
@@ -139,71 +129,6 @@ def _parse_explicit(lines):
     return questions
 
 
-def _parse_single_line(lines):
-    questions = []
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        i += 1
-        if "::" in line:
-            s = line.strip().split("::")
-            q = s[0].strip()
-            a = s[1].strip()
-
-            if not q or not a:
-                raise Exception(f"Failed to match answers for question on line {i}: {q} :: {a}")
-
-            questions.append({
-                'id': len(questions)+1,
-                'line': i,
-                'q': s[0].strip(),
-                'a': [s[1].strip()]
-            })
-    return questions
-
-
-def _parse_markdown_headings(lines):
-    max_heading = 1
-    for line in lines:
-        while line.startswith((max_heading + 1) * "#"):
-            max_heading += 1
-
-    questions = []
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        if line.lstrip().lower().startswith(max_heading * "#"):
-            q = {
-                'id': len(questions)+1,
-                'line': i,
-                'q': line.strip("# ")
-            }
-            a_lines = []
-
-            i += 1
-            while i < len(lines) and not lines[i].startswith("#"):
-                a_lines.append(lines[i])
-                i += 1
-
-            # Strip heading and trailing empty lines to avoid ugliness
-            start_i = len(a_lines)
-            end_i = 0
-            for j, ans in enumerate(a_lines):
-                if ans.strip() != "":
-                    start_i = min(start_i, j)
-                    end_i = j
-            a_lines = a_lines[start_i:end_i+1]
-
-            if not a_lines:
-                raise Exception(f"Failed to match answers for question on line {q['line']}: {q['q']}")
-
-            q['a'] = a_lines
-            questions.append(q)
-        else:
-            i += 1
-    return questions
-
-
 def _save(name, questions, previous_data=None):
     key = name + "-q"
 
@@ -216,8 +141,13 @@ def _save(name, questions, previous_data=None):
 
 
 def add_cmd(name, **kwargs):
+    banks = _list()
     if not name:
-        name = fzf_match(_list(), or_exit=True)
+        name = fzf_match(banks, or_exit=True)
+    elif name not in banks:
+        # Allow creating a new bank if nothing matches at all, otherwise resolve fuzzy
+        if any(name in b or b.startswith(name) for b in banks):
+            name = _resolve_name(name, banks)
 
     data = store.get(name + "-q", null_ok=True)
     if not data:
@@ -253,6 +183,7 @@ def add_cmd(name, **kwargs):
 
 
 def remove_cmd(name, question_id, **kwargs):
+    name = _resolve_name(name)
     data = store.get(name + "-q")
     questions = list(filter(lambda q: q['id'] != question_id, data['q']))
     if len(questions) == data['q']:
@@ -262,10 +193,13 @@ def remove_cmd(name, question_id, **kwargs):
 
 
 def drop_cmd(name, **kwargs):
-    key = name + "-q"
-    data = store.get(key)
-    if not data:
-        raise Exception("Question bank does not exist")
+    banks = _list()
+    if name not in banks:
+        if banks:
+            print(f"No question bank named '{name}' (exact match required), available: {', '.join(banks)}")
+        else:
+            print("No question banks exist")
+        sys.exit(1)
     store.delete(name + "-q")
     store.delete(name + "-a")
     print("Question bank dropped")
@@ -275,8 +209,8 @@ def toggle_cmd(name, **kwargs):
     banks = _list()
     if not name:
         name = fzf_match(banks, or_exit=True)
-    if name not in banks:
-        raise Exception("No such question bank")
+    else:
+        name = _resolve_name(name, banks)
 
     active = store.get(ACTIVE_KEY, null_ok=True) or {}
     print(active)
@@ -289,6 +223,8 @@ def toggle_cmd(name, **kwargs):
 def show(name, **kwargs):
     if not name:
         name = fzf_match(_list(), or_exit=True)
+    else:
+        name = _resolve_name(name)
 
     q_key = name + "-q"
     questions = store.get(q_key)['q']
@@ -313,6 +249,8 @@ def _indent_of(line):
 def answer(name, **kwargs):
     if not name:
         name = fzf_match(_list(), or_exit=True)
+    else:
+        name = _resolve_name(name)
 
     q_key = name + "-q"
     questions = store.get(q_key)['q']
@@ -397,6 +335,27 @@ def _list():
     return sorted([k[:-2] for k in keys if k.endswith("-q")])
 
 
+def _resolve_name(name, banks=None):
+    if banks is None:
+        banks = _list()
+    if name in banks:
+        return name
+    for label, matches in (
+        ("prefix", [b for b in banks if b.startswith(name)]),
+        ("substring", [b for b in banks if name in b]),
+    ):
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            print(f"Ambiguous name '{name}', {label} candidates: {', '.join(matches)}")
+            sys.exit(1)
+    if banks:
+        print(f"No question bank matches '{name}', available: {', '.join(banks)}")
+    else:
+        print(f"No question banks exist")
+    sys.exit(1)
+
+
 def _get_answers(key):
     a_key = f"{key}-a"
     lookup = store.get(a_key, null_ok=True) or {}
@@ -436,6 +395,8 @@ def _next_time(answers) -> datetime:
 def stats(name, **kwargs):
     if not name:
         name = fzf_match(_list(), or_exit=True)
+    else:
+        name = _resolve_name(name)
 
     q_key = name + "-q"
     questions = store.get(q_key)['q']
