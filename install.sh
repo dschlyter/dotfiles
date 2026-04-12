@@ -5,6 +5,8 @@
 
 set -euo pipefail
 
+ARGS="$* --"
+
 pushd `dirname $0` > /dev/null
 DOTFILES=`pwd`
 popd > /dev/null
@@ -120,6 +122,18 @@ inject() {
     mv "$tmp_file" "$file"
 }
 
+has_flag() {
+    local skip_msg="$1"
+    shift
+    for flag in "$@"; do
+        if [[ "$ARGS" == *"$flag"* ]]; then
+            return 0
+        fi
+    done
+    echo "Not $skip_msg, run with $* to enable"
+    return 1
+}
+
 link . .dotfiles
 link bin
 
@@ -154,6 +168,15 @@ inject 'source "$HOME/.shellrc_base"' "$HOME/.shellrc" first
 inject 'source "$HOME/.bashrc_base"' "$HOME/.bashrc" first
 inject '[include]
     path = .gitconfig_base' "$HOME/.gitconfig" first
+
+if [ -d "$HOME/.claude" ]; then
+    link AGENTS.base.md "$HOME"/.claude/AGENTS.base.md
+    inject '@AGENTS.base.md' ""$HOME"/.claude/CLAUDE.md" first
+    if has_flag "installing personal Claude preferences" --claude --all; then
+        link AGENTS.personal.md "$HOME"/.claude/AGENTS.personal.md
+        inject '@AGENTS.personal.md' ""$HOME"/.claude/CLAUDE.md" first
+    fi
+fi
 
 if [ -d "$HOME/.claude/skills" ]; then
     for skill in "$DOTFILES"/skills/*; do
@@ -240,16 +263,14 @@ fi
 
 echo
 
-if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--zgen"* ]]; then
+if has_flag "installing/updating zgen (zsh plugins)" --zgen --all; then
     echo "Initializing zgen"
     zg_dir="${HOME}/.zgen"
     test -d "$zg_dir" && rm -rf "$zg_dir"
     git clone https://github.com/tarjoilija/zgen.git "$zg_dir"
-else
-    echo "Not installing/updating zgen (zsh plugins), run with --zgen or --all to enable"
 fi
 
-if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--fzf"* ]]; then
+if has_flag "installing/updating fzf" --fzf --all; then
     if [ ! -d ~/.fzf ]; then
         git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
     else
@@ -258,22 +279,18 @@ if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--fzf"* ]]; then
         cd "$DOTFILES"
     fi
     ~/.fzf/install --key-bindings --completion --no-update-rc
-else
-    echo "Not installing/updating fzf, run with --fzf or --all to enable"
 fi
 
-if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--vundle"* ]]; then
+if has_flag "installing vim vundle plugins" --vundle --all; then
     if ! [ -d ~/.vim/bundle/vundle ]; then
         echo "Installing vim vundle plugins"
         git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
     fi
     vim +PluginInstall +qall
     echo "Vundle plugins installed!"
-else
-    echo "Not installing vim vundle plugins, run with --vundle or --all to enable"
 fi
 
-if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--tpm"* ]]; then
+if has_flag "installing tmux tpm plugins" --tpm --all; then
     which cmake || (echo "Cmake required for tpm cpu plugin"; exit 1)
 
     if ! [ -d ~/.tmux/plugins/tpm ]; then
@@ -281,28 +298,22 @@ if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--tpm"* ]]; then
         git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
     fi
     echo "Tpm plugins installed!"
-else
-    echo "Not installing tmux tpm plugins, run with --tpm or --all to enable"
 fi
 
 cron_add() {
     (crontab -l || true ; echo "$@") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
 }
 
-if [[ "$*" == *"--all"* ]] || [[ "$*" == *"--cron"* ]]; then
+if has_flag "installing autoupdate/transient cron" --cron --all; then
     echo "Adding autoupdate to cron"
     cron_add "0 10 * * * $HOME/bin/git-autoupdate >> /tmp/git-autoupdate-$USER.log 2>&1"
     echo "Setting up transient auto delete area"
     cron_add "0 14 * * * find $HOME/transient -mtime +14 -delete; mkdir -p $HOME/transient"
-else
-    echo "Not installing autoupdate/transient cron, run with --cron or --all to enable"
 fi
 
-if [[ "$*" == *"--git"* ]]; then
+if has_flag "configuring default git author info" --git; then
     git config --global user.name "David Schlyter"
     git config --global user.email "dschlyter@gmail.com"
-else
-    echo "Not configuring default git author info, run with --git to enable"
 fi
 
 # maintain the correct user for dotfiles regardless of global config
