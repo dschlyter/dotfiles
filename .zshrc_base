@@ -105,6 +105,7 @@ alias -g WIND='$(tmux display-message -p "#{?window_name,#{window_name},#{window
 if command -v abbr >/dev/null 2>&1; then
     # -S don't store in ~/.config/zsh-abbr/user-abbreviations, -q for quiet, -g for global
     abbr add -S -q -g 'HOME=~/'
+    abbr add -S -q -g 'CODE=~/code'
     abbr add -S -q -g 'PWD=$PWD/'
     abbr add -S -q -g 'OLD=$OLDPWD/'
 fi
@@ -188,6 +189,36 @@ function shell-watch {
         clear
         echo "$output"
         sleep 2
+    done
+}
+
+function queue-push {
+    local qf="${QUEUE_FILE:-queue.txt}"
+    printf '%q ' "$@" >> "$qf"
+    echo >> "$qf"
+    echo "Queued (#$(wc -l < "$qf")): $*"
+}
+
+function queue-loop {
+    local qf="${QUEUE_FILE:-queue.txt}" cmd lock
+    lock="$qf.lock"
+    while true; do
+        if mkdir "$lock" 2>/dev/null; then
+            cmd=$(head -1 "$qf" 2>/dev/null)
+            if [[ -n "$cmd" ]]; then
+                sed -i '1d' "$qf"
+                [[ ! -s "$qf" ]] && rm -f "$qf"
+            fi
+            rmdir "$lock"
+            if [[ -n "$cmd" ]]; then
+                echo "=> $cmd"
+                eval "$cmd"
+            else
+                sleep 15
+            fi
+        else
+            sleep 1
+        fi
     done
 }
 
