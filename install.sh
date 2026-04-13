@@ -20,17 +20,17 @@ link() {
     TARGET="$DOTFILES/$FILE"
 
     if [ -L "$SOURCE" ]; then
-        echo "file $FILE already linked"
+        echo "✅ $FILE already linked"
         OLD_TARGET="$(readlink -- "$SOURCE")"
         if [[ "$OLD_TARGET" != "$TARGET" ]]; then
-            echo "!!! updating link $TARGET ($OLD_TARGET => $TARGET)"
+            echo "✨ updating link $TARGET ($OLD_TARGET => $TARGET)"
             rm "$SOURCE"
             ln -s "$TARGET" "$SOURCE"
         fi
     elif [ -e "$SOURCE" ]; then
-        echo "!!! ERROR file $FILE exists but is not a link"
+        echo "❌ file $FILE exists but is not a link"
     else
-        echo "linking $TARGET"
+        echo "✨ linking $TARGET"
         ln -s "$TARGET" "$SOURCE"
     fi
 }
@@ -42,7 +42,7 @@ bak_nonlink() {
     fi
 
     if [[ -e "$SOURCE" && ! -L "$SOURCE" ]]; then
-        echo "backing up non-linked $SOURCE"
+        echo "✨ backing up non-linked $SOURCE"
         mv "$SOURCE" "${SOURCE}.dotfiles-bak"
     fi
 }
@@ -60,7 +60,7 @@ link_settings() {
         bak_nonlink "$target"
         link "$dotfiles_file" "$target"
     else
-        echo "$settings_root dir not found, skipping $target."
+        echo "🔹 $settings_root dir not found, skipping $target"
     fi
 }
 
@@ -79,18 +79,18 @@ sync_settings() {
         local mtime2=$([[ -f "$target" ]] && (stat -c %Y "$target" 2>/dev/null || stat -f %m "$target" 2>/dev/null) || echo 0)
 
         if [[ "$mtime1" -eq 0 && "$mtime2" -eq 0 ]]; then
-            echo "Neither $dotfiles_file nor $target exists - no sync"
+            echo "🔹 neither $dotfiles_file nor $target exists - no sync"
         elif [[ "$mtime1" -gt "$mtime2" ]]; then
-            echo "$dotfiles_file -> $target ($(($mtime1 - $mtime2)) newer)"
+            echo "✨ $dotfiles_file -> $target ($(($mtime1 - $mtime2)) newer)"
             cp -p "$dotfiles_file" "$target"
         elif [[ "$mtime2" -gt "$mtime1" ]]; then
-            echo "$target -> $dotfiles_file ($(($mtime2 - $mtime1)) newer)"
+            echo "✨ $target -> $dotfiles_file ($(($mtime2 - $mtime1)) newer)"
             cp -p "$target" "$dotfiles_file"
         else
-            echo "Same age: $dotfiles_file = $target"
+            echo "✅ $dotfiles_file = $target (same age)"
         fi
     else
-        echo "$settings_root dir not found, skipping $target."
+        echo "🔹 $settings_root dir not found, skipping $target"
     fi
 }
 
@@ -102,7 +102,7 @@ inject() {
     test -f "$file" || touch "$file"
 
     if grep -q -F "$inject" "$file"; then
-        echo "file $file already contains '$inject'"
+        echo "✅ $file already contains '$inject'"
         return
     fi
 
@@ -118,7 +118,7 @@ inject() {
         echo "Unsupported position $pos for $file inject"
         exit 1
     fi
-    echo "injected $inject into $file"
+    echo "✨ injected $inject into $file"
     mv "$tmp_file" "$file"
 }
 
@@ -130,7 +130,7 @@ has_flag() {
             return 0
         fi
     done
-    echo "Not $skip_msg, run with $* to enable"
+    echo "🔹 not $skip_msg, to enable run with one of: $*"
     return 1
 }
 
@@ -176,6 +176,8 @@ if [ -d "$HOME/.claude" ]; then
         link AGENTS.personal.md "$HOME"/.claude/AGENTS.personal.md
         inject '@AGENTS.personal.md' ""$HOME"/.claude/CLAUDE.md" first
     fi
+else
+    echo "🔹 skipping claude conf - no .claude dir"
 fi
 
 if [ -d "$HOME/.claude/skills" ]; then
@@ -183,6 +185,8 @@ if [ -d "$HOME/.claude/skills" ]; then
         skill_name="$(basename "$skill")"
         link "skills/$skill_name" "$HOME/.claude/skills/$skill_name"
     done
+else
+    echo "🔹 skipping claude conf skills - no .claude/skills dir"
 fi
 
 case "$(uname -s)" in
@@ -232,7 +236,7 @@ case "$(uname -s)" in
                 bak_nonlink $xfce_conf
                 link $xfce_conf
             else
-                echo "Xfce conf already linked"
+                echo "✅ Xfce conf already linked"
             fi
         fi
 
@@ -242,12 +246,12 @@ case "$(uname -s)" in
         ;;
 
     *)
-        echo "!!! WARNING Unable to detect OS"
+        echo "⚠️  unable to detect OS"
         ;;
 esac
 
 if [[ "$SHELL" == "/bin/zsh" ]]; then
-    echo "zsh is the current active shell"
+    echo "✅ zsh is the current active shell"
 elif [[ -f /bin/zsh ]]; then
     if [[ "$*" != *"--no-zsh"* ]]; then
         read -p "Switch shell to zsh (skip check with --no-zsh)? [y/n]: " yn
@@ -255,16 +259,16 @@ elif [[ -f /bin/zsh ]]; then
             chsh -s /bin/zsh
         fi
     else
-        echo "Skipping zsh shell change"
+        echo "🔹 skipping zsh shell change"
     fi
 else
-    echo "zsh not found, please install and chsh manually"
+    echo "🔹 zsh not found, please install and chsh manually"
 fi
 
 echo
 
 if has_flag "installing/updating zgen (zsh plugins)" --zgen --all; then
-    echo "Initializing zgen"
+    echo "✨ initializing zgen"
     zg_dir="${HOME}/.zgen"
     test -d "$zg_dir" && rm -rf "$zg_dir"
     git clone https://github.com/tarjoilija/zgen.git "$zg_dir"
@@ -283,21 +287,21 @@ fi
 
 if has_flag "installing vim vundle plugins" --vundle --all; then
     if ! [ -d ~/.vim/bundle/vundle ]; then
-        echo "Installing vim vundle plugins"
+        echo "✨ installing vim vundle plugins"
         git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
     fi
     vim +PluginInstall +qall
-    echo "Vundle plugins installed!"
+    echo "✨ vundle plugins installed"
 fi
 
 if has_flag "installing tmux tpm plugins" --tpm --all; then
     which cmake || (echo "Cmake required for tpm cpu plugin"; exit 1)
 
     if ! [ -d ~/.tmux/plugins/tpm ]; then
-        echo "Installing tmux tpm plugins"
+        echo "✨ installing tmux tpm plugins"
         git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
     fi
-    echo "Tpm plugins installed!"
+    echo "✨ tpm plugins installed"
 fi
 
 cron_add() {
@@ -305,15 +309,16 @@ cron_add() {
 }
 
 if has_flag "installing autoupdate/transient cron" --cron --all; then
-    echo "Adding autoupdate to cron"
+    echo "✨ adding autoupdate to cron"
     cron_add "0 10 * * * $HOME/bin/git-autoupdate >> /tmp/git-autoupdate-$USER.log 2>&1"
-    echo "Setting up transient auto delete area"
+    echo "✨ setting up transient auto delete area"
     cron_add "0 14 * * * find $HOME/transient -mtime +14 -delete; mkdir -p $HOME/transient"
 fi
 
 if has_flag "configuring default git author info" --git; then
     git config --global user.name "David Schlyter"
     git config --global user.email "dschlyter@gmail.com"
+    echo "✨ updated git settings"
 fi
 
 # maintain the correct user for dotfiles regardless of global config
@@ -321,7 +326,7 @@ git config user.name "David Schlyter"
 git config user.email "dschlyter@gmail.com"
 
 if git remote get-url origin | grep -q "git@" || git remote get-url origin --push | grep -q http; then
-    echo "Changing push url to use ssh, pull to use http"
+    echo "✨ changing push url to use ssh, pull to use http"
     # set pull to http
     git remote set-url origin "$(git github-url)"
     # set push to ssh
