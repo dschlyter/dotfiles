@@ -6,6 +6,7 @@ import sys
 import os
 import unittest
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -27,6 +28,12 @@ def main():
     sp.add_argument('-s', action='store_true', help='only show sessions in current tmux session')
     sp.add_argument('-v', action='store_true', help='verbose: show session UUID and total age')
     sp.set_defaults(handler=list_sessions)
+
+    sp = sub_ps.add_parser('watch', aliases=['w'], help='watch sessions (re-renders on change)')
+    sp.add_argument('-d', action='store_true', help='only show sessions in current directory')
+    sp.add_argument('-s', action='store_true', help='only show sessions in current tmux session')
+    sp.add_argument('-v', action='store_true', help='verbose: show session UUID and total age')
+    sp.set_defaults(handler=watch_sessions)
 
     sp = sub_ps.add_parser('next', aliases=['n'], help='switch to next waiting/done session')
     sp.set_defaults(handler=next_session)
@@ -137,6 +144,44 @@ def list_sessions(d=False, s=False, v=False, **kwargs):
             row.append(sid)
         rows.append(row)
     print_table(rows, sep="  ")
+
+
+def watch_sessions(d=False, s=False, v=False, **kwargs):
+    """Watch sessions, re-rendering when the state file changes."""
+    import io
+    last_mtime = None
+    last_render = 0
+    print("\033[?1049h", end="", flush=True)  # alternate screen buffer
+    try:
+        while True:
+            try:
+                mtime = os.stat(SESSIONS_FILE).st_mtime
+            except FileNotFoundError:
+                mtime = None
+
+            now = time.monotonic()
+            if mtime != last_mtime or now - last_render >= 60:
+                last_mtime = mtime
+                last_render = now
+                # Capture list output
+                buf = io.StringIO()
+                old_stdout = sys.stdout
+                sys.stdout = buf
+                try:
+                    list_sessions(d=d, s=s, v=v)
+                finally:
+                    sys.stdout = old_stdout
+                output = buf.getvalue()
+                # Clear screen and redraw
+                print("\033[2J\033[H", end="")
+                print(f"cma watch  {datetime.now().strftime('%H:%M:%S')}")
+                print(output, end="", flush=True)
+
+            time.sleep(1)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print("\033[?1049l", end="", flush=True)  # restore main screen
 
 
 def _tmux_pane_info():
