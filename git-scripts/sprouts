@@ -51,7 +51,7 @@ while IFS= read -r branch; do
 done < <(git branch --format='%(refname:short)')
 
 # Collect patch-ids of all commits on all sprouts (for unsprouted detection)
-declare -A SPROUTED_PATCHES  # patch-id -> sprout branch name
+SPROUTED_PATCHES=""
 
 # Feature branch commits (above master)
 FEATURE_BASE=$(git merge-base "$BASE_BRANCH" "$CURRENT_BRANCH" 2>/dev/null || true)
@@ -63,7 +63,7 @@ fi
 FEATURE_COMMITS=()
 while IFS= read -r sha; do
     FEATURE_COMMITS+=("$sha")
-done < <(git rev-list "$FEATURE_BASE".."$CURRENT_BRANCH")
+done < <(git rev-list "$BASE_BRANCH".."$CURRENT_BRANCH")
 
 FEATURE_COUNT=${#FEATURE_COMMITS[@]}
 
@@ -112,7 +112,7 @@ for sprout in "${SPROUTS[@]}"; do
     while IFS= read -r sha; do
         pid=$(git show "$sha" 2>/dev/null | git patch-id --stable 2>/dev/null | awk '{print $1}' || true)
         if [[ -n "$pid" ]]; then
-            SPROUTED_PATCHES["$pid"]="$sprout"
+            SPROUTED_PATCHES="${SPROUTED_PATCHES}${pid}"$'\n'
         fi
     done < <(git rev-list "$sprout_base".."$sprout")
 
@@ -136,7 +136,7 @@ for sha in "${FEATURE_COMMITS[@]}"; do
         # Empty commits (merge commits, etc) — skip
         continue
     fi
-    if [[ -z "${SPROUTED_PATCHES[$pid]:-}" ]]; then
+    if ! echo "$SPROUTED_PATCHES" | grep -qxF "$pid"; then
         unsprouted+=("$sha")
     fi
 done

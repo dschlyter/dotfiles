@@ -48,16 +48,19 @@ resorb_branch() {
         return 1
     fi
 
-    # Find the merge base between current branch and the other branch
+    # Use master as the base to limit which commits are considered.
+    # This matches git-sprouts logic and avoids picking up master commits
+    # when the sprout branch has been rebased.
+    local base_branch="master"
     local base
-    base=$(git merge-base "$CURRENT_BRANCH" "$other" 2>/dev/null || true)
+    base=$(git merge-base "$base_branch" "$other" 2>/dev/null || true)
     if [[ -z "$base" ]]; then
-        echo "Error: '$other' shares no history with '$CURRENT_BRANCH'."
+        echo "Error: '$other' shares no history with '$base_branch'."
         return 1
     fi
 
     # Use git cherry to find commits on other branch not yet applied here.
-    # git cherry <upstream> <head> outputs "+ sha" for unapplied, "- sha" for applied.
+    # git cherry <upstream> <head> <limit> outputs "+ sha" for unapplied, "- sha" for applied.
     local unapplied=()
     while IFS= read -r line; do
         local sign=${line:0:1}
