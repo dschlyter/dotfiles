@@ -1,38 +1,32 @@
 #!/bin/bash
 
-# git fledge [branch-name]
+# git fledge
 # Fledge a sprouted branch that has matured into being squash-merged to master.
-# Removes the sprouted commits from the current branch via a 2-step rebase
-# in a temporary worktree (current worktree is never touched).
+# Auto-detects a suffix branch whose upstream is gone (merged), then
+# calls git pluck to remove its commits from the current branch.
 #
-# Algorithm:
-#   1. git rebase other-branch    (reorders; cherry-picked commits get skipped)
-#   2. git rebase --onto master other-branch  (cuts away the sprouted range)
-#
-# With no argument: auto-detects a suffix branch whose upstream is gone (merged).
+# See also: git sprout, git pluck
 
 set -euo pipefail
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     cat <<'EOF'
-Usage: git fledge [branch-name]
+Usage: git fledge
 
-Reabsorb a sprouted branch after it has been squash-merged to master.
-Removes the sprouted commits from the current branch cleanly.
-
-  branch-name    The sprouted branch to fledge
-  (no args)      Auto-detect: find a suffix branch with upstream gone
-
-The operation runs in a temporary worktree — your working directory
-and current branch are only updated on success.
+Auto-detect a sprouted branch (suffix branch with upstream gone) and remove
+its commits from the current branch via git pluck.
 
 Examples:
-  git fledge feat-auth          # fledge the feat-auth branch
-  git fledge                    # auto-detect sprouted branch
+  git fledge    # auto-detect and fledge sprouted branch
 
 See also: git sprout, git pluck
 EOF
     exit 0
+fi
+
+if [[ $# -gt 0 ]]; then
+    echo "Error: git fledge takes no arguments. Use 'git pluck <branch>' instead."
+    exit 1
 fi
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -42,108 +36,26 @@ if [[ "$CURRENT_BRANCH" == "HEAD" ]]; then
     exit 1
 fi
 
-# Resolve the branch to resorb
-if [[ $# -ge 1 ]]; then
-    OTHER_BRANCH="$1"
-    if ! git rev-parse --verify "$OTHER_BRANCH" >/dev/null 2>&1; then
-        echo "Error: branch '$OTHER_BRANCH' does not exist."
-        exit 1
+# Auto-detect: find branches that are suffixes of current branch with upstream gone
+echo "Looking for sprouted branches of '$CURRENT_BRANCH' with upstream gone..."
+OTHER_BRANCH=""
+while IFS= read -r branch; do
+    if [[ "$branch" == "${CURRENT_BRANCH}-"* ]]; then
+        OTHER_BRANCH="$branch"
+        echo "Found: $branch"
+        break
     fi
-else
-    # Auto-detect: find branches that are suffixes of current branch with upstream gone
-    echo "Looking for sprouted branches of '$CURRENT_BRANCH' with upstream gone..."
-    OTHER_BRANCH=""
-    while IFS= read -r line; do
-        branch=$(echo "$line" | awk '{print $1}')
-        # Check if branch is a suffix of current branch (e.g. feat-tests is suffix of feat)
-        if [[ "$branch" == "${CURRENT_BRANCH}-"* ]]; then
-            OTHER_BRANCH="$branch"
-            echo "Found: $branch"
-            break
-        fi
-    done < <(git branch -vv | grep ': gone]' || true)
+done < <(git branch --format='%(refname:short) %(upstream:track)' | awk '$2 == "[gone]" {print $1}')
 
-    if [[ -z "$OTHER_BRANCH" ]]; then
-        echo "No sprouted branch found. Specify one explicitly: git fledge <branch>"
-        exit 1
-    fi
-fi
-
-BASE_BRANCH="master"
-
-# Verify other-branch shares history with master (they have a common ancestor)
-MERGE_BASE=$(git merge-base "$BASE_BRANCH" "$OTHER_BRANCH" 2>/dev/null || true)
-if [[ -z "$MERGE_BASE" ]]; then
-    echo "Error: '$OTHER_BRANCH' shares no history with '$BASE_BRANCH'."
+if [[ -z "$OTHER_BRANCH" ]]; then
+    echo "No sprouted branch found. Use 'git pluck <branch>' to remove commits from a specific branch."
     exit 1
 fi
 
-# Fetch latest master
-echo "Fetching latest master..."
-git fetch origin "$BASE_BRANCH" 2>/dev/null || true
-
-MASTER_REF="origin/$BASE_BRANCH"
-if ! git rev-parse --verify "$MASTER_REF" >/dev/null 2>&1; then
-    MASTER_REF="$BASE_BRANCH"
-fi
-
-# Show what we're about to do
-SPROUTED_COUNT=$(git rev-list "$MERGE_BASE".."$OTHER_BRANCH" | wc -l | tr -d ' ')
-TOTAL_COUNT=$(git rev-list "$MERGE_BASE".."$CURRENT_BRANCH" | wc -l | tr -d ' ')
-
+echo "Fledging '$OTHER_BRANCH' from '$CURRENT_BRANCH'..."
 echo ""
-echo "Fledging '$OTHER_BRANCH' ($SPROUTED_COUNT sprouted commit(s)) from '$CURRENT_BRANCH' ($TOTAL_COUNT total commit(s))"
-echo ""
-
-# Create a temporary worktree
-WORKTREE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/git-fledge.XXXXXX")
-TEMP_BRANCH="fledge-tmp-$$"
-
-cleanup() {
-    if [[ -d "$WORKTREE_DIR" ]]; then
-        git worktree remove --force "$WORKTREE_DIR" 2>/dev/null || true
-    fi
-    git branch -D "$TEMP_BRANCH" 2>/dev/null || true
-}
-trap cleanup EXIT
-
-# Create worktree with a temporary branch starting from current branch
-git worktree add "$WORKTREE_DIR" -b "$TEMP_BRANCH" "$CURRENT_BRANCH"
-
-pushd "$WORKTREE_DIR" > /dev/null
-
-# Step 1: Rebase onto other-branch (reorders commits, skips cherry-picks via patch-id)
-echo "Step 1: Rebasing onto '$OTHER_BRANCH'..."
-if ! git rebase "$OTHER_BRANCH"; then
-    echo ""
-    echo "Error: rebase onto '$OTHER_BRANCH' failed. Aborting."
-    git rebase --abort 2>/dev/null || true
-    popd > /dev/null
-    exit 1
-fi
-
-# Step 2: Rebase --onto master, cutting away the sprouted commits
-echo "Step 2: Rebasing onto '$MASTER_REF', removing sprouted commits..."
-if ! git rebase --onto "$MASTER_REF" "$OTHER_BRANCH"; then
-    echo ""
-    echo "Error: rebase onto '$MASTER_REF' failed. Aborting."
-    git rebase --abort 2>/dev/null || true
-    popd > /dev/null
-    exit 1
-fi
-
-popd > /dev/null
-
-# Success — update the original branch to point to the result
-NEW_HEAD=$(git -C "$WORKTREE_DIR" rev-parse HEAD)
-RESULT_COUNT=$(git rev-list "$MASTER_REF".."$NEW_HEAD" | wc -l | tr -d ' ')
-
-echo ""
-echo "Success! Updating '$CURRENT_BRANCH' ($RESULT_COUNT commit(s) on top of master)"
-git reset --merge "$NEW_HEAD"
+git pluck "$OTHER_BRANCH"
 
 # Clean up the sprouted branch
 echo "Deleting fledged branch '$OTHER_BRANCH'"
-git branch -D "$OTHER_BRANCH" 2>/dev/null || true
-
-echo "Done. Run 'git log --oneline' to verify."
+git branch -D "$OTHER_BRANCH" || echo "Warning: could not delete branch (remove its worktree first)"

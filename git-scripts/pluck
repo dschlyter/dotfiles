@@ -1,28 +1,31 @@
 #!/bin/bash
 
-# git pluck [commits...]
+# git pluck [commits... | branch]
 # Remove specific commits from the current branch (non-interactive rebase).
 #
-# Commit arguments:
+# Arguments:
 #   <number>       - remove the last N commits from HEAD
 #   <sha> [<sha>]  - remove specific commit(s)
+#   <branch>       - remove all commits in master..<branch> (by patch-id match)
 #   (empty)        - interactive selection via git select
 
 set -euo pipefail
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     cat <<'EOF'
-Usage: git pluck [N | commit1 commit2 ... ]
+Usage: git pluck [N | commit1 commit2 ... | branch]
 
 Remove specific commits from the current branch using a non-interactive rebase.
 
   N                      Remove the last N commits (keeps changes unstaged)
   commit1 [commit2 ...]  Remove specific commits via rebase
+  branch                 Remove commits matching master..branch (via patch-id)
   (no args)              Interactive selection via git select
 
 Examples:
   git pluck 2                   # drop last 2 commits (mixed reset)
   git pluck abc123 def456       # drop specific commits
+  git pluck feat-auth           # drop all commits from the feat-auth branch
   git pluck                     # pick interactively
 EOF
     exit 1
@@ -44,6 +47,33 @@ elif [[ $# -eq 1 ]] && [[ "$1" =~ ^[0-9]+$ ]] && [[ "$1" -gt 0 ]] && [[ "$1" -lt
     git reset HEAD~"$N"
     echo "Removed last $N commit(s) from current branch (changes kept unstaged)."
     exit 0
+elif [[ $# -eq 1 ]] && git show-ref --verify --quiet "refs/heads/$1" 2>/dev/null; then
+    # Branch mode: remove commits matching master..<branch> via patch-id
+    BRANCH="$1"
+    if [[ "$BRANCH" == "master" || "$BRANCH" == "main" ]]; then
+        echo "Error: cannot pluck master/main."
+        exit 1
+    fi
+
+    echo "Finding commits from master..$BRANCH on current branch (via patch-id)..."
+    PIDFILE=$(mktemp "${TMPDIR:-/tmp}/git-pluck-pids.XXXXXX")
+    trap "rm -f '$PIDFILE'" EXIT
+
+    git log -p --no-merges --reverse "master..$BRANCH" | git patch-id --stable | awk '{print $1}' > "$PIDFILE"
+    BRANCH_COUNT=$(wc -l < "$PIDFILE" | tr -d ' ')
+
+    REBASE_BASE=$(git merge-base master HEAD)
+    while read -r pid sha; do
+        if grep -qxF "$pid" "$PIDFILE"; then
+            COMMITS+=("$sha")
+        fi
+    done < <(git log -p --no-merges --reverse "$REBASE_BASE..HEAD" | git patch-id --stable)
+
+    if [[ ${#COMMITS[@]} -eq 0 ]]; then
+        echo "No matching commits found on current branch."
+        exit 1
+    fi
+    echo "Found ${#COMMITS[@]} matching commit(s) (of $BRANCH_COUNT on '$BRANCH')."
 else
     COMMITS=("$@")
 fi
@@ -52,13 +82,20 @@ fi
 SED_EXPR=""
 for commit in "${COMMITS[@]}"; do
     short=$(git rev-parse --short "$commit")
-    SED_EXPR+="/^pick $short/d;"
+    SED_EXPR+="/^pick $short /d;"
 done
 
 # Find how far back to rebase — need to go before the earliest commit to drop
 # Use merge-base with master as a safe rebase base
-REBASE_BASE=$(git merge-base master HEAD)
+REBASE_BASE=${REBASE_BASE:-$(git merge-base master HEAD)}
 
-echo "Removing ${#COMMITS[@]} commit(s) from current branch..."
-GIT_SEQUENCE_EDITOR="sed -i '' '${SED_EXPR}'" git rebase -i "$REBASE_BASE"
+# If removing all commits above master, just reset — rebase can't handle an empty todo
+TOTAL=$(git rev-list --count "$REBASE_BASE..HEAD")
+if [[ ${#COMMITS[@]} -ge "$TOTAL" ]]; then
+    echo "Removing all $TOTAL commit(s) from current branch (reset to merge-base)..."
+    git reset --merge "$REBASE_BASE"
+else
+    echo "Removing ${#COMMITS[@]} commit(s) from current branch..."
+    GIT_SEQUENCE_EDITOR="sed -i '' '${SED_EXPR}'" git rebase -i "$REBASE_BASE"
+fi
 echo "Done."
