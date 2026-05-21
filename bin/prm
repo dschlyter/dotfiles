@@ -53,6 +53,10 @@ def main():
     sp = sub.add_parser("who", aliases=["w"], help="list registered clients")
     sp.set_defaults(handler=cmd_who)
 
+    sp = sub.add_parser("rename", help="rename a registered client", parents=[client_parser])
+    sp.set_defaults(handler=cmd_rename)
+    sp.add_argument("new_name", help="new client name (kebab-case)")
+
     sp = sub.add_parser("unregister", help="unregister a client", parents=[client_parser])
     sp.set_defaults(handler=cmd_unregister)
     sp.add_argument("name", nargs="?", default=None, help="client to remove (default: self)")
@@ -104,6 +108,17 @@ def cmd_who(**kw):
         pane = info.get("pane")
         suffix = f" (pane:{pane.lstrip('%')})" if pane else ""
         print(f"{name}{suffix}")
+
+
+def cmd_rename(new_name, client, **kw):
+    old_name = resolve_client(client)
+    def update(agents):
+        if new_name in agents:
+            print(f"error: name '{new_name}' already taken", file=sys.stderr)
+            sys.exit(1)
+        agents[new_name] = agents.pop(old_name)
+    db.modify(AGENTS_FILE, update, default={})
+    print(f"renamed {old_name} -> {new_name}")
 
 
 def cmd_unregister(name, client, **kw):

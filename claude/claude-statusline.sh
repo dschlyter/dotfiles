@@ -4,7 +4,11 @@
 input=$(cat)
 
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir // "."')
-dir_name=$(basename "$current_dir")
+if [[ "$current_dir" == */.claude/worktrees/* ]]; then
+    dir_name=$(basename "${current_dir%%/.claude/worktrees/*}")
+else
+    dir_name=$(basename "$current_dir")
+fi
 branch=$(git -C "$current_dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
 model=$(echo "$input" | jq -r '.model.display_name // "unknown"')
 used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')

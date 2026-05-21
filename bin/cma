@@ -119,31 +119,34 @@ def list_sessions(d=False, s=False, v=False, **kwargs):
         print("No active sessions.")
         return
 
-    def sort_key(kv):
-        k, v = kv
-        session_name, _, window_index = pane_info.get(v.get("tmux_pane", ""), ("~", "", "9999"))
-        return (session_name, int(window_index) if window_index.isdigit() else 9999, int(k) if k.isdigit() else 9999)
-
-    rows = []
-    for key, s in sorted(active_keys, key=sort_key):
-        created = _fmt_age(s.get("created_at"))
+    # Group by session -> cwd -> entries
+    from collections import defaultdict
+    groups = defaultdict(lambda: defaultdict(list))
+    for key, s in active_keys:
+        pane = s.get("tmux_pane", f"%{key}")
+        session_name, window_name, window_index = pane_info.get(pane, ("?", "?", "?"))
+        window_name = _strip_emoji_prefix(window_name) or window_index
+        cwd = _format_cwd(s.get("cwd", "?"))
         status_str = s.get("status", "?")
         icon = STATUS_ICONS.get(status_str, "")
         status_age = _fmt_age(s.get("status_since"))
         status_col = f"{icon} {status_str} {status_age}" if status_age else f"{icon} {status_str}"
-        sid = s.get("session_id", "")
-        pane = s.get("tmux_pane", f"%{key}")
-        session_name, window_name, window_index = pane_info.get(pane, ("?", "?", "?"))
-        window_name = _strip_emoji_prefix(window_name) or window_index
-        cwd = os.path.basename(s.get("cwd", "?"))
-        row = [key, session_name, window_name, status_col]
+        entry = [status_col, key, window_name]
         if v:
-            row.append(created)
-        row.append(cwd)
-        if v:
-            row.append(sid)
-        rows.append(row)
-    print_table(rows, sep="  ")
+            entry.append(_fmt_age(s.get("created_at")))
+            entry.append(s.get("session_id", ""))
+        sort_val = (int(window_index) if window_index.isdigit() else 9999, int(key) if key.isdigit() else 9999)
+        groups[session_name][cwd].append((sort_val, entry))
+
+    # Build hierarchical output with separate tables per cwd group
+    for session_name in sorted(groups):
+        print(session_name)
+        cwd_groups = groups[session_name]
+        for cwd in sorted(cwd_groups):
+            print(f"  {cwd}")
+            entries = sorted(cwd_groups[cwd], key=lambda x: x[0])
+            rows = [["    " + e[0]] + e[1:] for _, e in entries]
+            print_table(rows, sep="  ")
 
 
 def watch_sessions(d=False, s=False, v=False, **kwargs):
@@ -364,6 +367,16 @@ def fork_session(**kwargs):
 STATUS_ICONS = {"done": "🔴", "waiting": "🔴", "working": "🟡", "idle": "🟢"}
 STATUS_PRIORITY = {"done": 0, "waiting": 0, "working": 1, "idle": 2}
 ALL_ICONS = set(STATUS_ICONS.values())
+
+
+def _format_cwd(cwd):
+    """Format cwd for display. Detects worktree paths and shows as repo:worktree."""
+    parts = cwd.split("/.claude/worktrees/")
+    if len(parts) == 2:
+        repo = os.path.basename(parts[0])
+        worktree = parts[1].rstrip("/")
+        return f"{repo}:{worktree}"
+    return os.path.basename(cwd)
 
 
 def _strip_emoji_prefix(name):

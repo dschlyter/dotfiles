@@ -61,6 +61,8 @@
     "files.autoSave": "onFocusChange",
 
     "gitlens.graph.minimap.enabled": false,
+    // trying to make monorepos work
+    "git.openRepositoryInParentFolders": "always",
     "explorer.confirmDelete": false,
     "explorer.confirmDragAndDrop": false,
     "editor.multiCursorModifier": "ctrlCmd",
