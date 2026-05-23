@@ -171,12 +171,14 @@ def main():
     sp.add_argument('--all', '-a', help='list all goals (not just open)', action='store_true')
     sp.add_argument('--closed', '-c', help='list closed goals', action='store_true')
     sp.add_argument('--date', help='show standing as of this date (YYYY-MM-DD)', default=None)
+    sp.add_argument('--verbose', '-v', help='evaluate goals (slower)', action='store_true')
 
     sp = goals_p.add_parser('list', aliases=['l'], help='list goals')
     sp.set_defaults(handler=list_goals)
     sp.add_argument('--all', '-a', help='list all goals (not just open)', action='store_true')
     sp.add_argument('--closed', '-c', help='list closed goals', action='store_true')
     sp.add_argument('--date', help='show standing as of this date (YYYY-MM-DD)', default=None)
+    sp.add_argument('--verbose', '-v', help='evaluate goals (slower)', action='store_true')
 
     sp = goals_p.add_parser('show', aliases=['s'], help='show single goal with breakdown')
     sp.set_defaults(handler=show_goal)
@@ -665,44 +667,50 @@ def update_habit(name, description, status, index, **global_args):
 
 # Goals
 
-def read_goals(all=False, closed=False, date=None, **global_args):
+def read_goals(all=False, closed=False, date=None, verbose=False, **global_args):
     status = 'all' if all else 'closed' if closed else 'open'
     url = f"api/time4/goals?status={status}"
     if date:
         url += f"&date={date}"
+    if verbose:
+        url += "&verbose=true"
     res = api.get(url)
     for g in res.get('goals', []):
         display_goal(g)
 
-def list_goals(all=False, closed=False, date=None, **global_args):
+def list_goals(all=False, closed=False, date=None, verbose=False, **global_args):
     status = 'all' if all else 'closed' if closed else 'open'
     url = f"api/time4/goals?status={status}"
     if date:
         url += f"&date={date}"
+    if verbose:
+        url += "&verbose=true"
     res = api.get(url)
     rows = []
     for g in res.get('goals', []):
         cond = g.get('condition', 'gt')
         cond_symbol = '>' if cond == 'gt' else '<' if cond == 'lt' else cond
         goal = f"{g.get('source', '')} {cond_symbol} {g.get('target', '')}"
-        source_value = g.get('sourceValue', '')
-        target_value = g.get('targetValue', '')
-        value_col = f"{_fmt_val(source_value)}/{_fmt_val(target_value)}"
-        standing = g.get('standing', '').upper()
-        standing_colored = standing_color(standing)(standing)
-        rows.append([
+        row = [
             g.get('index', ''),
             g.get('id', ''),
             g.get('status', ''),
             g.get('start', ''),
             g.get('end', ''),
             goal,
-            value_col,
-            standing_colored
-        ])
-    print_table([
-        ["", "id", "status", "start", "end", "goal", "value", "standing"]
-    ] + rows, sep=" ")
+        ]
+        if verbose:
+            source_value = g.get('sourceValue', '')
+            target_value = g.get('targetValue', '')
+            value_col = f"{_fmt_val(source_value)}/{_fmt_val(target_value)}"
+            standing = g.get('standing', '').upper()
+            standing_colored = standing_color(standing)(standing)
+            row.extend([value_col, standing_colored])
+        rows.append(row)
+    header = ["", "id", "status", "start", "end", "goal"]
+    if verbose:
+        header.extend(["value", "standing"])
+    print_table([header] + rows, sep=" ")
 
 def show_goal(id, **global_args):
     goal = api.get(f"api/time4/goals/{id}").get('goal')

@@ -199,6 +199,7 @@
     # fetch, prune removed remote branches and shortlog fetched changes
     fe = !sh -c 'PRE=${1:-$(git rev-parse origin/master)} && git fetch --tags --prune && git lh $PRE..$(git rev-parse origin/master) || true' -
     # get remote updates even with local uncommited changes (but abort on conflicts)
+    force-pull = !git fetch origin && git reset --merge origin/$(git curr-br)
     ff = !sh -c 'git lazy-fe && git merge --ff-only'
     # fast forward branch without checking them out
     up = !git lazy-fe $1 && git merge-base --is-ancestor $1 origin/$1 && (! git same $1 origin/$1 && git branch -f $1 origin/$1 || true)"#"

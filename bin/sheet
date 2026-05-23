@@ -1,0 +1,256 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.9"
+# dependencies = ["gspread>=6,<7"]
+# ///
+
+"""sheet — tiny Google Sheets CLI (gspread, OAuth user login).
+
+Auth uses an OAuth "Desktop app" client secret at
+~/.config/gspread/credentials.json (create one, or reuse an existing client).
+The first command opens a browser to log in; the token is then cached at
+~/.config/gspread/authorized_user.json and refreshed automatically.
+
+Examples:
+    sheet login
+    sheet read   <url|key|name> 'Main!A1:F10'
+    sheet read   <url|key|name> 'Main!A:A' 'Main!G:G'   # disjoint cols, 1 batch
+    sheet read   <url|key|name> 'Main!A1:F10' --formula --json
+    sheet write  <url|key|name> 'Main!D3'     'hello'
+    cat data.tsv | sheet write <url|key|name> 'Main!A1'
+    sheet append <url|key|name> Main 2026-05-23 42 'a note'
+    sheet tabs   <url|key|name>
+"""
+
+import argparse
+import json
+import os
+import sys
+import textwrap
+import unittest
+from typing import List, Optional
+
+CONFIG_DIR = os.path.expanduser("~/.config/gspread")
+CREDENTIALS_PATH = os.path.join(CONFIG_DIR, "credentials.json")
+TOKEN_PATH = os.path.join(CONFIG_DIR, "authorized_user.json")
+
+# Least privilege: opening a sheet by URL or key only needs this scope; opening
+# by *name* would also need a Drive scope, so name lookup is best-effort.
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+
+def main():
+    p = argparse.ArgumentParser(
+        description="Tiny Google Sheets CLI (gspread, OAuth user login).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=textwrap.dedent("""\
+            A sheet is identified by full URL, bare key, or (best-effort) name.
+            A range uses A1 notation with an optional tab: 'Tab!A1:C10'.
+            """),
+    )
+    p.set_defaults(handler=lambda *a, **k: p.print_help())
+    p.add_argument("--dry-run", "-d", action="store_true",
+                   help="print writes instead of sending them")
+    sub = p.add_subparsers()
+
+    sp = sub.add_parser("login", help="authenticate (opens a browser the first time)")
+    sp.set_defaults(handler=login)
+    sp.add_argument("--force", "-f", action="store_true",
+                    help="discard the cached token and log in again")
+
+    sp = sub.add_parser("read", help="read one or more ranges and print as TSV")
+    sp.set_defaults(handler=read)
+    sp.add_argument("sheet", help="sheet URL, key, or name")
+    sp.add_argument("ranges", nargs="+", metavar="range",
+                    help="A1 range(s); give several (e.g. 'Main!A:A' 'Main!G:G') "
+                         "to read disjoint ranges in one batch, stitched side by side")
+    sp.add_argument("--formula", action="store_true", help="return formulas, not values")
+    sp.add_argument("--json", dest="json_out", action="store_true",
+                    help="print as a JSON array of rows instead of TSV")
+
+    sp = sub.add_parser("write", help="write values to a range (or pipe TSV via stdin)")
+    sp.set_defaults(handler=write)
+    sp.add_argument("sheet", help="sheet URL, key, or name")
+    sp.add_argument("range", help="A1 range; start cell is enough for stdin")
+    sp.add_argument("values", nargs="*", help="one row of values; omit to read TSV from stdin")
+    sp.add_argument("--formula", action="store_true",
+                    help="interpret input as entered (USER_ENTERED) so formulas evaluate")
+
+    sp = sub.add_parser("append", help="append a row to the bottom of a tab")
+    sp.set_defaults(handler=append)
+    sp.add_argument("sheet", help="sheet URL, key, or name")
+    sp.add_argument("tab", help="worksheet/tab name")
+    sp.add_argument("values", nargs="+", help="cell values for the new row")
+    sp.add_argument("--formula", action="store_true",
+                    help="interpret input as entered (USER_ENTERED)")
+
+    sp = sub.add_parser("tabs", help="list worksheet/tab names")
+    sp.set_defaults(handler=tabs)
+    sp.add_argument("sheet", help="sheet URL, key, or name")
+
+    args = p.parse_args()
+    # Note: all handlers take **g to absorb global args (handler, dry_run).
+    args.handler(**args.__dict__)
+
+
+def login(force: bool = False, **g):
+    client = oauth(force=force)
+    del client  # the side effect (cached token) is the point
+    print(f"Authenticated. Token cached at {TOKEN_PATH}")
+
+
+def read(sheet: str, ranges: List[str], formula: bool = False, json_out: bool = False, **g):
+    ss = open_sheet(oauth(), sheet)
+    params = {"valueRenderOption": "FORMULA" if formula else "FORMATTED_VALUE"}
+    if len(ranges) == 1:
+        blocks = [ss.values_get(ranges[0], params=params).get("values", [])]
+    else:
+        resp = ss.values_batch_get(ranges, params=params)
+        blocks = [vr.get("values", []) for vr in resp.get("valueRanges", [])]
+    rows = hstack(blocks)
+    print(json.dumps(rows, ensure_ascii=False) if json_out else rows_to_tsv(rows))
+
+
+def write(sheet: str, range: str, values: List[str], formula: bool = False,
+          dry_run: bool = False, **g):
+    if values:
+        rows = [values]
+    elif not sys.stdin.isatty():
+        rows = [line.split("\t") for line in sys.stdin.read().splitlines()]
+    else:
+        sys.exit("write: give values on the command line or pipe TSV via stdin")
+
+    params = {"valueInputOption": "USER_ENTERED" if formula else "RAW"}
+    if dry_run:
+        print(f"[dry-run] values_update {range} {params} {rows}")
+        return
+    ss = open_sheet(oauth(), sheet)
+    ss.values_update(range, params=params, body={"values": rows})
+
+
+def append(sheet: str, tab: str, values: List[str], formula: bool = False,
+           dry_run: bool = False, **g):
+    if dry_run:
+        print(f"[dry-run] append_row to {tab}: {values}")
+        return
+    ws = open_sheet(oauth(), sheet).worksheet(tab)
+    ws.append_row(values, value_input_option="USER_ENTERED" if formula else "RAW")
+    print(f"Appended row to {tab}: {values}")
+
+
+def tabs(sheet: str, **g):
+    for ws in open_sheet(oauth(), sheet).worksheets():
+        print(ws.title)
+
+
+def oauth(force: bool = False):
+    """Return an authenticated gspread client, logging in if needed."""
+    import gspread
+
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    if not os.path.exists(CREDENTIALS_PATH):
+        sys.exit(missing_credentials_message())
+    if force and os.path.exists(TOKEN_PATH):
+        os.remove(TOKEN_PATH)
+
+    client = gspread.oauth(
+        credentials_filename=CREDENTIALS_PATH,
+        authorized_user_filename=TOKEN_PATH,
+        scopes=SCOPES,
+    )
+    if os.path.exists(TOKEN_PATH):
+        os.chmod(TOKEN_PATH, 0o600)
+    return client
+
+
+def open_sheet(client, sheet: str):
+    kind = classify_sheet(sheet)
+    if kind == "url":
+        return client.open_by_url(sheet)
+    if kind == "key":
+        return client.open_by_key(sheet)
+    return client.open(sheet)  # by name; needs a Drive scope
+
+
+def classify_sheet(sheet: str) -> str:
+    if sheet.startswith("http"):
+        return "url"
+    # Spreadsheet keys are long url-safe strings with no spaces or slashes.
+    if "/" not in sheet and " " not in sheet and len(sheet) > 30:
+        return "key"
+    return "name"
+
+
+def hstack(blocks: List[List[List[Optional[str]]]]) -> List[List[Optional[str]]]:
+    """Stitch range blocks side by side into one rectangular grid.
+
+    batchGet returns each range as its own (ragged) grid; this concatenates
+    them column-wise by row index and pads every row to a fixed width, so
+    'C:C' 'D:D' yields the same 2-D shape as a single 'C:D'.
+    """
+    widths = [max((len(r) for r in b), default=0) for b in blocks]
+    height = max((len(b) for b in blocks), default=0)
+    out = []
+    for i in range(height):
+        row: List[Optional[str]] = []
+        for b, width in zip(blocks, widths):
+            cells = list(b[i]) if i < len(b) else []
+            row.extend(cells + [""] * (width - len(cells)))
+        out.append(row)
+    return out
+
+
+def rows_to_tsv(rows: List[List[Optional[str]]]) -> str:
+    return "\n".join(
+        "\t".join("" if c is None else str(c) for c in row) for row in rows
+    )
+
+
+def missing_credentials_message() -> str:
+    return textwrap.dedent(f"""\
+        No OAuth client secret at {CREDENTIALS_PATH}
+
+        Create a "Desktop app" OAuth client (Google Cloud Console -> APIs &
+        Services -> Credentials) with the Google Sheets API enabled, and save
+        the JSON there (or reuse an OAuth client from an existing project):
+
+            mkdir -p {CONFIG_DIR}
+            cp /path/to/credentials.json {CREDENTIALS_PATH}
+
+        Then run: sheet login
+        """)
+
+
+# Inline tests — run with: UNITTEST=1 ./sheet
+class Tests(unittest.TestCase):
+    def test_classify_url(self):
+        self.assertEqual(
+            classify_sheet("https://docs.google.com/spreadsheets/d/abc/edit"), "url")
+
+    def test_classify_key(self):
+        self.assertEqual(
+            classify_sheet("15Hy9VVmUlQj6MG8mnn31SyHulJ2kfkWe8XD3jPXvjfM"), "key")
+
+    def test_classify_name(self):
+        self.assertEqual(classify_sheet("My Budget"), "name")
+
+    def test_rows_to_tsv(self):
+        self.assertEqual(rows_to_tsv([["a", "b"], ["c"]]), "a\tb\nc")
+        self.assertEqual(rows_to_tsv([["a", None]]), "a\t")
+
+    def test_hstack_disjoint_columns(self):
+        a = [["a1"], ["a2"], ["a3"]]
+        g = [["g1"], ["g2"]]
+        self.assertEqual(hstack([a, g]),
+                         [["a1", "g1"], ["a2", "g2"], ["a3", ""]])
+
+    def test_hstack_single_pads_to_rectangle(self):
+        self.assertEqual(hstack([[["x"], ["a", "b"]]]),
+                         [["x", ""], ["a", "b"]])
+
+
+if __name__ == "__main__":
+    if os.environ.get("UNITTEST") == "1":
+        unittest.main()
+    else:
+        main()
