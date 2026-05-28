@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# Interactive incremental search with file context preview
+# Usage: isearch [dir_or_files...]
+# Output: filename of selected match
+
+set -euo pipefail
+
+target="${*:-.}"
+
+preview_cmd='
+    file=$(echo {} | cut -d: -f1)
+    line=$(echo {} | cut -d: -f2)
+    query="$FZF_QUERY"
+    start=$((line - 5))
+    [ "$start" -lt 1 ] && start=1
+    end=$((line + 5))
+    if command -v bat >/dev/null 2>&1; then
+        content=$(bat --color=always --highlight-line "$line" --line-range "$start:$end" "$file")
+    else
+        content=$(sed -n "${start},${end}p" "$file")
+    fi
+    if [ -n "$query" ]; then
+        echo "$content" | rg --color=always --passthru -i "$query" || echo "$content"
+    else
+        echo "$content"
+    fi
+'
+
+rg --line-number --color=always -i '' $target | fzf --ansi --disabled \
+    --bind "change:reload:rg --line-number --color=always -i {q} $target || true" \
+    --delimiter=: \
+    --preview "$preview_cmd" \
+    --with-nth=1.. | cut -d: -f1

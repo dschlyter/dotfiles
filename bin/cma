@@ -18,6 +18,9 @@ SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 SESSIONS_FILE = str(SESSIONS_DIR / "sessions.json")
 OLD_SESSIONS_FILE = str(SESSIONS_DIR / "old_sessions.jsonl")
 
+PROJECTS_DIR = Path.home() / ".claude" / "projects"
+CMA_CACHE_DIR = Path.home() / ".cache" / "cma"
+
 
 def main():
     # https://docs.python.org/3/library/argparse.html
@@ -48,6 +51,9 @@ def main():
     sp.add_argument('pane', nargs='?', default=None, help='pane id (default: current pane)')
     sp.set_defaults(handler=mark_session)
 
+    sp = sub_ps.add_parser('me', help='print session id for current pane')
+    sp.set_defaults(handler=me_session)
+
     sp = sub_ps.add_parser('drop', aliases=['d'], help='remove session from state or history')
     sp.add_argument('pane', nargs='?', default=None, help='pane id (default: current pane)')
     sp.add_argument('-s', '--session', metavar='NAME', default=None, help='drop entire tmux session (active + history)')
@@ -73,6 +79,17 @@ def main():
 
     sp = sub_ps.add_parser('clean', help='run cleanup (move stale sessions to archive)')
     sp.set_defaults(handler=clean_sessions)
+
+    sp = sub_ps.add_parser('show', help='print conversation from a session log')
+    sp.add_argument('session_id', nargs='?', default=None, help='session UUID (default: fzf select)')
+    sp.add_argument('-v', action='count', default=0, help='verbose: -v expands tool calls, -vv shows full content')
+    sp.set_defaults(handler=show_session)
+
+    sp = sub_ps.add_parser('search', aliases=['s'], help='search session dumps with isearch')
+    sp.add_argument('--dump-all', action='store_true', help='dump all new/updated sessions before searching')
+    sp.add_argument('-r', action='store_true', help='resume the selected session in claude (cd to project dir)')
+    sp.add_argument('-d', action='store_true', help='only search sessions from current directory')
+    sp.set_defaults(handler=search_sessions)
 
     sp = sub_ps.add_parser('perms', help='list permissions in project settings')
     sp.set_defaults(handler=list_permissions)
@@ -434,6 +451,20 @@ def mark_session(pane=None, **kwargs):
             data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
     _modify_sessions(update)
     _update_window_name(f"%{key}")
+
+
+def me_session(**kwargs):
+    """Print session id for the current tmux pane."""
+    key = _pane_key()
+    if not key:
+        print("TMUX_PANE not set.", file=sys.stderr)
+        sys.exit(1)
+    data = read_json(SESSIONS_FILE, default={"panes": {}})
+    session = data.get("panes", {}).get(key)
+    if not session or not session.get("session_id"):
+        print(f"No session found for pane {key}.", file=sys.stderr)
+        sys.exit(1)
+    print(session["session_id"])
 
 
 def fork_session(**kwargs):
@@ -944,6 +975,7 @@ def hook_stop(**kwargs):
     _update_window_name()
     if not is_focused:
         _alert_sound()
+    _dump_session_for_pane(key)
 
 
 def hook_pane_focus(**kwargs):
@@ -1114,9 +1146,367 @@ def _read_old_sessions():
     return sessions
 
 
+#
+# Session Reading and Searching
+#
 
 
+def show_session(session_id=None, v=0, **kwargs):
+    """Print a human-readable conversation from a session's JSONL log."""
+    if not session_id:
+        session_id = _fzf_select_session(PROJECTS_DIR)
+        if not session_id:
+            return
+
+    jsonl_path = _find_session_jsonl(PROJECTS_DIR, session_id)
+    if not jsonl_path:
+        print(f"No log file found for session {session_id}")
+        return
+
+    for line in _render_session(jsonl_path, verbosity=v):
+        print(line)
+
+
+def search_sessions(dump_all=False, r=False, d=False, **kwargs):
+    """Search session dumps with isearch."""
+    if dump_all:
+        _dump_all_sessions()
+
+    if d:
+        dir_name = os.path.basename(os.getcwd())
+        search_dir = CMA_CACHE_DIR / dir_name
+        if not search_dir.exists():
+            print(f"No cached sessions for '{dir_name}'.")
+            return
+    else:
+        search_dir = CMA_CACHE_DIR
+
+    try:
+        selected = sh_read(f"cd {_shell_quote(str(search_dir))} && isearch .")
+    except subprocess.CalledProcessError:
+        return
+    if not selected:
+        return
+
+    selected_path = (search_dir / selected).resolve()
+    session_id = _extract_session_id(selected_path.stem)
+
+    if r:
+        jsonl_path = _find_session_jsonl(PROJECTS_DIR, session_id)
+        if jsonl_path:
+            project_dir = _project_dir_to_cwd(jsonl_path.parent.name)
+            os.chdir(project_dir)
+        os.execvp("claude", ["claude", "--resume", session_id])
+    else:
+        print(session_id)
+
+
+def _fzf_select_session(projects_dir):
+    """Let user pick a session via fzf from all JSONL files."""
+    entries = []
+    for jsonl_path in projects_dir.rglob("*.jsonl"):
+        sid = jsonl_path.stem
+        project = jsonl_path.parent.name
+        mtime = datetime.fromtimestamp(jsonl_path.stat().st_mtime)
+        first_user_msg = ""
+        try:
+            with open(jsonl_path, 'r') as f:
+                for file_line in f:
+                    obj = json.loads(file_line)
+                    if obj.get("type") == "user":
+                        content = obj.get("message", {}).get("content", "")
+                        if isinstance(content, str) and not content.startswith("<"):
+                            first_user_msg = content[:80].replace("\n", " ")
+                            break
+        except (json.JSONDecodeError, OSError):
+            pass
+        entries.append((mtime, sid, project, first_user_msg))
+
+    entries.sort(reverse=True)
+    fzf_lines = "\n".join(
+        f"{e[1]}  {e[0].strftime('%Y-%m-%d %H:%M')}  {e[2]}  {e[3]}"
+        for e in entries
+    )
+    try:
+        selected = sh_read(f"printf '%s' {_shell_quote(fzf_lines)} | fzf --prompt='Session> '")
+        return selected.split("  ")[0].strip()
+    except subprocess.CalledProcessError:
+        return None
+
+
+def _find_session_jsonl(projects_dir, session_id):
+    """Find the JSONL file for a given session ID."""
+    for jsonl_path in projects_dir.rglob(f"{session_id}.jsonl"):
+        return jsonl_path
+    return None
+
+
+def _render_session(jsonl_path, verbosity=0, color=True):
+    """Yield human-readable lines from a session JSONL file."""
+    with open(jsonl_path, 'r') as f:
+        for line in f:
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            yield from _render_entry(obj, verbosity=verbosity, color=color)
+
+
+def _render_entry(obj, verbosity=0, color=True):
+    """Yield human-readable lines for a single JSONL entry."""
+    msg_type = obj.get("type", "")
+    uncapped = verbosity >= 2
+    g = "\033[32m" if color else ""
+    y = "\033[33m" if color else ""
+    r = "\033[0m" if color else ""
+
+    if msg_type == "user":
+        content = obj.get("message", {}).get("content", "")
+        if isinstance(content, str):
+            text = _extract_user_text(content)
+            if not text:
+                return
+            for line in text.splitlines():
+                yield f"{g}>>> {line}{r}"
+            yield ""
+        elif isinstance(content, list):
+            user_lines = []
+            result_lines = []
+            for block in content:
+                if not isinstance(block, dict):
+                    continue
+                if block.get("type") == "text":
+                    text = _extract_user_text(block.get("text", ""))
+                    if text:
+                        for line in text.splitlines():
+                            user_lines.append(f"{g}>>> {line}{r}")
+                elif block.get("type") == "image":
+                    user_lines.append(f"{g}>>> [image]{r}")
+                elif block.get("type") == "tool_result" and verbosity >= 1:
+                    result_lines.extend(_render_tool_result(block, uncapped=uncapped, color=color))
+            if user_lines:
+                yield from user_lines
+                yield ""
+            if result_lines:
+                yield from result_lines
+
+    elif msg_type == "assistant":
+        content = obj.get("message", {}).get("content", [])
+        if not isinstance(content, list):
+            return
+        out = []
+        for block in content:
+            if not isinstance(block, dict):
+                continue
+            if block.get("type") == "text":
+                text = block["text"].strip()
+                if text:
+                    out.append(text)
+            elif block.get("type") == "tool_use":
+                out.append(f"  {y}[tool: {block.get('name', '?')}]{r}")
+                if verbosity >= 1:
+                    out.extend(_render_tool_input(block, uncapped=uncapped, color=color))
+        if out:
+            yield from out
+            yield ""
+
+
+def _extract_user_text(raw):
+    """Extract displayable user text, handling command tags and system content."""
+    import re
+    text = raw.strip()
+    if not text:
+        return ""
+    # Command invocations: extract from <command-args> if present
+    if text.startswith("<command-message>") or text.startswith("<command-name>"):
+        m = re.search(r'<command-args>(.*?)</command-args>', text, re.DOTALL)
+        cmd_m = re.search(r'<command-name>(.*?)</command-name>', text)
+        cmd = cmd_m.group(1).strip() if cmd_m else ""
+        args = m.group(1).strip() if m else ""
+        return f"{cmd} {args}".strip() if cmd or args else ""
+    # Skip system-injected content (local-command-caveat, system-reminder, etc.)
+    if text.startswith("<local-command-") or text.startswith("<system-reminder"):
+        return ""
+    # Skip skill/long injected content
+    if text.startswith("Base directory for this skill:"):
+        return ""
+    if text.startswith("[Image: source:"):
+        return ""
+    return text
+
+
+def _render_tool_input(block, uncapped=False, color=True):
+    """Yield tool call input lines in verbose mode."""
+    name = block.get("name", "")
+    inp = block.get("input", {})
+    dim = "\033[2m" if color else ""
+    reset = "\033[0m" if color else ""
+
+    if name == "Bash":
+        cmd = inp.get("command", "")
+        if cmd:
+            for line in cmd.splitlines():
+                yield f"  {dim}$ {line}{reset}"
+    elif name == "Read":
+        yield f"  {dim}{inp.get('file_path', '')}{reset}"
+    elif name in ("Write", "Edit"):
+        yield f"  {dim}{inp.get('file_path', '')}{reset}"
+        content = inp.get("content") or inp.get("new_string") or ""
+        if content:
+            yield from _render_capped_lines(content, prefix="  | ", cap=20, uncapped=uncapped, color=color)
+    elif name == "Agent":
+        prompt = inp.get("prompt", "")
+        if prompt:
+            yield from _render_capped_lines(prompt, prefix="  | ", cap=10, uncapped=uncapped, color=color)
+    else:
+        for key, val in inp.items():
+            val_str = str(val)
+            if not uncapped and len(val_str) > 200:
+                val_str = val_str[:200] + "..."
+            yield f"  {dim}{key}: {val_str}{reset}"
+
+
+def _render_tool_result(block, uncapped=False, color=True):
+    """Yield tool result output lines in verbose mode."""
+    content = block.get("content", "")
+    is_error = block.get("is_error", False)
+    if not content:
+        return
+    if color:
+        c = "\033[31m" if is_error else "\033[2m"
+    else:
+        c = ""
+    yield from _render_capped_lines(content, prefix="    ", cap=30, uncapped=uncapped, color=color, color_override=c)
+
+
+def _render_capped_lines(text, prefix="", cap=20, uncapped=False, color=True, color_override=None):
+    """Yield text lines with optional cap."""
+    c = color_override or ("\033[2m" if color else "")
+    reset = "\033[0m" if color else ""
+    lines = text.splitlines()
+    limit = len(lines) if uncapped else cap
+    for line in lines[:limit]:
+        yield f"  {c}{prefix}{line}{reset}"
+    if not uncapped and len(lines) > cap:
+        yield f"  {c}{prefix}... ({len(lines) - cap} more lines){reset}"
+
+
+def _dump_session_for_pane(pane_key):
+    """Dump the session for a given pane key to the cache dir."""
+    data = read_json(SESSIONS_FILE, default={"panes": {}})
+    session = data.get("panes", {}).get(pane_key)
+    if not session or not session.get("session_id"):
+        return
+    session_id = session["session_id"]
+    jsonl_path = _find_session_jsonl(PROJECTS_DIR, session_id)
+    if jsonl_path:
+        _dump_session(jsonl_path)
+
+
+def _dump_session(jsonl_path):
+    """Render a session JSONL to a plain text file in the cache dir with human-readable naming."""
+    project_claude_dir = jsonl_path.parent.name
+    dir_name = _project_dir_to_short_name(project_claude_dir)
+    session_id = jsonl_path.stem
+    timestamp = _session_start_timestamp(jsonl_path)
+    filename = f"{timestamp}_{session_id}.txt" if timestamp else f"{session_id}.txt"
+
+    out_dir = CMA_CACHE_DIR / dir_name
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / filename
+    with open(out_path, 'w') as f:
+        for line in _render_session(jsonl_path, verbosity=0, color=False):
+            f.write(line + "\n")
+
+
+def _dump_all_sessions():
+    """Dump all sessions that are new or newer than their cached version."""
+    existing = _index_cached_sessions()
+    count = 0
+    for jsonl_path in PROJECTS_DIR.rglob("*.jsonl"):
+        session_id = jsonl_path.stem
+        cached = existing.get(session_id)
+        if cached and cached.stat().st_mtime >= jsonl_path.stat().st_mtime:
+            continue
+        if cached:
+            cached.unlink()
+        _dump_session(jsonl_path)
+        count += 1
+    print(f"Dumped {count} sessions.")
+
+
+def _index_cached_sessions():
+    """Build a map of session_id -> cached txt path for existing dumps."""
+    index = {}
+    if not CMA_CACHE_DIR.exists():
+        return index
+    for txt_path in CMA_CACHE_DIR.rglob("*.txt"):
+        sid = _extract_session_id(txt_path.stem)
+        index[sid] = txt_path
+    return index
+
+
+def _extract_session_id(stem):
+    """Extract session UUID from a filename stem, stripping any timestamp prefix."""
+    # Format: YYYY-MM-DD_HH_MM_uuid or just uuid
+    parts = stem.split("_", 3)
+    if len(parts) == 4 and len(parts[0]) == 10 and "-" in parts[0]:
+        return parts[3]
+    return stem
+
+
+def _session_start_timestamp(jsonl_path):
+    """Read the first timestamp from a JSONL session file."""
+    try:
+        with open(jsonl_path, 'r') as f:
+            for line in f:
+                obj = json.loads(line)
+                ts = obj.get("timestamp")
+                if ts:
+                    dt = datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone()
+                    return dt.strftime("%Y-%m-%d_%H_%M")
+    except (json.JSONDecodeError, OSError, ValueError):
+        pass
+    return None
+
+
+def _project_dir_to_short_name(project_dir):
+    """Convert a Claude project directory name to a short human-readable name."""
+    cwd = _project_dir_to_cwd(project_dir)
+    return _format_cwd(cwd)
+
+
+def _project_dir_to_cwd(project_dir):
+    """Convert a Claude project directory name back to a cwd path. Best-effort: picks the longest existing prefix."""
+    parts = project_dir.lstrip("-").split("-")
+    # Greedily reconstruct the path by checking which splits produce existing directories
+    path = "/"
+    i = 0
+    while i < len(parts):
+        # Try joining progressively more parts with "-" to handle dirs with hyphens
+        best = None
+        for j in range(len(parts), i, -1):
+            candidate = os.path.join(path, "-".join(parts[i:j]))
+            if os.path.isdir(candidate):
+                best = candidate
+                i = j
+                break
+        if best:
+            path = best
+        else:
+            path = os.path.join(path, parts[i])
+            i += 1
+    return path
+
+
+def _shell_quote(s):
+    """Quote a string for safe use in shell commands."""
+    return "'" + s.replace("'", "'\\''") + "'"
+
+
+#
 # Permissions management
+#
 
 
 def list_permissions(**kwargs):
