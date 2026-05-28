@@ -63,7 +63,7 @@
     pof = push --force-with-lease origin
     pp = !git pull --rebase && git pu
     br = branch -vv
-    wt = worktree
+    wt = "!f() { if [ $# -eq 0 ]; then $HOME/.git-scripts/worktree-list; else git worktree \"$@\"; fi; }; f"
     rs = reset
     rb = rebase
     rba = rebase --autostash

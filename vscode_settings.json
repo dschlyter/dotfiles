@@ -34,6 +34,10 @@
         {
             "before": [ "<leader>", "t" ],
             "commands": [ { "command": "editor.action.insertSnippet", "args": { "snippet": " ${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}" } } ]
+        },
+        {
+            "before": ["<leader>", "g"],
+            "commands": ["gitlens.openFileOnRemote"]
         }
     ],
     "vim.visualModeKeyBindings": [
@@ -61,6 +65,12 @@
     "files.autoSave": "onFocusChange",
 
     "gitlens.graph.minimap.enabled": false,
+    "gitlens.remotes": [
+        {
+            "domain": "ghe.spotify.net",
+            "type": "GitHub"
+        }
+    ],
     // trying to make monorepos work
     "git.openRepositoryInParentFolders": "always",
     "explorer.confirmDelete": false,
@@ -80,4 +90,5 @@
     // NOTE: add claude env settings in ~/.claude/settings.json instead
     "claudeCode.preferredLocation": "panel",
     "claudeCode.selectedModel": "opus",
+    "claudeCode.allowDangerouslySkipPermissions": true
 }

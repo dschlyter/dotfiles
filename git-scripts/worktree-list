@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# git worktree-list
+# Enhanced worktree list: shows last commit date and ahead/behind master for each worktree.
+
+set -euo pipefail
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    cat <<'EOF'
+Usage: git wtl
+
+Enhanced git worktree list showing:
+  - Age of last commit (sorted most recent first)
+  - Commits ahead/behind master
+  - Branch name
+  - Worktree path
+EOF
+    exit 0
+fi
+
+C_RESET=$'\033[0m'
+C_YELLOW=$'\033[33m'
+C_GREEN=$'\033[32m'
+C_RED=$'\033[31m'
+C_CYAN=$'\033[36m'
+
+BASE_BRANCH="master"
+
+rows=()
+
+collect_worktree() {
+    local path="$1" head="$2" branch="$3"
+    [[ -z "$path" ]] && return
+
+    local age_str age_secs
+    age_str=$(git -C "$path" log -1 --format='%cr' 2>/dev/null || echo "unknown")
+    age_secs=$(git -C "$path" log -1 --format='%ct' 2>/dev/null || echo "0")
+
+    local label ahead="0" behind="0"
+    if [[ -n "$branch" ]]; then
+        label="$branch"
+        if [[ "$branch" != "$BASE_BRANCH" ]] && git rev-parse --verify "$BASE_BRANCH" &>/dev/null; then
+            local lr
+            lr=$(git -C "$path" rev-list --count --left-right "$branch...$BASE_BRANCH" 2>/dev/null || echo "0	0")
+            ahead=$(echo "$lr" | cut -f1)
+            behind=$(echo "$lr" | cut -f2)
+        fi
+    elif [[ -n "$head" ]]; then
+        label="(detached ${head:0:7})"
+    else
+        label="(bare)"
+    fi
+
+    local dirty
+    dirty=$(git -C "$path" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+
+    # tab-separated: sort_key, age, ahead, behind, dirty, branch, path
+    rows+=("${age_secs}	${age_str}	${ahead}	${behind}	${dirty}	${label}	${path}")
+}
+
+path=""
+head=""
+branch=""
+
+while IFS= read -r line; do
+    if [[ "$line" == "worktree "* ]]; then
+        collect_worktree "$path" "$head" "$branch"
+        path="${line#worktree }"
+        head=""
+        branch=""
+    elif [[ "$line" == "HEAD "* ]]; then
+        head="${line#HEAD }"
+    elif [[ "$line" == "branch "* ]]; then
+        branch="${line#branch refs/heads/}"
+    fi
+done < <(git worktree list --porcelain; echo)
+
+collect_worktree "$path" "$head" "$branch"
+
+# compute column widths
+w_age=3 w_ahead=5 w_behind=6 w_dirty=5 w_branch=6
+for row in "${rows[@]}"; do
+    IFS=$'\t' read -r _ age ahead behind dirty label _ <<< "$row"
+    (( ${#age} > w_age )) && w_age=${#age}
+    (( ${#ahead} > w_ahead )) && w_ahead=${#ahead}
+    (( ${#behind} > w_behind )) && w_behind=${#behind}
+    d_str="${dirty}~"
+    (( ${#d_str} > w_dirty )) && w_dirty=${#d_str}
+    (( ${#label} > w_branch )) && w_branch=${#label}
+done
+
+# sort by timestamp descending (most recent first) and print
+while IFS=$'\t' read -r _ age ahead behind dirty label path; do
+    dirty_color="$C_RESET"
+    [[ "$dirty" -gt 0 ]] && dirty_color="$C_RED"
+    printf "${C_GREEN}%-${w_age}s${C_RESET}  ${C_CYAN}%-${w_ahead}s${C_RESET}  ${C_RED}%-${w_behind}s${C_RESET}  ${dirty_color}%-${w_dirty}s${C_RESET}  ${C_YELLOW}%-${w_branch}s${C_RESET}  %s\n" \
+        "$age" "+${ahead}" "-${behind}" "${dirty}~" "$label" "$path"
+done < <(printf '%s\n' "${rows[@]}" | sort -t$'\t' -k1 -rn)
