@@ -7,13 +7,16 @@ import os
 import unittest
 import json
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from dotlib.json_file import modify_json, read_json
+from dotlib.json_file import modify_json, read_json, file_lock
 from dotlib.util import print_table
 
-SESSIONS_FILE = "/tmp/claude-sessions.json"
+SESSIONS_DIR = Path.home() / ".local" / "share" / "cma"
+SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+SESSIONS_FILE = str(SESSIONS_DIR / "sessions.json")
+OLD_SESSIONS_FILE = str(SESSIONS_DIR / "old_sessions.jsonl")
 
 
 def main():
@@ -45,9 +48,31 @@ def main():
     sp.add_argument('pane', nargs='?', default=None, help='pane id (default: current pane)')
     sp.set_defaults(handler=mark_session)
 
-    sp = sub_ps.add_parser('drop', aliases=['d'], help='remove session from state')
+    sp = sub_ps.add_parser('drop', aliases=['d'], help='remove session from state or history')
     sp.add_argument('pane', nargs='?', default=None, help='pane id (default: current pane)')
+    sp.add_argument('-s', '--session', metavar='NAME', default=None, help='drop entire tmux session (active + history)')
+    sp.add_argument('-d', '--days', type=int, default=None, help='drop history entries older than N days')
     sp.set_defaults(handler=drop_session)
+
+    sp = sub_ps.add_parser('old', help='list historical sessions (flat, by time)')
+    sp.add_argument('-d', action='store_true', help='only show sessions from current directory')
+    sp.add_argument('-s', action='store_true', help='only show sessions from current tmux session')
+    sp.add_argument('-v', action='store_true', help='verbose: show session UUID')
+    sp.set_defaults(handler=old_sessions)
+
+    sp = sub_ps.add_parser('dead', help='list dead/historical sessions grouped by tmux session')
+    sp.add_argument('-d', action='store_true', help='only show sessions from current directory')
+    sp.add_argument('-s', action='store_true', help='only show sessions from current tmux session')
+    sp.add_argument('-v', action='store_true', help='verbose: show individual sessions')
+    sp.set_defaults(handler=dead_sessions)
+
+    sp = sub_ps.add_parser('restore', help='restore dead sessions from a tmux session')
+    sp.add_argument('tmux_session', nargs='?', default=None, help='tmux session name to restore (default: fzf select)')
+    sp.add_argument('-t', metavar='TIME', default=None, help='cutoff: relative (e.g. 5m, 2h, 1d) or absolute (YYYY-MM-DD HH:MM)')
+    sp.set_defaults(handler=restore_sessions)
+
+    sp = sub_ps.add_parser('clean', help='run cleanup (move stale sessions to archive)')
+    sp.set_defaults(handler=clean_sessions)
 
     sp = sub_ps.add_parser('perms', help='list permissions in project settings')
     sp.set_defaults(handler=list_permissions)
@@ -98,6 +123,7 @@ def main():
 
 def list_sessions(d=False, s=False, v=False, **kwargs):
     """List active claude sessions."""
+    _modify_sessions(lambda data: _cleanup_stale(data))
     data = read_json(SESSIONS_FILE, default={"panes": {}})
     pane_info = _tmux_pane_info()
     # Filter to panes that still exist in tmux
@@ -215,6 +241,45 @@ def _fmt_age(iso_str):
         return ""
 
 
+def _fmt_timestamp(iso_str):
+    """Format an ISO timestamp as local YYYY-MM-DD HH:MM, or empty if missing."""
+    if not iso_str:
+        return ""
+    try:
+        dt = datetime.fromisoformat(iso_str).astimezone()
+        return dt.strftime("%Y-%m-%d %H:%M")
+    except ValueError:
+        return ""
+
+
+def _session_timestamp(sess):
+    """Get the archived/status timestamp as epoch seconds, or 0 if missing."""
+    iso_str = sess.get("archived_at") or sess.get("status_since") or sess.get("created_at")
+    if not iso_str:
+        return 0
+    try:
+        return datetime.fromisoformat(iso_str).timestamp()
+    except ValueError:
+        return 0
+
+
+def _parse_time_cutoff(time_str):
+    """Parse a relative (5m, 2h, 1d) or absolute (YYYY-MM-DD HH:MM) time string to epoch seconds."""
+    import re
+    m = re.fullmatch(r'(\d+)([smhd])', time_str.strip())
+    if m:
+        amount, unit = int(m.group(1)), m.group(2)
+        multipliers = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
+        return datetime.now(timezone.utc).timestamp() - amount * multipliers[unit]
+    try:
+        dt = datetime.fromisoformat(time_str)
+        if dt.tzinfo is None:
+            dt = dt.astimezone()
+        return dt.timestamp()
+    except ValueError:
+        return None
+
+
 def next_session(**kwargs):
     """Switch to next waiting/done session, cycling back to origin when done."""
     _modify_sessions(lambda data: _cleanup_stale(data))
@@ -279,13 +344,22 @@ def next_session(**kwargs):
         sh(f"tmux switch-client -t '{target_pane}'")
     except subprocess.CalledProcessError:
         def remove_stale(data):
-            data["panes"].pop(pick_key, None)
+            session = data["panes"].pop(pick_key, None)
+            if session:
+                _archive_sessions([session], status_override="abandoned")
         _modify_sessions(remove_stale)
         print(f"Removed stale session {target_pane}")
 
 
-def drop_session(pane=None, **kwargs):
-    """Remove a session from state."""
+def drop_session(pane=None, session=None, days=None, **kwargs):
+    """Remove sessions from state and/or history."""
+    if session:
+        _drop_by_session(session)
+        return
+    if days is not None:
+        _drop_by_age(days)
+        return
+
     key = pane if pane else _pane_key()
     if not key:
         print("No pane specified and TMUX_PANE not set.")
@@ -301,6 +375,50 @@ def drop_session(pane=None, **kwargs):
     _modify_sessions(remove)
     _update_window_name(f"%{key}")
     print(f"Dropped session for pane {key}")
+
+
+def _drop_by_session(session_name):
+    """Drop all sessions (active + history) for a tmux session name."""
+    count = 0
+    def remove_active(data):
+        nonlocal count
+        to_remove = [k for k, s in data["panes"].items() if s.get("tmux_session") == session_name]
+        for k in to_remove:
+            del data["panes"][k]
+        count += len(to_remove)
+    _modify_sessions(remove_active)
+
+    archived = _filter_archive(lambda r: r.get("tmux_session") != session_name)
+    count += archived
+    print(f"Dropped {count} sessions from '{session_name}'")
+
+
+def _drop_by_age(days):
+    """Drop history entries older than N days."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).timestamp()
+    removed = _filter_archive(lambda r: _session_timestamp(r) >= cutoff)
+    print(f"Dropped {removed} sessions older than {days} days")
+
+
+def _filter_archive(keep_fn):
+    """Rewrite archive keeping only lines where keep_fn(record) is True. Returns count removed."""
+    if not os.path.exists(OLD_SESSIONS_FILE):
+        return 0
+    removed = 0
+    with file_lock(OLD_SESSIONS_FILE):
+        with open(OLD_SESSIONS_FILE, 'r') as f:
+            lines = f.readlines()
+        with open(OLD_SESSIONS_FILE, 'w') as f:
+            for line in lines:
+                try:
+                    record = json.loads(line.strip())
+                    if keep_fn(record):
+                        f.write(line)
+                    else:
+                        removed += 1
+                except json.JSONDecodeError:
+                    f.write(line)
+    return removed
 
 
 def mark_session(pane=None, **kwargs):
@@ -362,6 +480,195 @@ def fork_session(**kwargs):
 
     print(f"Forking session {sid}")
     os.execvp("claude", ["claude", "--resume", sid, "--fork-session"])
+
+
+def old_sessions(d=False, s=False, v=False, **kwargs):
+    """List historical sessions as a flat list ordered by time."""
+    _modify_sessions(lambda data: _cleanup_stale(data))
+
+    sessions = _read_old_sessions()
+    if not sessions:
+        print("No historical sessions.")
+        return
+
+    if d:
+        cwd = os.getcwd()
+        sessions = [s for s in sessions if s.get("cwd") == cwd]
+
+    if s:
+        try:
+            current_session = sh_read("tmux display-message -p '#{session_name}'")
+            sessions = [s for s in sessions if s.get("tmux_session") == current_session]
+        except subprocess.CalledProcessError:
+            pass
+
+    if not sessions:
+        print("No matching historical sessions.")
+        return
+
+    sessions.sort(key=lambda s: s.get("archived_at") or s.get("status_since") or "", reverse=True)
+    rows = []
+    for sess in sessions:
+        status = sess.get("status", "?")
+        tmux_name = sess.get("tmux_session", "?")
+        window = sess.get("tmux_window", "?")
+        cwd = _format_cwd(sess.get("cwd", "?"))
+        timestamp = _fmt_timestamp(sess.get("archived_at") or sess.get("status_since"))
+        row = [status, tmux_name, window, cwd, timestamp]
+        if v:
+            row.append(sess.get("session_id", ""))
+        rows.append(row)
+    print_table(rows, sep="  ")
+
+
+def dead_sessions(d=False, s=False, v=False, **kwargs):
+    """List dead/historical sessions grouped by tmux session name."""
+    _modify_sessions(lambda data: _cleanup_stale(data))
+
+    sessions = _read_old_sessions()
+    if not sessions:
+        print("No historical sessions.")
+        return
+
+    if d:
+        cwd = os.getcwd()
+        sessions = [s for s in sessions if s.get("cwd") == cwd]
+
+    if s:
+        try:
+            current_session = sh_read("tmux display-message -p '#{session_name}'")
+            sessions = [s for s in sessions if s.get("tmux_session") == current_session]
+        except subprocess.CalledProcessError:
+            pass
+
+    if not sessions:
+        print("No matching historical sessions.")
+        return
+
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for sess in sessions:
+        groups[sess.get("tmux_session", "unknown")].append(sess)
+
+    def group_sort_key(name):
+        return max(
+            (s.get("archived_at") or s.get("status_since") or s.get("created_at") or "" for s in groups[name]),
+            default=""
+        )
+
+    for tmux_name in sorted(groups, key=group_sort_key, reverse=True):
+        group = groups[tmux_name]
+        n_abandoned = sum(1 for s in group if s.get("status") == "abandoned")
+        n_exited = sum(1 for s in group if s.get("status") == "exited")
+        parts = []
+        if n_abandoned:
+            parts.append(f"{n_abandoned} abandoned")
+        if n_exited:
+            parts.append(f"{n_exited} exited")
+        summary = ", ".join(parts) or f"{len(group)} sessions"
+        print(f"{tmux_name}  ({summary})")
+
+        if v:
+            group.sort(key=lambda s: s.get("archived_at") or s.get("status_since") or "", reverse=True)
+            rows = []
+            for sess in group:
+                cwd = _format_cwd(sess.get("cwd", "?"))
+                window = sess.get("tmux_window", "?")
+                status = sess.get("status", "?")
+                timestamp = _fmt_timestamp(sess.get("archived_at") or sess.get("status_since"))
+                row = [f"  {status}", window, cwd, timestamp]
+                row.append(sess.get("session_id", ""))
+                rows.append(row)
+            print_table(rows, sep="  ")
+
+
+def restore_sessions(tmux_session=None, t=None, **kwargs):
+    """Restore dead sessions from a tmux session.
+
+    Finds the latest archived timestamp in the group, then includes all sessions
+    that exited within 60 seconds of it (i.e. a batch exit like a reboot).
+    Use -t to override the cutoff with a relative (5m, 2h, 1d) or absolute timestamp.
+    """
+    _modify_sessions(lambda data: _cleanup_stale(data))
+
+    sessions = _read_old_sessions()
+    if not sessions:
+        print("No restorable sessions.")
+        return
+
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for s in sessions:
+        groups[s.get("tmux_session", "unknown")].append(s)
+
+    if not tmux_session:
+        choices = sorted(groups.keys())
+        fzf_input = "\n".join(f"{name}  ({len(groups[name])} sessions)" for name in choices)
+        try:
+            selected = sh_read(f"echo '{fzf_input}' | fzf --prompt='Restore session> '")
+            tmux_session = selected.split("  ")[0]
+        except subprocess.CalledProcessError:
+            return
+
+    if tmux_session not in groups:
+        print(f"No restorable sessions for '{tmux_session}'")
+        return
+
+    group = groups[tmux_session]
+
+    if t:
+        cutoff = _parse_time_cutoff(t)
+        if not cutoff:
+            print(f"Invalid time format: {t}")
+            return
+        to_restore = [s for s in group if _session_timestamp(s) >= cutoff]
+    else:
+        latest = max(_session_timestamp(s) for s in group)
+        cutoff = latest - 60
+        to_restore = [s for s in group if _session_timestamp(s) >= cutoff]
+
+    if not to_restore:
+        print("No sessions match the time window.")
+        return
+
+    try:
+        sh(f"tmux rename-session '{tmux_session}'")
+    except subprocess.CalledProcessError:
+        print(f"Warning: could not rename tmux session to '{tmux_session}'")
+
+    def _sort_key(s):
+        wi = s.get("tmux_window_index", "")
+        pane = s.get("tmux_pane", "").lstrip("%")
+        return (int(wi) if str(wi).isdigit() else 9999,
+                int(pane) if pane.isdigit() else 9999)
+    to_restore.sort(key=_sort_key)
+
+    current_window = {}  # window_index -> pane count in that window
+    for sess in to_restore:
+        sid = sess.get("session_id")
+        cwd = sess.get("cwd", os.getcwd())
+        if not sid:
+            continue
+        wi = sess.get("tmux_window_index", "")
+        window_name = sess.get("tmux_window", "") or _format_cwd(cwd)
+        try:
+            if wi not in current_window:
+                sh(f"tmux new-window -n '{window_name}' -c '{cwd}' 'claude --resume {sid}'")
+                current_window[wi] = 1
+            else:
+                split = "-h" if current_window[wi] == 1 else "-v"
+                sh(f"tmux split-window {split} -c '{cwd}' 'claude --resume {sid}'")
+                current_window[wi] += 1
+        except subprocess.CalledProcessError:
+            print(f"Failed to create pane for session {sid}")
+
+    print(f"Restored {len(to_restore)} sessions from '{tmux_session}'")
+
+
+def clean_sessions(**kwargs):
+    """Explicitly run stale session cleanup."""
+    _modify_sessions(lambda data: _cleanup_stale(data))
+    print("Cleanup complete.")
 
 
 STATUS_ICONS = {"done": "🔴", "waiting": "🔴", "working": "🟡", "idle": "🟢"}
@@ -579,11 +886,19 @@ def hook_session_start(**kwargs):
     key = _pane_key()
     tmux_pane = os.environ.get("TMUX_PANE", "unknown")
     cwd = os.environ.get("CLAUDE_WORKING_DIRECTORY", os.getcwd())
+    pane_info = _tmux_pane_info()
+    pane_entry = pane_info.get(tmux_pane, ("unknown", "", ""))
+    tmux_session = pane_entry[0]
+    tmux_window = _strip_emoji_prefix(pane_entry[1]) or pane_entry[2]
+    tmux_window_index = pane_entry[2]
 
     def update(data):
         data["panes"][key or session_id[:12]] = {
             "session_id": session_id,
             "tmux_pane": tmux_pane,
+            "tmux_session": tmux_session,
+            "tmux_window": tmux_window,
+            "tmux_window_index": tmux_window_index,
             "cwd": cwd,
             "status": "idle",
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -647,13 +962,15 @@ def hook_pane_focus(**kwargs):
 
 
 def hook_session_end(**kwargs):
-    """Remove session on exit."""
+    """Archive session as 'exited' and remove from active state."""
     key = _pane_key()
     if not key:
         return
 
     def update(data):
-        data["panes"].pop(key, None)
+        session = data["panes"].pop(key, None)
+        if session:
+            _archive_sessions([session], status_override="exited")
     _modify_sessions(update)
     _update_window_name()
 
@@ -716,8 +1033,14 @@ def _modify_sessions(fn):
 def _ensure_pane(data, key):
     """Ensure a pane entry exists, creating a minimal one if needed."""
     if key not in data["panes"]:
+        tmux_pane = os.environ.get("TMUX_PANE", f"%{key}")
+        pane_info = _tmux_pane_info()
+        pane_entry = pane_info.get(tmux_pane, ("unknown", "", ""))
         data["panes"][key] = {
-            "tmux_pane": os.environ.get("TMUX_PANE", f"%{key}"),
+            "tmux_pane": tmux_pane,
+            "tmux_session": pane_entry[0],
+            "tmux_window": _strip_emoji_prefix(pane_entry[1]) or pane_entry[2],
+            "tmux_window_index": pane_entry[2],
             "cwd": os.environ.get("CLAUDE_WORKING_DIRECTORY", os.getcwd()),
             "status": "idle",
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -725,15 +1048,72 @@ def _ensure_pane(data, key):
 
 
 def _cleanup_stale(data):
-    """Remove panes that no longer exist in tmux. Mutates data."""
+    """Remove stale panes and refresh tmux_session/tmux_window for live ones. Mutates data."""
+    pane_info = _tmux_pane_info()
     try:
         pane_output = sh_read("tmux list-panes -a -F '#{pane_id}'")
         active_panes = {p.lstrip('%') for p in pane_output.strip().splitlines()}
     except subprocess.CalledProcessError:
         return
-    stale = [k for k in data["panes"] if k not in active_panes]
-    for k in stale:
-        del data["panes"][k]
+
+    stale = []
+    for k, s in data["panes"].items():
+        if k not in active_panes:
+            stale.append(k)
+        else:
+            tmux_pane = s.get("tmux_pane", f"%{k}")
+            entry = pane_info.get(tmux_pane)
+            if entry:
+                s["tmux_session"] = entry[0]
+                s["tmux_window"] = _strip_emoji_prefix(entry[1]) or entry[2]
+                s["tmux_window_index"] = entry[2]
+
+    if stale:
+        _archive_sessions([data["panes"][k] for k in stale], status_override="abandoned")
+        for k in stale:
+            del data["panes"][k]
+
+
+def _archive_sessions(sessions, status_override=None):
+    """Append sessions to old_sessions.jsonl, deduplicating by session_id."""
+    if not sessions:
+        return
+    new_ids = {s.get("session_id") for s in sessions if s.get("session_id")}
+    with file_lock(OLD_SESSIONS_FILE):
+        if new_ids and os.path.exists(OLD_SESSIONS_FILE):
+            with open(OLD_SESSIONS_FILE, 'r') as f:
+                lines = f.readlines()
+            with open(OLD_SESSIONS_FILE, 'w') as f:
+                for line in lines:
+                    try:
+                        record = json.loads(line.strip())
+                        if record.get("session_id") not in new_ids:
+                            f.write(line)
+                    except json.JSONDecodeError:
+                        f.write(line)
+        with open(OLD_SESSIONS_FILE, 'a') as f:
+            for s in sessions:
+                record = dict(s)
+                record["archived_at"] = datetime.now(timezone.utc).isoformat()
+                if status_override:
+                    record["status"] = status_override
+                f.write(json.dumps(record) + "\n")
+
+
+def _read_old_sessions():
+    """Read all archived sessions from JSONL file."""
+    if not os.path.exists(OLD_SESSIONS_FILE):
+        return []
+    sessions = []
+    with file_lock(OLD_SESSIONS_FILE):
+        with open(OLD_SESSIONS_FILE, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    sessions.append(json.loads(line))
+    return sessions
+
+
 
 
 # Permissions management
