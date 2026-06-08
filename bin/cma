@@ -77,6 +77,10 @@ def main():
     sp.add_argument('-t', metavar='TIME', default=None, help='cutoff: relative (e.g. 5m, 2h, 1d) or absolute (YYYY-MM-DD HH:MM)')
     sp.set_defaults(handler=restore_sessions)
 
+    sp = sub_ps.add_parser('sync', help='backfill titles for sessions that have a session_id but no title')
+    sp.add_argument('--overwrite', action='store_true', help='refresh titles even for sessions that already have one')
+    sp.set_defaults(handler=sync_titles)
+
     sp = sub_ps.add_parser('clean', help='run cleanup (move stale sessions to archive)')
     sp.set_defaults(handler=clean_sessions)
 
@@ -91,11 +95,15 @@ def main():
     sp.add_argument('-d', action='store_true', help='only search sessions from current directory')
     sp.set_defaults(handler=search_sessions)
 
-    sp = sub_ps.add_parser('perms', help='list permissions in project settings')
-    sp.set_defaults(handler=list_permissions)
+    sp = sub_ps.add_parser('legacy', help='deprecated commands')
+    sp.set_defaults(handler=lambda *args, **kwargs: sp.print_help())
+    legacy_sub = sp.add_subparsers()
 
-    sp = sub_ps.add_parser('lift', help='move last permission from project to global settings')
-    sp.set_defaults(handler=lift)
+    legacy_sp = legacy_sub.add_parser('perms', help='list permissions in project settings')
+    legacy_sp.set_defaults(handler=list_permissions)
+
+    legacy_sp = legacy_sub.add_parser('lift', help='move last permission from project to global settings')
+    legacy_sp.set_defaults(handler=lift)
 
     sp = sub_ps.add_parser('hook', help='hook handlers (called by Claude hooks)')
     sp.set_defaults(handler=lambda *args, **kwargs: sp.print_help())
@@ -173,11 +181,14 @@ def list_sessions(d=False, s=False, v=False, **kwargs):
         status_str = s.get("status", "?")
         icon = STATUS_ICONS.get(status_str, "")
         status_age = _fmt_age(s.get("status_since"))
-        status_col = f"{icon} {status_str} {status_age}" if status_age else f"{icon} {status_str}"
-        entry = [status_col, key, window_name]
+        name_col = f"{icon} {window_name}"
+        status_col = f"{status_str} {status_age}" if status_age else status_str
+        entry = [name_col, status_col]
         if v:
+            entry.append(key)
             entry.append(_fmt_age(s.get("created_at")))
             entry.append(s.get("session_id", ""))
+            entry.append(s.get("title", ""))
         sort_val = (int(window_index) if window_index.isdigit() else 9999, int(key) if key.isdigit() else 9999)
         groups[session_name][cwd].append((sort_val, entry))
 
@@ -548,6 +559,7 @@ def old_sessions(d=False, s=False, v=False, **kwargs):
         row = [status, tmux_name, window, cwd, timestamp]
         if v:
             row.append(sess.get("session_id", ""))
+            row.append(sess.get("title", ""))
         rows.append(row)
     print_table(rows, sep="  ")
 
@@ -609,6 +621,7 @@ def dead_sessions(d=False, s=False, v=False, **kwargs):
                 timestamp = _fmt_timestamp(sess.get("archived_at") or sess.get("status_since"))
                 row = [f"  {status}", window, cwd, timestamp]
                 row.append(sess.get("session_id", ""))
+                row.append(sess.get("title", ""))
                 rows.append(row)
             print_table(rows, sep="  ")
 
@@ -694,6 +707,45 @@ def restore_sessions(tmux_session=None, t=None, **kwargs):
             print(f"Failed to create pane for session {sid}")
 
     print(f"Restored {len(to_restore)} sessions from '{tmux_session}'")
+
+
+def sync_titles(overwrite=False, **kwargs):
+    """Backfill titles for all active and archived sessions that have a session_id but no title."""
+    count = 0
+
+    def _should_sync(session):
+        return session.get("session_id") and (overwrite or not session.get("title"))
+
+    # Active sessions
+    def update_active(data):
+        nonlocal count
+        for k, s in data["panes"].items():
+            if _should_sync(s):
+                title = _get_session_title(s["session_id"])
+                if title:
+                    s["title"] = title
+                    count += 1
+    _modify_sessions(update_active)
+
+    # Archived sessions
+    if os.path.exists(OLD_SESSIONS_FILE):
+        with file_lock(OLD_SESSIONS_FILE):
+            with open(OLD_SESSIONS_FILE, 'r') as f:
+                lines = f.readlines()
+            with open(OLD_SESSIONS_FILE, 'w') as f:
+                for line in lines:
+                    try:
+                        record = json.loads(line.strip())
+                        if _should_sync(record):
+                            title = _get_session_title(record["session_id"])
+                            if title:
+                                record["title"] = title
+                                count += 1
+                        f.write(json.dumps(record) + "\n")
+                    except json.JSONDecodeError:
+                        f.write(line)
+
+    print(f"Updated {count} session titles.")
 
 
 def clean_sessions(**kwargs):
@@ -971,6 +1023,7 @@ def hook_stop(**kwargs):
         _ensure_pane(data, key)
         data["panes"][key]["status"] = "idle" if is_focused else "done"
         data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
+        _sync_title_if_missing(data["panes"][key])
     _modify_sessions(update)
     _update_window_name()
     if not is_focused:
@@ -1002,6 +1055,7 @@ def hook_session_end(**kwargs):
     def update(data):
         session = data["panes"].pop(key, None)
         if session:
+            _sync_title_if_missing(session)
             _archive_sessions([session], status_override="exited")
     _modify_sessions(update)
     _update_window_name()
@@ -1101,7 +1155,10 @@ def _cleanup_stale(data):
                 s["tmux_window_index"] = entry[2]
 
     if stale:
-        _archive_sessions([data["panes"][k] for k in stale], status_override="abandoned")
+        stale_sessions = [data["panes"][k] for k in stale]
+        for s in stale_sessions:
+            _sync_title_if_missing(s)
+        _archive_sessions(stale_sessions, status_override="abandoned")
         for k in stale:
             del data["panes"][k]
 
@@ -1144,6 +1201,37 @@ def _read_old_sessions():
                 if line:
                     sessions.append(json.loads(line))
     return sessions
+
+
+#
+# Session Titles
+#
+
+
+def _get_session_title(session_id):
+    """Extract the ai-title from a session's JSONL log (last one wins, as it may be updated)."""
+    jsonl_path = _find_session_jsonl(PROJECTS_DIR, session_id)
+    if not jsonl_path:
+        return None
+    title = None
+    try:
+        with open(jsonl_path, 'r') as f:
+            for line in f:
+                obj = json.loads(line)
+                if obj.get("type") == "ai-title":
+                    title = obj.get("aiTitle")
+    except (json.JSONDecodeError, OSError):
+        pass
+    return title
+
+
+def _sync_title_if_missing(session):
+    """Populate title from log if missing and session_id is available. Mutates session."""
+    sid = session.get("session_id")
+    if sid and not session.get("title"):
+        title = _get_session_title(sid)
+        if title:
+            session["title"] = title
 
 
 #

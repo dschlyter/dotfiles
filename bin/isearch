@@ -31,4 +31,5 @@ rg --line-number --color=always -i '' $target | fzf --ansi --disabled \
     --bind "change:reload:rg --line-number --color=always -i {q} $target || true" \
     --delimiter=: \
     --preview "$preview_cmd" \
+    --preview-window=down:40% \
     --with-nth=1.. | cut -d: -f1
