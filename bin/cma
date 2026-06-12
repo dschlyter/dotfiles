@@ -51,8 +51,12 @@ def main():
     sp.add_argument('pane', nargs='?', default=None, help='pane id (default: current pane)')
     sp.set_defaults(handler=mark_session)
 
-    sp = sub_ps.add_parser('me', help='print session id for current pane')
-    sp.set_defaults(handler=me_session)
+    sp = sub_ps.add_parser('who', help='print session id for current pane, a window, or list windows in a session')
+    sp.add_argument('session', nargs='?', default=None, help='tmux session name')
+    sp.add_argument('window', nargs='?', default=None, help='window name (if omitted, list all windows)')
+    sp.add_argument('-s', action='store_true', help='use current tmux session')
+    sp.add_argument('-v', action='store_true', help='verbose: show window name, pane id, session uuid, and title')
+    sp.set_defaults(handler=who_session)
 
     sp = sub_ps.add_parser('drop', aliases=['d'], help='remove session from state or history')
     sp.add_argument('pane', nargs='?', default=None, help='pane id (default: current pane)')
@@ -85,7 +89,8 @@ def main():
     sp.set_defaults(handler=clean_sessions)
 
     sp = sub_ps.add_parser('show', help='print conversation from a session log')
-    sp.add_argument('session_id', nargs='?', default=None, help='session UUID (default: fzf select)')
+    sp.add_argument('session_id', nargs='?', default=None, help='session UUID or tmux_session:window (default: fzf select)')
+    sp.add_argument('-p', '--pane', default=None, help='tmux pane id (e.g. 42 or %%42)')
     sp.add_argument('-v', action='count', default=0, help='verbose: -v expands tool calls, -vv shows full content')
     sp.set_defaults(handler=show_session)
 
@@ -180,15 +185,16 @@ def list_sessions(d=False, s=False, v=False, **kwargs):
         cwd = _format_cwd(s.get("cwd", "?"))
         status_str = s.get("status", "?")
         icon = STATUS_ICONS.get(status_str, "")
-        status_age = _fmt_age(s.get("status_since"))
         name_col = f"{icon} {window_name}"
-        status_col = f"{status_str} {status_age}" if status_age else status_str
-        entry = [name_col, status_col]
         if v:
-            entry.append(key)
-            entry.append(_fmt_age(s.get("created_at")))
-            entry.append(s.get("session_id", ""))
-            entry.append(s.get("title", ""))
+            status_col = status_str
+            entry = [name_col, status_col, key,
+                     _fmt_age(s.get("status_since")), _fmt_age(s.get("created_at")),
+                     s.get("session_id", ""), s.get("title", "")]
+        else:
+            status_age = _fmt_age(s.get("status_since"), short=True)
+            status_col = f"{status_str} {status_age}" if status_age else status_str
+            entry = [name_col, status_col]
         sort_val = (int(window_index) if window_index.isdigit() else 9999, int(key) if key.isdigit() else 9999)
         groups[session_name][cwd].append((sort_val, entry))
 
@@ -254,13 +260,29 @@ def _tmux_pane_info():
         return {}
 
 
-def _fmt_age(iso_str):
-    """Format an ISO timestamp as d:hh:mm elapsed time, or empty if missing."""
+def _fmt_age(iso_str, short=False):
+    """Format an ISO timestamp as elapsed time, or empty if missing.
+    short=True: largest unit only (e.g. '5h', '12m', '3d')
+    short=False: d:hh:mm
+    """
     if not iso_str:
         return ""
     try:
         dt = datetime.fromisoformat(iso_str)
-        total_mins = int((datetime.now(timezone.utc) - dt).total_seconds() // 60)
+        total_secs = int((datetime.now(timezone.utc) - dt).total_seconds())
+        if total_secs < 0:
+            total_secs = 0
+        if short:
+            if total_secs < 60:
+                return f"{total_secs}s"
+            total_mins = total_secs // 60
+            if total_mins < 60:
+                return f"{total_mins}m"
+            hours = total_mins // 60
+            if hours < 24:
+                return f"{hours}h"
+            return f"{hours // 24}d"
+        total_mins = total_secs // 60
         days = total_mins // (60 * 24)
         hours = (total_mins % (60 * 24)) // 60
         mins = total_mins % 60
@@ -464,18 +486,114 @@ def mark_session(pane=None, **kwargs):
     _update_window_name(f"%{key}")
 
 
-def me_session(**kwargs):
-    """Print session id for the current tmux pane."""
-    key = _pane_key()
-    if not key:
-        print("TMUX_PANE not set.", file=sys.stderr)
+def who_session(session=None, window=None, s=False, v=False, **kwargs):
+    """Print session id for current pane, a specific window, or list all windows in a tmux session."""
+    if s and session is None:
+        try:
+            session = sh_read("tmux display-message -p '#{session_name}'")
+        except subprocess.CalledProcessError:
+            print("Not in a tmux session.", file=sys.stderr)
+            sys.exit(1)
+
+    if session is None:
+        key = _pane_key()
+        if not key:
+            print("TMUX_PANE not set.", file=sys.stderr)
+            sys.exit(1)
+        data = read_json(SESSIONS_FILE, default={"panes": {}})
+        pane = data.get("panes", {}).get(key)
+        if not pane or not pane.get("session_id"):
+            print(f"No session found for pane {key}.", file=sys.stderr)
+            sys.exit(1)
+        if v:
+            pane_info = _tmux_pane_info()
+            entry = pane_info.get(pane.get("tmux_pane", f"%{key}"), ("?", "?", "?"))
+            clean_name = _strip_emoji_prefix(entry[1]) or entry[2]
+            print_table([[clean_name, f"%{key}", pane["session_id"], pane.get("title", "")]], sep="  ")
+        else:
+            print(pane["session_id"])
+        return
+
+    data = read_json(SESSIONS_FILE, default={"panes": {}})
+    pane_info = _tmux_pane_info()
+    matches = []
+    for k, sess in data.get("panes", {}).items():
+        tmux_pane = sess.get("tmux_pane", f"%{k}")
+        entry = pane_info.get(tmux_pane)
+        if not entry:
+            continue
+        sess_name, win_name, win_index = entry
+        if sess_name != session:
+            continue
+        clean_name = _strip_emoji_prefix(win_name) or win_index
+        matches.append((k, clean_name, win_index, sess.get("session_id", ""), sess.get("title", "")))
+
+    if not matches:
+        print(f"No sessions found in tmux session '{session}'.", file=sys.stderr)
         sys.exit(1)
+
+    if window is not None and not v:
+        print(_resolve_tmux_session_id(f"{session}:{window}"))
+        return
+
+    if window is not None:
+        matches = [m for m in matches if m[1] == window or m[2] == window]
+        if not matches:
+            print(f"No session found for window '{window}' in '{session}'.", file=sys.stderr)
+            sys.exit(1)
+
+    matches.sort(key=lambda m: (int(m[2]) if m[2].isdigit() else 9999))
+    if v:
+        rows = [[name, f"%{pane_key}", sid, title] for pane_key, name, _, sid, title in matches]
+    else:
+        rows = [[name, f"%{pane_key}", sid] for pane_key, name, _, sid, _ in matches]
+    print_table(rows, sep="  ")
+
+
+def _resolve_tmux_session_id(spec):
+    """Resolve a 'tmux_session:window' spec to a claude session id. Errors on ambiguity."""
+    parts = spec.split(':', 1)
+    tmux_session = parts[0]
+    window = parts[1] if len(parts) > 1 else None
+
+    data = read_json(SESSIONS_FILE, default={"panes": {}})
+    pane_info = _tmux_pane_info()
+    matches = []
+    for k, s in data.get("panes", {}).items():
+        tmux_pane = s.get("tmux_pane", f"%{k}")
+        entry = pane_info.get(tmux_pane)
+        if not entry:
+            continue
+        sess_name, win_name, win_index = entry
+        if sess_name != tmux_session:
+            continue
+        clean_name = _strip_emoji_prefix(win_name) or win_index
+        if window is not None and clean_name != window and win_index != window:
+            continue
+        sid = s.get("session_id")
+        if sid:
+            matches.append((k, clean_name, sid))
+
+    if not matches:
+        print(f"No session found for '{spec}'.", file=sys.stderr)
+        sys.exit(1)
+    if len(matches) > 1:
+        print(f"Ambiguous: {len(matches)} sessions match '{spec}'. Use -p <pane_id> to select:", file=sys.stderr)
+        for pane_key, name, sid in matches:
+            print(f"  pane {pane_key}  {name}  {sid}", file=sys.stderr)
+        sys.exit(1)
+    return matches[0][2]
+
+
+def _resolve_pane_session_id(pane):
+    """Resolve a tmux pane id to a claude session id."""
+    key = pane.lstrip('%')
     data = read_json(SESSIONS_FILE, default={"panes": {}})
     session = data.get("panes", {}).get(key)
     if not session or not session.get("session_id"):
         print(f"No session found for pane {key}.", file=sys.stderr)
         sys.exit(1)
-    print(session["session_id"])
+    return session["session_id"]
 
 
 def fork_session(**kwargs):
@@ -1239,12 +1357,16 @@ def _sync_title_if_missing(session):
 #
 
 
-def show_session(session_id=None, v=0, **kwargs):
+def show_session(session_id=None, pane=None, v=0, **kwargs):
     """Print a human-readable conversation from a session's JSONL log."""
-    if not session_id:
+    if pane:
+        session_id = _resolve_pane_session_id(pane)
+    elif not session_id:
         session_id = _fzf_select_session(PROJECTS_DIR)
         if not session_id:
             return
+    elif ':' in session_id:
+        session_id = _resolve_tmux_session_id(session_id)
 
     jsonl_path = _find_session_jsonl(PROJECTS_DIR, session_id)
     if not jsonl_path:

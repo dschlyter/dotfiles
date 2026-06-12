@@ -204,6 +204,9 @@ case "$(uname -s)" in
         # TODO is this a good idea ??
         # this might force local state into git, in that case copy part of the file using "between" cmd
         link_settings "$HOME/Library/Application Support/Code/" "User" "settings.json" "vscode_settings.json"
+
+        link_settings "$HOME/Library/Application Support/Code - Insiders/" "User" "settings.json" "vscode_settings.json"
+        link_settings "$HOME/Library/Application Support/Code - Insiders/" "User" "keybindings.json" "vscode_keybindings.json"
         ;;
 
     CYGWIN*|MINGW32*|MSYS*)
