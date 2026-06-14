@@ -94,8 +94,7 @@ def main():
 
 
 def login(force: bool = False, **g):
-    client = oauth(force=force)
-    del client  # the side effect (cached token) is the point
+    oauth(force=force)
     print(f"Authenticated. Token cached at {TOKEN_PATH}")
 
 
@@ -146,6 +145,8 @@ def tabs(sheet: str, **g):
 def oauth(force: bool = False):
     """Return an authenticated gspread client, logging in if needed."""
     import gspread
+    from google.auth.exceptions import RefreshError
+    from google.auth.transport.requests import Request
 
     os.makedirs(CONFIG_DIR, exist_ok=True)
     if not os.path.exists(CREDENTIALS_PATH):
@@ -160,6 +161,21 @@ def oauth(force: bool = False):
     )
     if os.path.exists(TOKEN_PATH):
         os.chmod(TOKEN_PATH, 0o600)
+
+    try:
+        client.http_client.auth.refresh(Request())
+    except RefreshError:
+        if force:
+            raise
+        print("Token expired or revoked, re-authenticating...", file=sys.stderr)
+        os.remove(TOKEN_PATH)
+        client = gspread.oauth(
+            credentials_filename=CREDENTIALS_PATH,
+            authorized_user_filename=TOKEN_PATH,
+            scopes=SCOPES,
+        )
+        if os.path.exists(TOKEN_PATH):
+            os.chmod(TOKEN_PATH, 0o600)
     return client
 
 

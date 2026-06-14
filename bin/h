@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import calendar as cal_mod
 import shutil
 from collections import defaultdict
 from datetime import datetime, date
@@ -43,6 +44,13 @@ def main():
     sp.add_argument('--order', '-o', help="sort in order of first occurence", action="store_true")
     sp.add_argument('--top', '-t', help="show top 10 per line", action="store_true")
     sp.add_argument('--graph', '-g', help="show a graph visual of changes", action="store_true")
+
+    sp = root_p.add_parser('cal', add_help=False, help='calendar view of activity time')
+    sp.set_defaults(handler=cal_view)
+    sp.add_argument('--help', action='help', default=argparse.SUPPRESS, help='show this help message and exit')
+    sp.add_argument('-h', '--habit', help="show habit checks instead (name or index)")
+    sp.add_argument('-a', '--all', help="show all months with data (60 months back)", action="store_true")
+    sp.add_argument('args', nargs="*", help="activity [start] [end] or start [end] with --habit")
 
     sp = root_p.add_parser('mark', aliases=['m'], help='mark new segment')
     sp.set_defaults(handler=mark)
@@ -396,6 +404,160 @@ def stats(start, end, activities, day, week, month, quarter, year, everything, r
                 print(col(text[0:size] + " " * (size - len(text))), end="")
                 acc += perc
             print(light_grey_bg(" " * (bar_size - round(acc * bar_size))))
+
+def cal_view(args, habit, all, **global_args):
+    today = date.today()
+
+    if not habit and args and args[0].isdigit():
+        habit = args[0]
+        args = args[1:]
+
+    if habit:
+        activities = None
+        start = args[0] if len(args) > 0 else None
+        end = args[1] if len(args) > 1 else None
+    elif args:
+        activities = args[0]
+        start = args[1] if len(args) > 1 else None
+        end = args[2] if len(args) > 2 else None
+    else:
+        print("Provide an activity or --habit")
+        return
+
+    def parse_month_arg(arg):
+        if arg is None:
+            return today.replace(day=1)
+        if arg.isdigit():
+            n = int(arg)
+            m = today.month - n
+            y = today.year
+            while m <= 0:
+                m += 12
+                y -= 1
+            return date(y, m, 1)
+        d = date.fromisoformat(arg)
+        return d.replace(day=1)
+
+    start_month = parse_month_arg(start or ("60" if all else "2"))
+    end_month = parse_month_arg(end)
+
+    if habit:
+        habit_name = habit
+        if habit.isdigit():
+            habits_res = api.get("api/time4/habits?status=open")
+            habits_list = habits_res.get('habits', [])
+            matching = [h for h in habits_list if h.get('index') == int(habit)]
+            if not matching:
+                print(f"Habit index {habit} not found")
+                return
+            habit_name = matching[0]['id']
+
+        _, last_day = cal_mod.monthrange(end_month.year, end_month.month)
+        api_end = date(end_month.year, end_month.month, last_day)
+        res = api.get(f"api/time4/checks?start={start_month.isoformat()}&end={api_end.isoformat()}")
+
+        daily_checks = {}
+        for day_entry in res.get('checks', []):
+            for c in day_entry.get('checks', []):
+                if c.get('habit') == habit_name and c.get('check', '.') != '.':
+                    daily_checks[day_entry['date']] = c.get('check')
+
+        def cell_fn(y, m, d):
+            dt = date(y, m, d)
+            if dt > today:
+                return " " * 3
+            check = daily_checks.get(f"{y}-{m:02d}-{d:02d}")
+            if check:
+                return "  " + _display_check_sign(check)
+            return "  _"
+    else:
+        if end_month.month == 12:
+            api_end = date(end_month.year + 1, 1, 1)
+        else:
+            api_end = date(end_month.year, end_month.month + 1, 1)
+
+        res = api.post("api/time4/stats", {
+            'start': start_month.isoformat(),
+            'end': api_end.isoformat(),
+            'activities': activities.split(","),
+        })
+
+        s = res.get('stats', {})
+        totals = s.get('total', {})
+
+        if not totals:
+            print("No data")
+            return
+
+        peak = max((v for k, v in totals.items() if k != 'total'), default=1)
+
+        def cell_fn(y, m, d):
+            dt = date(y, m, d)
+            if dt > today:
+                return " " * 3
+            minutes = totals.get(f"{y}-{m:02d}-{d:02d}", 0)
+            if minutes >= 60:
+                text = str(minutes // 60).rjust(3)
+            elif minutes > 0:
+                text = f".{minutes * 10 // 60}".rjust(3)
+            else:
+                return "  _"
+            intensity = minutes / peak
+            color_code = [22, 28, 34, 40, 82][min(4, int(intensity * 5))]
+            return color_fg_256(color_code, text)
+
+    data_keys = set(daily_checks.keys()) if habit else {k for k, v in totals.items() if k != 'total' and v > 0}
+
+    months = []
+    current = start_month
+    while current <= end_month:
+        prefix = f"{current.year}-{current.month:02d}"
+        if not all or any(k.startswith(prefix) for k in data_keys):
+            months.append((current.year, current.month))
+        if current.month == 12:
+            current = date(current.year + 1, 1, 1)
+        else:
+            current = date(current.year, current.month + 1, 1)
+
+    cell_w = 3
+    month_w = cell_w * 7
+    gap = "  "
+    for i in range(0, len(months), 3):
+        group = months[i:i+3]
+        all_lines = [_cal_month_lines(y, m, cell_fn, cell_w) for y, m in group]
+        max_lines = max(len(lines) for lines in all_lines)
+        for lines in all_lines:
+            while len(lines) < max_lines:
+                lines.append("")
+        print()
+        for row in range(max_lines):
+            print(gap.join(lines[row].ljust(month_w) for lines in all_lines).rstrip())
+
+def _cal_month_lines(year, month, cell_fn, cell_w):
+    month_name = cal_mod.month_name[month]
+    total_w = cell_w * 7
+
+    lines = []
+    lines.append(f"{month_name} {year}".center(total_w))
+    lines.append("".join(d.rjust(cell_w) for d in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]))
+
+    first_weekday, num_days = cal_mod.monthrange(year, month)
+
+    day = 1
+    for week in range(6):
+        if day > num_days:
+            break
+
+        cells = []
+        for weekday in range(7):
+            if (week == 0 and weekday < first_weekday) or day > num_days:
+                cells.append(" " * cell_w)
+            else:
+                cells.append(cell_fn(year, month, day))
+                day += 1
+
+        lines.append("".join(cells))
+    return lines
 
 def mark(minutes=None, **global_args):
     res = api.post(f"api/time4/mark", {"time": minutes})
