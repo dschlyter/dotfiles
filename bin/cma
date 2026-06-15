@@ -45,6 +45,7 @@ def main():
     sp.set_defaults(handler=next_session)
 
     sp = sub_ps.add_parser('fork', aliases=['f'], help='fork a claude session from current window')
+    sp.add_argument('-w', '--worktree', metavar='NAME', default=None, help='create a git worktree and fork into it')
     sp.set_defaults(handler=fork_session)
 
     sp = sub_ps.add_parser('mark', aliases=['m'], help='mark a session as done')
@@ -596,7 +597,7 @@ def _resolve_pane_session_id(pane):
     return session["session_id"]
 
 
-def fork_session(**kwargs):
+def fork_session(worktree=None, **kwargs):
     """Fork a claude session from the current window."""
     data = read_json(SESSIONS_FILE, default={"panes": {}})
     pane_info = _tmux_pane_info()
@@ -638,8 +639,11 @@ def fork_session(**kwargs):
         except subprocess.CalledProcessError:
             return  # User cancelled fzf
 
-    print(f"Forking session {sid}")
-    os.execvp("claude", ["claude", "--resume", sid, "--fork-session"])
+    cmd = ["claude", "--resume", sid, "--fork-session"]
+    if worktree:
+        cmd.extend(["--worktree", worktree])
+    print(f"Forking session {sid}" + (f" into worktree '{worktree}'" if worktree else ""))
+    os.execvp("claude", cmd)
 
 
 def old_sessions(d=False, s=False, v=False, **kwargs):
