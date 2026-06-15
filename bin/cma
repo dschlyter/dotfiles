@@ -101,6 +101,11 @@ def main():
     sp.add_argument('-d', action='store_true', help='only search sessions from current directory')
     sp.set_defaults(handler=search_sessions)
 
+    sp = sub_ps.add_parser('jump', aliases=['j'], help='jump to a directory inside claude code (via marks or fasd)')
+    sp.add_argument('query', nargs='*', help='directory query (checked against j-marks first, then fasd)')
+    sp.add_argument('-a', '--add', action='store_true', help='add as supplemental directory (/add-dir) instead of changing to it (/cd)')
+    sp.set_defaults(handler=jump)
+
     sp = sub_ps.add_parser('legacy', help='deprecated commands')
     sp.set_defaults(handler=lambda *args, **kwargs: sp.print_help())
     legacy_sub = sp.add_subparsers()
@@ -644,6 +649,49 @@ def fork_session(worktree=None, **kwargs):
         cmd.extend(["--worktree", worktree])
     print(f"Forking session {sid}" + (f" into worktree '{worktree}'" if worktree else ""))
     os.execvp("claude", cmd)
+
+
+JM_DIR = Path.home() / ".config" / "j-marks"
+FASD_SH = Path.home() / ".fasd.sh"
+
+
+def jump(query=None, add=False, **kwargs):
+    """Jump to a directory inside claude code via marks or fasd."""
+    query = query or []
+    fnd = " ".join(query)
+
+    if not fnd:
+        print("Usage: cma jump <query>", file=sys.stderr)
+        sys.exit(1)
+
+    target = _resolve_jump_target(fnd)
+    if not target:
+        print(f"No match for '{fnd}'", file=sys.stderr)
+        sys.exit(1)
+
+    pane = os.environ.get("TMUX_PANE")
+    if not pane:
+        print(f"Not in tmux, cannot send keys. Target: {target}")
+        return
+
+    cmd = "/add-dir" if add else "/cd"
+    sh(f"tmux send-keys -t {_shell_quote(pane)} '{cmd} {_shell_quote(target)}' Enter")
+
+
+def _resolve_jump_target(query):
+    """Resolve a jump query: check j-marks first, then fasd."""
+    mark_file = JM_DIR / query
+    if mark_file.is_file():
+        return mark_file.read_text().strip()
+
+    try:
+        result = sh_read(f"{_shell_quote(str(FASD_SH))} -d -e 'printf %s' {_shell_quote(query)}")
+        if result and os.path.isdir(result):
+            return result
+    except subprocess.CalledProcessError:
+        pass
+
+    return None
 
 
 def old_sessions(d=False, s=False, v=False, **kwargs):
