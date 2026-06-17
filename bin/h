@@ -435,6 +435,10 @@ def cal_view(args, habit, all, **global_args):
                 m += 12
                 y -= 1
             return date(y, m, 1)
+        if len(arg) == 7 and arg[4] == '-':
+            return date(int(arg[:4]), int(arg[5:7]), 1)
+        if len(arg) == 4:
+            return date(int(arg), 1, 1)
         d = date.fromisoformat(arg)
         return d.replace(day=1)
 
@@ -502,7 +506,8 @@ def cal_view(args, habit, all, **global_args):
                 text = f".{minutes * 10 // 60}".rjust(3)
             else:
                 return "  _"
-            intensity = minutes / peak
+            from math import sqrt
+            intensity = sqrt(minutes / peak)
             color_code = [22, 28, 34, 40, 82][min(4, int(intensity * 5))]
             return color_fg_256(color_code, text)
 
@@ -519,12 +524,23 @@ def cal_view(args, habit, all, **global_args):
         else:
             current = date(current.year, current.month + 1, 1)
 
+    if habit:
+        def summary_fn(y, m):
+            prefix = f"{y}-{m:02d}"
+            count = sum(1 for k, v in daily_checks.items() if k.startswith(prefix) and v == 'x')
+            return str(count) if count else None
+    else:
+        def summary_fn(y, m):
+            prefix = f"{y}-{m:02d}"
+            total_min = sum(v for k, v in totals.items() if k.startswith(prefix) and k != 'total')
+            return str(round(total_min / 60)) if total_min else None
+
     cell_w = 3
     month_w = cell_w * 7
     gap = "  "
     for i in range(0, len(months), 3):
         group = months[i:i+3]
-        all_lines = [_cal_month_lines(y, m, cell_fn, cell_w) for y, m in group]
+        all_lines = [_cal_month_lines(y, m, cell_fn, cell_w, summary_fn) for y, m in group]
         max_lines = max(len(lines) for lines in all_lines)
         for lines in all_lines:
             while len(lines) < max_lines:
@@ -533,12 +549,14 @@ def cal_view(args, habit, all, **global_args):
         for row in range(max_lines):
             print(gap.join(lines[row].ljust(month_w) for lines in all_lines).rstrip())
 
-def _cal_month_lines(year, month, cell_fn, cell_w):
+def _cal_month_lines(year, month, cell_fn, cell_w, summary_fn=None):
     month_name = cal_mod.month_name[month]
     total_w = cell_w * 7
 
     lines = []
-    lines.append(f"{month_name} {year}".center(total_w))
+    summary = summary_fn(year, month) if summary_fn else None
+    header = f"{month_name} {year} - {summary}" if summary else f"{month_name} {year}"
+    lines.append(header.center(total_w))
     lines.append("".join(d.rjust(cell_w) for d in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]))
 
     first_weekday, num_days = cal_mod.monthrange(year, month)
@@ -748,7 +766,25 @@ def display_checks(res):
         p.append([day.get('date', "??")])
         for c in day.get('checks', []):
             p[-1].append(_display_check_sign(c.get('check', "??")))
-    p.append(["Streak"] + [s.get('streak', "") if s.get('streak', "") != 0 else "" for s in res.get('streaks', [])])
+    streaks = res.get('streaks', [])
+    no_skip_streaks = res.get('noSkipStreaks', [])
+    streak_cells = []
+    for i, s in enumerate(streaks):
+        streak = int(s.get('streak', 0))
+        ns = int(no_skip_streaks[i].get('streak', 0)) if i < len(no_skip_streaks) else None
+        if streak == 0:
+            streak_cells.append("")
+        elif ns is None or ns == streak:
+            streak_cells.append(str(streak))
+        else:
+            full = f"{streak} ({ns})"
+            if len(full) <= 7:
+                streak_cells.append(full)
+            elif len(f"{streak} {ns}") <= 7:
+                streak_cells.append(f"{streak} {ns}")
+            else:
+                streak_cells.append(str(streak))
+    p.append(["Streak"] + streak_cells)
 
     print_table(p)
 
