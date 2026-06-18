@@ -160,6 +160,7 @@ def main():
 def list_sessions(d=False, s=False, v=False, **kwargs):
     """List active claude sessions."""
     _modify_sessions(lambda data: _cleanup_stale(data))
+    _update_all_window_names()
     data = read_json(SESSIONS_FILE, default={"panes": {}})
     pane_info = _tmux_pane_info()
     # Filter to panes that still exist in tmux
@@ -339,6 +340,7 @@ def _parse_time_cutoff(time_str):
 def next_session(**kwargs):
     """Switch to next waiting/done session, cycling back to origin when done."""
     _modify_sessions(lambda data: _cleanup_stale(data))
+    _update_all_window_names()
     data = read_json(SESSIONS_FILE, default={"panes": {}})
 
     # 1. Find next candidate — waiting before done, most recent first
@@ -697,6 +699,7 @@ def _resolve_jump_target(query):
 def old_sessions(d=False, s=False, v=False, **kwargs):
     """List historical sessions as a flat list ordered by time."""
     _modify_sessions(lambda data: _cleanup_stale(data))
+    _update_all_window_names()
 
     sessions = _read_old_sessions()
     if not sessions:
@@ -737,6 +740,7 @@ def old_sessions(d=False, s=False, v=False, **kwargs):
 def dead_sessions(d=False, s=False, v=False, **kwargs):
     """List dead/historical sessions grouped by tmux session name."""
     _modify_sessions(lambda data: _cleanup_stale(data))
+    _update_all_window_names()
 
     sessions = _read_old_sessions()
     if not sessions:
@@ -804,6 +808,7 @@ def restore_sessions(tmux_session=None, t=None, **kwargs):
     Use -t to override the cutoff with a relative (5m, 2h, 1d) or absolute timestamp.
     """
     _modify_sessions(lambda data: _cleanup_stale(data))
+    _update_all_window_names()
 
     sessions = _read_old_sessions()
     if not sessions:
@@ -921,11 +926,13 @@ def sync_titles(overwrite=False, **kwargs):
 def clean_sessions(**kwargs):
     """Explicitly run stale session cleanup."""
     _modify_sessions(lambda data: _cleanup_stale(data))
+    _update_all_window_names()
     print("Cleanup complete.")
 
 
-STATUS_ICONS = {"done": "🔴", "waiting": "🔴", "working": "🟡", "idle": "🟢"}
-STATUS_PRIORITY = {"done": 0, "waiting": 0, "working": 1, "idle": 2}
+STATUS_ICONS = {"done": "🔴", "waiting": "🔴", "working": "🟡", "idle": "🟢", "cold": "🔵"}
+STATUS_PRIORITY = {"done": 0, "waiting": 0, "working": 1, "idle": 2, "cold": 3}
+COLD_THRESHOLD_HOURS = 40
 ALL_ICONS = set(STATUS_ICONS.values())
 
 
@@ -966,8 +973,41 @@ def _update_window_name(pane_id=None):
     except subprocess.CalledProcessError:
         return
 
-    # Find worst status among registered panes in this window
+    _update_window_name_inner(window_id, window_name, window_panes)
+
+
+def _update_all_window_names():
+    """Update window name emojis for all windows that contain registered sessions."""
     data = read_json(SESSIONS_FILE, default={"panes": {}})
+    registered_panes = {s.get("tmux_pane", f"%{k}") for k, s in data.get("panes", {}).items()}
+    if not registered_panes:
+        return
+
+    try:
+        lines = sh_read("tmux list-panes -a -F '#{pane_id}|||#{window_id}|||#{window_name}'").strip().splitlines()
+    except subprocess.CalledProcessError:
+        return
+
+    windows = {}
+    for line in lines:
+        parts = line.split("|||", 2)
+        if len(parts) < 3:
+            continue
+        pane_id, window_id, window_name = parts
+        if pane_id not in registered_panes:
+            continue
+        if window_id not in windows:
+            windows[window_id] = (window_name, set())
+        windows[window_id][1].add(pane_id.lstrip('%'))
+
+    for window_id, (window_name, window_panes) in windows.items():
+        _update_window_name_inner(window_id, window_name, window_panes, data)
+
+
+def _update_window_name_inner(window_id, window_name, window_panes, data=None):
+    """Update a single window's emoji based on the worst status of its panes."""
+    if data is None:
+        data = read_json(SESSIONS_FILE, default={"panes": {}})
     worst_status = None
     worst_priority = 999
     for key, s in data.get("panes", {}).items():
@@ -1303,6 +1343,24 @@ def _ensure_pane(data, key):
         }
 
 
+def _mark_cold_sessions(data):
+    """Mark sessions as cold if unchanged for COLD_THRESHOLD_HOURS. Mutates data."""
+    now = datetime.now(timezone.utc)
+    threshold = timedelta(hours=COLD_THRESHOLD_HOURS)
+    for s in data.get("panes", {}).values():
+        if s.get("status") == "cold":
+            continue
+        ts = s.get("status_since") or s.get("created_at")
+        if not ts:
+            continue
+        try:
+            last_update = datetime.fromisoformat(ts)
+            if now - last_update > threshold:
+                s["status"] = "cold"
+        except (ValueError, TypeError):
+            pass
+
+
 def _cleanup_stale(data):
     """Remove stale panes and refresh tmux_session/tmux_window for live ones. Mutates data."""
     pane_info = _tmux_pane_info()
@@ -1331,6 +1389,8 @@ def _cleanup_stale(data):
         _archive_sessions(stale_sessions, status_override="abandoned")
         for k in stale:
             del data["panes"][k]
+
+    _mark_cold_sessions(data)
 
 
 def _archive_sessions(sessions, status_override=None):
