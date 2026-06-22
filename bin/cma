@@ -159,8 +159,7 @@ def main():
 
 def list_sessions(d=False, s=False, v=False, **kwargs):
     """List active claude sessions."""
-    _modify_sessions(lambda data: _cleanup_stale(data))
-    _update_all_window_names()
+    _cleanup_and_update_windows()
     data = read_json(SESSIONS_FILE, default={"panes": {}})
     pane_info = _tmux_pane_info()
     # Filter to panes that still exist in tmux
@@ -339,8 +338,7 @@ def _parse_time_cutoff(time_str):
 
 def next_session(**kwargs):
     """Switch to next waiting/done session, cycling back to origin when done."""
-    _modify_sessions(lambda data: _cleanup_stale(data))
-    _update_all_window_names()
+    _cleanup_and_update_windows()
     data = read_json(SESSIONS_FILE, default={"panes": {}})
 
     # 1. Find next candidate — waiting before done, most recent first
@@ -698,8 +696,7 @@ def _resolve_jump_target(query):
 
 def old_sessions(d=False, s=False, v=False, **kwargs):
     """List historical sessions as a flat list ordered by time."""
-    _modify_sessions(lambda data: _cleanup_stale(data))
-    _update_all_window_names()
+    _cleanup_and_update_windows()
 
     sessions = _read_old_sessions()
     if not sessions:
@@ -739,8 +736,7 @@ def old_sessions(d=False, s=False, v=False, **kwargs):
 
 def dead_sessions(d=False, s=False, v=False, **kwargs):
     """List dead/historical sessions grouped by tmux session name."""
-    _modify_sessions(lambda data: _cleanup_stale(data))
-    _update_all_window_names()
+    _cleanup_and_update_windows()
 
     sessions = _read_old_sessions()
     if not sessions:
@@ -807,8 +803,7 @@ def restore_sessions(tmux_session=None, t=None, **kwargs):
     that exited within 60 seconds of it (i.e. a batch exit like a reboot).
     Use -t to override the cutoff with a relative (5m, 2h, 1d) or absolute timestamp.
     """
-    _modify_sessions(lambda data: _cleanup_stale(data))
-    _update_all_window_names()
+    _cleanup_and_update_windows()
 
     sessions = _read_old_sessions()
     if not sessions:
@@ -925,8 +920,7 @@ def sync_titles(overwrite=False, **kwargs):
 
 def clean_sessions(**kwargs):
     """Explicitly run stale session cleanup."""
-    _modify_sessions(lambda data: _cleanup_stale(data))
-    _update_all_window_names()
+    _cleanup_and_update_windows()
     print("Cleanup complete.")
 
 
@@ -1229,13 +1223,18 @@ def hook_stop(**kwargs):
         return
     is_focused = _is_pane_focused()
 
+    cold_changed = [False]
     def update(data):
         _ensure_pane(data, key)
         data["panes"][key]["status"] = "idle" if is_focused else "done"
         data["panes"][key]["status_since"] = datetime.now(timezone.utc).isoformat()
         _sync_title_if_missing(data["panes"][key])
+        cold_changed[0] = _mark_cold_sessions(data)
     _modify_sessions(update)
-    _update_window_name()
+    if cold_changed[0]:
+        _update_all_window_names()
+    else:
+        _update_window_name()
     if not is_focused:
         _alert_sound()
     _dump_session_for_pane(key)
@@ -1247,13 +1246,20 @@ def hook_pane_focus(**kwargs):
     if not key:
         return
 
+    pane_changed = [False]
+    cold_changed = [False]
     def update(data):
         pane = data["panes"].get(key)
         if pane and pane.get("status") == "done":
             pane["status"] = "idle"
             pane["status_since"] = datetime.now(timezone.utc).isoformat()
+            pane_changed[0] = True
+        cold_changed[0] = _mark_cold_sessions(data)
     _modify_sessions(update)
-    _update_window_name()
+    if cold_changed[0]:
+        _update_all_window_names()
+    elif pane_changed[0]:
+        _update_window_name()
 
 
 def hook_session_end(**kwargs):
@@ -1326,6 +1332,16 @@ def _modify_sessions(fn):
     modify_json(SESSIONS_FILE, fn, default={"panes": {}})
 
 
+def _cleanup_and_update_windows():
+    """Run stale cleanup + cold marking, and update window names if any sessions went cold."""
+    cold_changed = [False]
+    def cleanup(data):
+        cold_changed[0] = _cleanup_stale(data)
+    _modify_sessions(cleanup)
+    if cold_changed[0]:
+        _update_all_window_names()
+
+
 def _ensure_pane(data, key):
     """Ensure a pane entry exists, creating a minimal one if needed."""
     if key not in data["panes"]:
@@ -1344,7 +1360,9 @@ def _ensure_pane(data, key):
 
 
 def _mark_cold_sessions(data):
-    """Mark sessions as cold if unchanged for COLD_THRESHOLD_HOURS. Mutates data."""
+    """Mark sessions as cold if unchanged for COLD_THRESHOLD_HOURS. Mutates data.
+    Returns True if any sessions transitioned to cold."""
+    changed = False
     now = datetime.now(timezone.utc)
     threshold = timedelta(hours=COLD_THRESHOLD_HOURS)
     for s in data.get("panes", {}).values():
@@ -1357,18 +1375,23 @@ def _mark_cold_sessions(data):
             last_update = datetime.fromisoformat(ts)
             if now - last_update > threshold:
                 s["status"] = "cold"
+                changed = True
         except (ValueError, TypeError):
             pass
+    return changed
 
 
 def _cleanup_stale(data):
-    """Remove stale panes and refresh tmux_session/tmux_window for live ones. Mutates data."""
+    """Remove stale panes and refresh tmux_session/tmux_window for live ones. Mutates data.
+    Returns True if any sessions transitioned to cold."""
+    cold_changed = _mark_cold_sessions(data)
+
     pane_info = _tmux_pane_info()
     try:
         pane_output = sh_read("tmux list-panes -a -F '#{pane_id}'")
         active_panes = {p.lstrip('%') for p in pane_output.strip().splitlines()}
     except subprocess.CalledProcessError:
-        return
+        return cold_changed
 
     stale = []
     for k, s in data["panes"].items():
@@ -1390,7 +1413,7 @@ def _cleanup_stale(data):
         for k in stale:
             del data["panes"][k]
 
-    _mark_cold_sessions(data)
+    return cold_changed
 
 
 def _archive_sessions(sessions, status_override=None):
