@@ -164,6 +164,7 @@
     draft = !git commit --no-verify -am \"draft: $*\" && git reset --soft 'HEAD~1' "#"
     nuke = !git draft "nuking repo" && git reset --hard
     nuku = !git stash push --staged && git checkpoint "nuking unstaged changes" && git reset --hard && git stash pop --index
+    nuke-branch = !branch=$(git rev-parse --abbrev-ref HEAD) && git switch master && git branch -D "$branch"
     # remove all whitespace changes
     rw = !sh -c 'git diff -U0 -w --no-color "$@" | git apply --cached --ignore-whitespace --unidiff-zero - && git restore "${@:-.}" && git reset'
 
