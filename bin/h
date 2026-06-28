@@ -408,7 +408,7 @@ def stats(start, end, activities, day, week, month, quarter, year, everything, r
 def cal_view(args, habit, all, **global_args):
     today = date.today()
 
-    if not habit and args and args[0].isdigit():
+    if not habit and args and args[0].isdigit() and int(args[0]) < 1000:
         habit = args[0]
         args = args[1:]
 
@@ -427,7 +427,7 @@ def cal_view(args, habit, all, **global_args):
     def parse_month_arg(arg):
         if arg is None:
             return today.replace(day=1)
-        if arg.isdigit():
+        if arg.isdigit() and int(arg) < 1000:
             n = int(arg)
             m = today.month - n
             y = today.year

@@ -168,7 +168,8 @@ def oauth(force: bool = False):
         if force:
             raise
         print("Token expired or revoked, re-authenticating...", file=sys.stderr)
-        os.remove(TOKEN_PATH)
+        if os.path.exists(TOKEN_PATH):
+            os.remove(TOKEN_PATH)
         client = gspread.oauth(
             credentials_filename=CREDENTIALS_PATH,
             authorized_user_filename=TOKEN_PATH,
