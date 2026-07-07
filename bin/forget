@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+# Delete entries from zsh history
+# Usage:
+#   forget          - delete last entry
+#   forget 5        - delete last 5 entries
+#   forget "cmd"    - delete all entries starting with "cmd" (min 5 chars)
+
+set -euo pipefail
+
+export LC_ALL=C
+
+HISTFILE="${HISTFILE:-$HOME/.zsh_history}"
+# Resolve symlinks — sed -i doesn't work on symlinks
+HISTFILE=$(readlink -f "$HISTFILE" 2>/dev/null || realpath "$HISTFILE")
+
+if [[ ! -f "$HISTFILE" ]]; then
+    echo "History file not found: $HISTFILE" >&2
+    exit 1
+fi
+
+# Count lines before
+before=$(wc -l < "$HISTFILE")
+
+arg="$*"
+
+if [[ -z "$arg" ]]; then
+    # Delete last entry
+    sed -i '' '$d' "$HISTFILE"
+elif [[ "$arg" =~ ^[0-9]+$ ]]; then
+    n="$arg"
+    if [[ $n -lt 1 ]]; then
+        echo "Number must be at least 1" >&2
+        exit 1
+    fi
+    total=$(wc -l < "$HISTFILE")
+    if [[ $n -gt $total ]]; then
+        n=$total
+    fi
+    start=$((total - n + 1))
+    sed -i '' "${start},\$d" "$HISTFILE"
+else
+    prefix="$arg"
+    if [[ ${#prefix} -lt 5 ]]; then
+        echo "Prefix must be at least 5 characters (got ${#prefix})" >&2
+        exit 1
+    fi
+    # Escape regex special chars in prefix, then delete lines starting with it
+    escaped=$(printf '%s' "$prefix" | sed 's/[.[\*^$()+?{|\\]/\\&/g')
+    sed -i '' "/^${escaped}/d" "$HISTFILE"
+fi
+
+after=$(wc -l < "$HISTFILE")
+removed=$((before - after))
+echo "Removed $removed history entries"

@@ -89,6 +89,12 @@ done
 # Use merge-base with master as a safe rebase base
 REBASE_BASE=${REBASE_BASE:-$(git merge-base master HEAD)}
 
+# If merge-base == HEAD (e.g. splitting from master itself), the range is empty.
+# Use the parent of the earliest commit to remove instead.
+if [[ "$(git rev-parse "$REBASE_BASE")" == "$(git rev-parse HEAD)" ]]; then
+    REBASE_BASE="${COMMITS[0]}~1"
+fi
+
 # If removing all commits above master, just reset — rebase can't handle an empty todo
 TOTAL=$(git rev-list --count "$REBASE_BASE..HEAD")
 if [[ ${#COMMITS[@]} -ge "$TOTAL" ]]; then

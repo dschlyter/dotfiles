@@ -61,6 +61,10 @@ BASE_BRANCH="master"
 # Resolve commits to cherry-pick
 COMMITS=()
 if [[ $# -eq 0 ]]; then
+    if [[ "$PLUCK" == true ]] && [[ "$(git rev-parse --abbrev-ref HEAD)" == "$BASE_BRANCH" ]]; then
+        echo "Error: interactive split from $BASE_BRANCH is not supported. Use 'git split <branch> N' instead."
+        exit 1
+    fi
     # Interactive selection via git select
     while IFS= read -r sha; do
         COMMITS+=("$sha")
@@ -105,8 +109,14 @@ elif git rev-parse --verify "origin/$BRANCH_NAME" >/dev/null 2>&1; then
     echo "Using existing remote branch 'origin/$BRANCH_NAME'"
     git worktree add "$WORKTREE_DIR" -b "$BRANCH_NAME" "origin/$BRANCH_NAME"
 else
-    echo "Creating new branch '$BRANCH_NAME' from '$BASE_BRANCH'"
-    git worktree add "$WORKTREE_DIR" -b "$BRANCH_NAME" "$BASE_BRANCH"
+    ACTUAL_BASE="$BASE_BRANCH"
+    # If commits are already reachable from base (e.g. splitting from master itself),
+    # use parent of first commit so cherry-pick has something to apply
+    if git merge-base --is-ancestor "${COMMITS[0]}" "$ACTUAL_BASE" 2>/dev/null; then
+        ACTUAL_BASE="${COMMITS[0]}~1"
+    fi
+    echo "Creating new branch '$BRANCH_NAME' from '$ACTUAL_BASE'"
+    git worktree add "$WORKTREE_DIR" -b "$BRANCH_NAME" "$ACTUAL_BASE"
 fi
 
 # Cherry-pick commits in the worktree
