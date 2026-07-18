@@ -180,13 +180,14 @@ else
     echo "🔹 skipping claude conf - no .claude dir"
 fi
 
-if [ -d "$HOME/.claude/skills" ]; then
+if [ -d "$HOME/.claude" ]; then
+    mkdir -p "$HOME/.claude/skills"
     for skill in "$DOTFILES"/skills/*; do
         skill_name="$(basename "$skill")"
         link "skills/$skill_name" "$HOME/.claude/skills/$skill_name"
     done
 else
-    echo "🔹 skipping claude conf skills - no .claude/skills dir"
+    echo "🔹 skipping claude conf skills - no .claude dir"
 fi
 
 case "$(uname -s)" in
