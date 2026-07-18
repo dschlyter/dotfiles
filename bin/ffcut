@@ -32,6 +32,7 @@ def main():
     main_p.add_argument('--rescale-with-fps', type=int, help='force scale to 1080p with supplied fps (better to scale down than up)')
     main_p.add_argument('--scale', help='horizontal scale to scale down to, default is 1920 or 1280 depending on preset')
     main_p.add_argument('--quality', type=int, help='quality to use for -crf (cpu, x264 default 23 ~= av1 30) or -cq (gpu, different scale 23 crf ~= 36 cq for x264)')
+    main_p.add_argument('--suffix', type=str, default=None, help='override output suffix (e.g. --suffix "" to reuse input filename)')
     main_p.add_argument('--mv', '-m', action='store_true', help='move to subdirs when done')
 
     parsed_args = main_p.parse_args()
@@ -39,7 +40,7 @@ def main():
     parsed_args.handler(**parsed_args.__dict__)
 
 
-def cut(files_and_times: List[str], copy, av, av_mid, mid, smid, small, smaller, smallest, rescale_with_fps, scale, quality, mv, **global_args):
+def cut(files_and_times: List[str], copy, av, av_mid, mid, smid, small, smaller, smallest, rescale_with_fps, scale, quality, suffix, mv, **global_args):
     args = files_and_times
 
     video_args = []
@@ -68,6 +69,9 @@ def cut(files_and_times: List[str], copy, av, av_mid, mid, smid, small, smaller,
             video_args = video_args.format(quality=quality)
             output_suffix += f"_{quality}"
         video_args = video_args.split(" ")
+
+    if suffix is not None:
+        output_suffix = suffix
     
     if rescale_with_fps:
         scale_filter = f"scale=1920:1080,setsar=1,fps={rescale_with_fps}"

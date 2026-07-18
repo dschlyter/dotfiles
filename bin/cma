@@ -87,6 +87,8 @@ def main():
     sp.set_defaults(handler=sync_titles)
 
     sp = sub_ps.add_parser('clean', help='run cleanup (move stale sessions to archive)')
+    sp.add_argument('--stale', action='store_true', help='detect and remove sessions whose panes are not running claude')
+    sp.add_argument('--panes', metavar='IDS', default=None, help='explicitly clear specific pane IDs (comma-separated, e.g. 4,5,6)')
     sp.set_defaults(handler=clean_sessions)
 
     sp = sub_ps.add_parser('show', help='print conversation from a session log')
@@ -918,10 +920,86 @@ def sync_titles(overwrite=False, **kwargs):
     print(f"Updated {count} session titles.")
 
 
-def clean_sessions(**kwargs):
+def clean_sessions(stale=False, panes=None, **kwargs):
     """Explicitly run stale session cleanup."""
+    if panes:
+        keys = [k.strip().lstrip('%') for k in panes.split(',')]
+        removed = []
+        def remove_panes(data):
+            for k in keys:
+                session = data["panes"].pop(k, None)
+                if session:
+                    _sync_title_if_missing(session)
+                    _archive_sessions([session], status_override="abandoned")
+                    removed.append(k)
+        _modify_sessions(remove_panes)
+        for k in removed:
+            _update_window_name(f"%{k}")
+        print(f"Removed {len(removed)} sessions: {', '.join(removed)}" if removed else "No matching sessions found.")
+        return
+
+    if stale:
+        _clean_stale_sessions()
+        return
+
     _cleanup_and_update_windows()
     print("Cleanup complete.")
+
+
+def _clean_stale_sessions():
+    """Detect sessions whose panes exist but are not running claude, and archive them."""
+    try:
+        output = sh_read("tmux list-panes -a -F '#{pane_id}|||#{pane_current_command}|||#{pane_pid}'")
+    except subprocess.CalledProcessError:
+        print("Not in tmux.")
+        return
+
+    pane_commands = {}
+    for line in output.strip().splitlines():
+        parts = line.split("|||", 2)
+        if len(parts) >= 2:
+            pane_id = parts[0].lstrip('%')
+            pane_commands[pane_id] = parts[1]
+
+    data = read_json(SESSIONS_FILE, default={"panes": {}})
+    stale_keys = []
+    for k, s in data["panes"].items():
+        if k not in pane_commands:
+            continue
+        cmd = pane_commands[k]
+        if not _is_claude_command(cmd):
+            stale_keys.append(k)
+
+    if not stale_keys:
+        print("No stale sessions found.")
+        return
+
+    pane_info = _tmux_pane_info()
+    print("Stale sessions (pane exists but not running claude):")
+    for k in stale_keys:
+        s = data["panes"][k]
+        tmux_pane = s.get("tmux_pane", f"%{k}")
+        session_name, window_name, _ = pane_info.get(tmux_pane, ("?", "?", "?"))
+        cmd = pane_commands.get(k, "?")
+        print(f"  pane %{k}  {session_name}:{_strip_emoji_prefix(window_name)}  running={cmd}")
+
+    def remove_stale(data):
+        stale_sessions = [data["panes"][k] for k in stale_keys if k in data["panes"]]
+        for s in stale_sessions:
+            _sync_title_if_missing(s)
+        _archive_sessions(stale_sessions, status_override="abandoned")
+        for k in stale_keys:
+            data["panes"].pop(k, None)
+    _modify_sessions(remove_stale)
+
+    for k in stale_keys:
+        _update_window_name(f"%{k}")
+    print(f"Removed {len(stale_keys)} stale sessions.")
+
+
+def _is_claude_command(cmd):
+    """Check if a pane's current command looks like it's running claude."""
+    return 'claude' in cmd.lower()
 
 
 STATUS_ICONS = {"done": "🔴", "waiting": "🔴", "working": "🟡", "idle": "🟢", "cold": "🔵"}
