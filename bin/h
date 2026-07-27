@@ -65,7 +65,7 @@ def main():
 
     sp = root_p.add_parser('extend', aliases=['ex'], help='extend existing segment')
     sp.set_defaults(handler=extend)
-    sp.add_argument('args', help="[segment id] [duration] - default to last segment", nargs="*")
+    sp.add_argument('args', help="[segment id] [duration / end] - default to last segment (HH:MM is interpreted as end)", nargs="*")
 
     sp = root_p.add_parser('delete', aliases=['d'], help='delete segment or mark')
     sp.set_defaults(handler=delete)
@@ -617,9 +617,6 @@ def end(args, start, end, lookback, **global_args):
             payload['activity'] = _pick_activity()
             print(payload['activity'])
 
-        if payload['activity'] == "ex" and payload.get('end') is not None:
-            quit("Only durations are supported for extend")
-
         payloads.append(payload)
 
     for payload in payloads:
@@ -627,8 +624,10 @@ def end(args, start, end, lookback, **global_args):
             lookback_param = f"?lookback={lookback}" if lookback is not None else ""
             res = api.post(f"api/time4/segments{lookback_param}", payload)
             print("ended", _display_segment(res.get('segment')))
+        elif payload.get('end') is not None:
+            _extend_request("last", {"end": payload['end']})
         else:
-            extend([payload.get('duration') or "0"])
+            _extend_request("last", {"minutes": payload.get('duration') or 0})
 
 def _pick_activity(multiple=False, status="open"):
     activities = api.get(f"api/time4/activities?status={status}").get('activities', [])
@@ -643,21 +642,27 @@ def _show_activity(activity, flag_closed=True):
     return " > ".join((activity.get('lineage', []) + [activity['id']])) + (" [CLOSED]" if flag_closed and activity.get('status') == "closed" else "")
 
 def extend(args, **global_args):
-    segment, minutes = "last", 0
+    segment, duration = "last", None
 
     if len(args) > 2:
         print("Too many arguments")
         quit(1)
 
-    if len(args) >= 1:
+    if len(args) == 2:
+        segment, duration = args[0], args[1]
+    elif len(args) == 1:
         if _is_time_arg(args[0]):
-            minutes = int(args[0])
+            duration = args[0]
         else:
             segment = args[0]
-    if len(args) == 2:
-        minutes = int(args[1])
 
-    res = api.post(f"api/time4/segments/{segment}/extend", {"minutes": minutes})
+    if duration and ":" in duration:
+        _extend_request(segment, {"end": duration})
+    else:
+        _extend_request(segment, {"minutes": duration or 0})
+
+def _extend_request(segment, payload):
+    res = api.post(f"api/time4/segments/{segment}/extend", payload)
     if s := res.get('segment'):
         print("updated", _display_segment(s))
     else:

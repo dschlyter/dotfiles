@@ -77,7 +77,7 @@ def main():
     sp.add_argument('-v', action='store_true', help='verbose: show individual sessions')
     sp.set_defaults(handler=dead_sessions)
 
-    sp = sub_ps.add_parser('restore', help='restore dead sessions from a tmux session')
+    sp = sub_ps.add_parser('restore', aliases=['r', 'res'], help='restore dead sessions from a tmux session')
     sp.add_argument('tmux_session', nargs='?', default=None, help='tmux session name to restore (default: fzf select)')
     sp.add_argument('-t', metavar='TIME', default=None, help='cutoff: relative (e.g. 5m, 2h, 1d) or absolute (YYYY-MM-DD HH:MM)')
     sp.set_defaults(handler=restore_sessions)
@@ -108,9 +108,9 @@ def main():
     sp.add_argument('-a', '--add', action='store_true', help='add as supplemental directory (/add-dir) instead of changing to it (/cd)')
     sp.set_defaults(handler=jump)
 
-    sp = sub_ps.add_parser('legacy', help='deprecated commands')
-    sp.set_defaults(handler=lambda *args, **kwargs: sp.print_help())
-    legacy_sub = sp.add_subparsers()
+    legacy_group = sub_ps.add_parser('legacy', help='deprecated commands')
+    legacy_group.set_defaults(handler=lambda *args, **kwargs: legacy_group.print_help())
+    legacy_sub = legacy_group.add_subparsers()
 
     legacy_sp = legacy_sub.add_parser('perms', help='list permissions in project settings')
     legacy_sp.set_defaults(handler=list_permissions)
@@ -118,9 +118,9 @@ def main():
     legacy_sp = legacy_sub.add_parser('lift', help='move last permission from project to global settings')
     legacy_sp.set_defaults(handler=lift)
 
-    sp = sub_ps.add_parser('hook', help='hook handlers (called by Claude hooks)')
-    sp.set_defaults(handler=lambda *args, **kwargs: sp.print_help())
-    hook_sub = sp.add_subparsers()
+    hook_group = sub_ps.add_parser('hook', help='hook handlers (called by Claude hooks)')
+    hook_group.set_defaults(handler=lambda *args, **kwargs: hook_group.print_help())
+    hook_sub = hook_group.add_subparsers()
 
     hook_sp = hook_sub.add_parser('install', help='install cma hooks into ~/.claude/settings.json')
     hook_sp.set_defaults(handler=hook_install)
