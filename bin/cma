@@ -886,16 +886,19 @@ def _restore_group(tmux_session, group, t=None):
         window_name = sess.get("tmux_window", "") or _format_cwd(cwd)
         try:
             if first:
-                sh(f"tmux new-session -d -s {_shell_quote(tmux_session)} -n {_shell_quote(window_name)} -c {_shell_quote(cwd)} {_shell_quote('claude --resume ' + sid)}")
+                pane_id = sh_read(f"tmux new-session -d -s {_shell_quote(tmux_session)} -n {_shell_quote(window_name)} -c {_shell_quote(cwd)} -P -F '#{{pane_id}}'")
                 current_window[wi] = 1
                 first = False
             elif wi not in current_window:
-                sh(f"tmux new-window -t {_shell_quote(tmux_session)} -n {_shell_quote(window_name)} -c {_shell_quote(cwd)} {_shell_quote('claude --resume ' + sid)}")
+                pane_id = sh_read(f"tmux new-window -t {_shell_quote(tmux_session)} -n {_shell_quote(window_name)} -c {_shell_quote(cwd)} -P -F '#{{pane_id}}'")
                 current_window[wi] = 1
             else:
                 split = "-h" if current_window[wi] == 1 else "-v"
-                sh(f"tmux split-window {split} -t {_shell_quote(tmux_session)} -c {_shell_quote(cwd)} {_shell_quote('claude --resume ' + sid)}")
+                pane_id = sh_read(f"tmux split-window {split} -t {_shell_quote(tmux_session)} -c {_shell_quote(cwd)} -P -F '#{{pane_id}}'")
                 current_window[wi] += 1
+
+            _prepopulate_restored_session(pane_id, sess)
+            sh(f"tmux send-keys -t {_shell_quote(pane_id)} {_shell_quote('claude --resume ' + sid)} Enter")
         except subprocess.CalledProcessError:
             print(f"Failed to create pane for session {sid}")
 
@@ -1279,16 +1282,19 @@ def hook_session_start(**kwargs):
     tmux_window_index = pane_entry[2]
 
     def update(data):
-        data["panes"][key or session_id[:12]] = {
-            "session_id": session_id,
-            "tmux_pane": tmux_pane,
-            "tmux_session": tmux_session,
-            "tmux_window": tmux_window,
-            "tmux_window_index": tmux_window_index,
-            "cwd": cwd,
-            "status": "idle",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
+        pane_key = key or session_id[:12]
+        existing = data["panes"].get(pane_key)
+        if not existing or existing.get("session_id") != session_id:
+            existing = {}
+        existing["session_id"] = session_id
+        existing["tmux_pane"] = tmux_pane
+        existing["tmux_session"] = tmux_session
+        existing["tmux_window"] = tmux_window
+        existing["tmux_window_index"] = tmux_window_index
+        existing["cwd"] = cwd
+        existing["status"] = "idle"
+        existing.setdefault("created_at", datetime.now(timezone.utc).isoformat())
+        data["panes"][pane_key] = existing
     _modify_sessions(update)
     _update_window_name()
 
@@ -1539,6 +1545,17 @@ def _archive_sessions(sessions, status_override=None):
                 if status_override:
                     record["status"] = status_override
                 f.write(json.dumps(record) + "\n")
+
+
+def _prepopulate_restored_session(pane_id, archived_session):
+    """Write archived session data into active sessions under the new pane key."""
+    key = pane_id.lstrip('%')
+    entry = dict(archived_session)
+    entry["restored_at"] = datetime.now(timezone.utc).isoformat()
+
+    def update(data):
+        data["panes"][key] = entry
+    _modify_sessions(update)
 
 
 def _read_old_sessions():
