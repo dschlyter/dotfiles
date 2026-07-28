@@ -770,7 +770,7 @@ def dead_sessions(d=False, s=False, v=False, **kwargs):
     from collections import defaultdict
     groups = defaultdict(list)
     for sess in sessions:
-        groups[sess.get("tmux_session", "unknown")].append(sess)
+        groups[_strip_session_number(sess.get("tmux_session", "unknown"))].append(sess)
 
     def group_sort_key(name):
         return max(
@@ -822,7 +822,7 @@ def restore_sessions(tmux_session=None, t=None, **kwargs):
     from collections import defaultdict
     groups = defaultdict(list)
     for s in sessions:
-        groups[s.get("tmux_session", "unknown")].append(s)
+        groups[_strip_session_number(s.get("tmux_session", "unknown"))].append(s)
 
     if not tmux_session:
         choices = sorted(groups.keys(), key=lambda n: max(_session_timestamp(s) for s in groups[n]), reverse=True)
@@ -868,6 +868,8 @@ def _restore_group(tmux_session, group, t=None):
         print(f"No sessions match the time window for '{tmux_session}'.")
         return
 
+    tmux_session = _numbered_session_name(tmux_session)
+
     def _sort_key(s):
         wi = s.get("tmux_window_index", "")
         pane = s.get("tmux_pane", "").lstrip("%")
@@ -883,7 +885,9 @@ def _restore_group(tmux_session, group, t=None):
         if not sid:
             continue
         wi = sess.get("tmux_window_index", "")
-        window_name = sess.get("tmux_window", "") or _format_cwd(cwd)
+        window_name = sess.get("tmux_window", "")
+        if window_name == wi:
+            window_name = ""
         try:
             if first:
                 pane_id = sh_read(f"tmux new-session -d -s {_shell_quote(tmux_session)} -n {_shell_quote(window_name)} -c {_shell_quote(cwd)} -P -F '#{{pane_id}}'")
@@ -1958,6 +1962,26 @@ def _project_dir_to_cwd(project_dir):
             path = os.path.join(path, parts[i])
             i += 1
     return path
+
+
+def _strip_session_number(name):
+    """Strip leading '<digit>-' prefix from a tmux session name."""
+    import re
+    m = re.match(r'^\d+-(.+)$', name)
+    return m.group(1) if m else name
+
+
+def _numbered_session_name(name):
+    """Add a numbered prefix to a session name, matching create-session.sh logic."""
+    try:
+        existing = sorted(sh_read("tmux list-sessions -F '#S'").splitlines())
+        last = existing[-1] if existing else ""
+    except subprocess.CalledProcessError:
+        last = ""
+    for i in range(1, 10):
+        if not last or str(i) > last:
+            return f"{i}-{name}" if name else str(i)
+    return name
 
 
 def _shell_quote(s):
