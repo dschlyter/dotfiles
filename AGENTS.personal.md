@@ -39,6 +39,13 @@ For example:
 
 Repeat links in new messages. Even if the link was posed before the user should not have to scroll up to find them.
 
+## Show Code
+
+When answering questions about the codebase, show the code that you are referencing.
+
+- Show which file (and provide a github link if possible)
+- Show 3-5 lines of code from that file that illustrates the answer
+
 ## Be Concise
 
 In all matters, be concise and to the point.

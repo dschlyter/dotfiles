@@ -310,6 +310,13 @@ def _fmt_timestamp(iso_str):
         return ""
 
 
+def _fmt_timestamp_from_epoch(epoch_secs):
+    """Format epoch seconds as local YYYY-MM-DD HH:MM."""
+    if not epoch_secs:
+        return ""
+    return datetime.fromtimestamp(epoch_secs).strftime("%Y-%m-%d %H:%M")
+
+
 def _session_timestamp(sess):
     """Get the archived/status timestamp as epoch seconds, or 0 if missing."""
     iso_str = sess.get("archived_at") or sess.get("status_since") or sess.get("created_at")
@@ -818,20 +825,34 @@ def restore_sessions(tmux_session=None, t=None, **kwargs):
         groups[s.get("tmux_session", "unknown")].append(s)
 
     if not tmux_session:
-        choices = sorted(groups.keys())
-        fzf_input = "\n".join(f"{name}  ({len(groups[name])} sessions)" for name in choices)
+        choices = sorted(groups.keys(), key=lambda n: max(_session_timestamp(s) for s in groups[n]), reverse=True)
+        fzf_lines = []
+        for name in choices:
+            group = groups[name]
+            latest_ts = max(_session_timestamp(s) for s in group)
+            recent = sum(1 for s in group if _session_timestamp(s) >= latest_ts - 60)
+            old = len(group) - recent
+            last_activity = _fmt_timestamp_from_epoch(latest_ts)
+            counts = f"({recent} recent, {old} old)" if old else f"({recent} recent)"
+            fzf_lines.append(f"{name}  {counts}  {last_activity}")
+        fzf_input = "\n".join(fzf_lines)
         try:
-            selected = sh_read(f"echo '{fzf_input}' | fzf --prompt='Restore session> '")
-            tmux_session = selected.split("  ")[0]
+            selected = sh_read(f"echo '{fzf_input}' | fzf -m --prompt='Restore session> '")
+            selected_names = [line.split("  ")[0] for line in selected.strip().splitlines()]
         except subprocess.CalledProcessError:
             return
+    else:
+        selected_names = [tmux_session]
 
-    if tmux_session not in groups:
-        print(f"No restorable sessions for '{tmux_session}'")
-        return
+    for name in selected_names:
+        if name not in groups:
+            print(f"No restorable sessions for '{name}'")
+            continue
+        _restore_group(name, groups[name], t)
 
-    group = groups[tmux_session]
 
+def _restore_group(tmux_session, group, t=None):
+    """Restore a single group of sessions into a new tmux session."""
     if t:
         cutoff = _parse_time_cutoff(t)
         if not cutoff:
@@ -844,13 +865,8 @@ def restore_sessions(tmux_session=None, t=None, **kwargs):
         to_restore = [s for s in group if _session_timestamp(s) >= cutoff]
 
     if not to_restore:
-        print("No sessions match the time window.")
+        print(f"No sessions match the time window for '{tmux_session}'.")
         return
-
-    try:
-        sh(f"tmux rename-session '{tmux_session}'")
-    except subprocess.CalledProcessError:
-        print(f"Warning: could not rename tmux session to '{tmux_session}'")
 
     def _sort_key(s):
         wi = s.get("tmux_window_index", "")
@@ -859,7 +875,8 @@ def restore_sessions(tmux_session=None, t=None, **kwargs):
                 int(pane) if pane.isdigit() else 9999)
     to_restore.sort(key=_sort_key)
 
-    current_window = {}  # window_index -> pane count in that window
+    first = True
+    current_window = {}
     for sess in to_restore:
         sid = sess.get("session_id")
         cwd = sess.get("cwd", os.getcwd())
@@ -868,17 +885,21 @@ def restore_sessions(tmux_session=None, t=None, **kwargs):
         wi = sess.get("tmux_window_index", "")
         window_name = sess.get("tmux_window", "") or _format_cwd(cwd)
         try:
-            if wi not in current_window:
-                sh(f"tmux new-window -n '{window_name}' -c '{cwd}' 'claude --resume {sid}'")
+            if first:
+                sh(f"tmux new-session -d -s {_shell_quote(tmux_session)} -n {_shell_quote(window_name)} -c {_shell_quote(cwd)} {_shell_quote('claude --resume ' + sid)}")
+                current_window[wi] = 1
+                first = False
+            elif wi not in current_window:
+                sh(f"tmux new-window -t {_shell_quote(tmux_session)} -n {_shell_quote(window_name)} -c {_shell_quote(cwd)} {_shell_quote('claude --resume ' + sid)}")
                 current_window[wi] = 1
             else:
                 split = "-h" if current_window[wi] == 1 else "-v"
-                sh(f"tmux split-window {split} -c '{cwd}' 'claude --resume {sid}'")
+                sh(f"tmux split-window {split} -t {_shell_quote(tmux_session)} -c {_shell_quote(cwd)} {_shell_quote('claude --resume ' + sid)}")
                 current_window[wi] += 1
         except subprocess.CalledProcessError:
             print(f"Failed to create pane for session {sid}")
 
-    print(f"Restored {len(to_restore)} sessions from '{tmux_session}'")
+    print(f"Restored {len(to_restore)} sessions into new tmux session '{tmux_session}'")
 
 
 def sync_titles(overwrite=False, **kwargs):
