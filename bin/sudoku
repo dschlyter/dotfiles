@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+
+# WIP basic sudoku solver - does basic naked and hidden elimination
+# TODO branching into different possibilities
+# TODO advanced constraints like sum lines, killer cages, etc
+
+import os
+import sys
+
+LINE = 9
+BOX = 3
+IGNORE_EMPTY = os.environ.get("IGNORE_EMPTY", "0") == "1"
+ignore_cells = []
+
+def main():
+    board = []
+    pos = 0
+    for a in sys.argv[1:]:
+        if a == ",":
+            board.append("")
+            while len(board) % BOX != 0:
+                board.append("")
+        elif a == "-":
+            board.append("")
+            while len(board) % LINE != 0:
+                board.append("")
+        elif a == ".":
+            board.append("")
+        else:
+            board.append(a)
+
+    while len(board) < LINE * LINE:
+        board.append("")
+
+    for i in range(len(board)):
+        if board[i] == "":
+            board[i] = list(range(1, LINE + 1))
+            if IGNORE_EMPTY:
+                ignore_cells.append(i)
+        else:
+            board[i] = list(map(int, list(board[i])))
+
+    print_board(board)
+
+    bl = combined_length(board)
+    for iter in range(100):
+        for d in DIGIT_SETS:
+            naked_elimination(board, d, verbose=True)
+            hidden_elimination(board, d, verbose=True)
+        new_bl = combined_length(board) 
+        if new_bl == bl:
+            break
+        print(f"iteration {iter} complete, reduced from {bl} to {new_bl}")
+        bl = new_bl
+
+    print()
+    print_board(board)
+
+def naked_elimination(board, digits, verbose=False):
+    for house_type, h in HOUSES:
+        possibilities = []
+        for pos in h:
+            if set(board[pos]) == digits:
+                possibilities.append(pos)
+        if len(possibilities) == len(digits):
+            for pos in h:
+                if pos not in possibilities:
+                    eliminate(board, pos, digits, verbose=verbose, method="naked", house_type=house_type, house=h)
+
+def hidden_elimination(board, digits, verbose=False):
+    for house_type, h in HOUSES:
+        possibilities = []
+        for pos in h:
+            for d in digits:
+                if d in board[pos]:
+                    possibilities.append(pos)
+                    break
+        if len(possibilities) == len(digits):
+            for pos in h:
+                if pos in possibilities:
+                    eliminate(board, pos, digits, verbose=verbose, method="hidden", house_type=house_type, house=h)
+
+def eliminate(board, pos, digits, verbose=False, method="", house_type="", house=[]):
+    to_eliminate = digits
+    if method == "hidden":
+        to_eliminate = set(board[pos]) - digits
+
+    eliminated = []
+    for digit in to_eliminate:
+        if digit in board[pos]:
+            board[pos].remove(digit)
+            eliminated.append(digit)
+    if verbose and eliminated and pos not in ignore_cells:
+        print(f"{method} elimination of {eliminated} at {house_type} {display_pos(pos)} (elimination set {digits})")
+
+
+def combined_length(board):
+    return sum(len(cell) for cell in board)
+
+def print_board(board):
+    str_board = ["".join(map(str, e)) if len(e) < 9 else "" for e in board]
+    cells = [str_board[i] if i < len(str_board) else "" for i in range(LINE * LINE)]
+    widths = [max(len(cells[i * LINE + j]) for i in range(LINE)) for j in range(LINE)]
+
+    for i in range(LINE):
+        if i % BOX == 0 and i != 0:
+            print("-+-".join("-" * (sum(widths[b:b + BOX]) + BOX - 1) for b in range(0, LINE, BOX)))
+        row = []
+        for b in range(0, LINE, BOX):
+            row.append(" ".join(cells[i * LINE + j].center(widths[j]) for j in range(b, b + BOX)))
+        print(" | ".join(row))
+
+def display_pos(index):
+    return f"{index // LINE + 1}, {index % LINE + 1}"
+
+HOUSES = []
+for row in range(LINE):
+    HOUSES.append(("row", [row * LINE + col for col in range(LINE)]))
+for col in range(LINE):
+    HOUSES.append(("col", [row * LINE + col for row in range(LINE)]))
+for box_row in range(0, LINE, BOX):
+    for box_col in range(0, LINE, BOX):
+        HOUSES.append(("box", [(box_row + i) * LINE + (box_col + j) for i in range(BOX) for j in range(BOX)]))
+
+# TODO maybe compute on demand
+DIGIT_SETS = []
+for d1 in range(0, LINE + 1):
+    for d2 in range(d1+1 if d1 > 0 else 0, LINE + 1):
+        for d3 in range(d2+1 if d2 > 0 else 0, LINE + 1):
+            for d4 in range(d3+1 if d3 > 0 else 0, LINE + 1):
+                s = set()
+                for d in [d1, d2, d3, d4]:
+                    if d != 0:
+                        s.add(d)
+                if s:
+                    DIGIT_SETS.append(s)
+
+# TODO convert to and from bitmaps for internal processing
+
+if __name__ == "__main__":
+    main()
