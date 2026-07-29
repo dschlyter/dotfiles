@@ -642,16 +642,20 @@ def fork_session(worktree=None, **kwargs):
 
     if len(candidates) == 1:
         _, s, _ = candidates[0]
-        sid = s["session_id"]
     else:
         # Use fzf to select
         fzf_input = "\n".join(c[2] for c in candidates)
         try:
             selected = sh_read(f"echo '{fzf_input}' | fzf --prompt='Fork session> '")
-            # Extract session_id (last field)
-            sid = selected.strip().rsplit("  ", 1)[-1]
+            selected_key = selected.strip().split("  ")[0]
+            s = next(s for k, s, _ in candidates if k == selected_key)
         except subprocess.CalledProcessError:
             return  # User cancelled fzf
+
+    sid = s["session_id"]
+    cwd = s.get("cwd")
+    if cwd and os.path.isdir(cwd):
+        os.chdir(cwd)
 
     cmd = ["claude", "--resume", sid, "--fork-session"]
     if worktree:
