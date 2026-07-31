@@ -309,6 +309,5 @@ class SyncSettingsTests(unittest.TestCase):
         self.assertEqual(repo, target2)
         self.assertEqual(repo, base2)
 
-
 if __name__ == "__main__":
     unittest.main()

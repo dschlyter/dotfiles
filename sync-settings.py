@@ -67,7 +67,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        base_file, conflicts = sync(args.repo_file, args.local_file, args.state_dir)
+        base_file, conflicts, changed = sync(args.repo_file, args.local_file, args.state_dir)
     except (SyncError, OSError) as error:
         print(f"❌ partial sync skipped: {error}", file=sys.stderr)
         return 1
@@ -78,11 +78,18 @@ def main(argv: Optional[List[str]] = None) -> int:
             + ", ".join(conflicts),
             file=sys.stderr,
         )
-    print(f"✨ partial sync complete: {args.repo_file} ↔ {args.local_file} (base: {base_file})")
+    if changed:
+        print(f"✨ partial sync complete: {args.repo_file} ↔ {args.local_file} (base: {base_file})")
+    else:
+        print(f"✅ partial sync already up to date: {args.repo_file} ↔ {args.local_file}")
     return 0
 
 
-def sync(source: Path, target: Path, explicit_state_dir: Optional[Path] = None) -> Tuple[Path, List[str]]:
+def sync(
+    source: Path,
+    target: Path,
+    explicit_state_dir: Optional[Path] = None,
+) -> Tuple[Path, List[str], bool]:
     source = source.expanduser().absolute()
     target = target.expanduser().absolute()
     if source == target:
@@ -102,7 +109,8 @@ def sync(source: Path, target: Path, explicit_state_dir: Optional[Path] = None) 
         target_document = parse_document(target, target_data, source_document.mode)
 
     base_file = state_path(source, target, state_directory(explicit_state_dir))
-    if base_file.exists() or base_file.is_symlink():
+    base_exists = base_file.exists() or base_file.is_symlink()
+    if base_exists:
         base_data = read_regular_file(base_file, "merge base")
     else:
         base_data = source_data
@@ -133,13 +141,15 @@ def sync(source: Path, target: Path, explicit_state_dir: Optional[Path] = None) 
 
     new_source = render_document(source_document, merged, source_append)
     new_target = render_document(target_document, merged, target_append)
-    changes = [
-        (source, new_source, source_document.mode),
-        (target, new_target, target_document.mode),
-        (base_file, new_source, 0o600),
-    ]
+    changes = []
+    if new_source != source_data:
+        changes.append((source, new_source, source_document.mode))
+    if not target_exists or new_target != target_data:
+        changes.append((target, new_target, target_document.mode))
+    if not base_exists or new_source != base_data:
+        changes.append((base_file, new_source, 0o600))
     write_all(changes)
-    return base_file, conflicts
+    return base_file, conflicts, bool(changes)
 
 
 def marker_on_line(line: str) -> Optional[Tuple[str, Optional[str]]]:
