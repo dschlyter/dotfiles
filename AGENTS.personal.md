@@ -1,3 +1,7 @@
+# Coding Style
+
+Follow existing conventions and standards for existing codebases, but where it makes sense use these guidelines.
+
 ## BLUF
 
 Order of code is important - keep related pieces of code together.
@@ -14,7 +18,14 @@ In general functions should call down, a function calling one above itself is an
 
 However keep existing code style, this applies primarily to new greenfield code, and existing code should follow established patterns.
 
-## KISS
+## Obvious Tests
+
+A test is good when a human can instantly understand what is being tested.
+
+1. Tests should be plain. The test input and expected output should be inlined and readable, and not hidden behind layers of indirection.
+2. Boilerplate and repeated setups in each test obscur the intentions of the tests, and should be hidden away behind simple abstractions.
+
+# KISS
 
 kiss = keep it simple stupid
 
@@ -26,6 +37,8 @@ Gauge how important complexity minimization is from the users intent.
 - "add test" = expresses clear intent, test should be added unless it is surprisingly complicated 
 - "add test ?" = expresses doubt, consider cost and benefit tradeoff
 - "add test kiss" = explicit intent from user to consider complexity, favor simplicity and question the necessity of the addition
+
+# Communication Style
 
 ## Use Links
 

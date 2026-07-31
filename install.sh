@@ -206,18 +206,32 @@ if [ -d "$HOME/.claude" ]; then
         link AGENTS.personal.md "$HOME"/.claude/AGENTS.personal.md
         inject '@AGENTS.personal.md' ""$HOME"/.claude/CLAUDE.md" first
     fi
-else
-    echo "🔹 skipping claude conf - no .claude dir"
-fi
 
-if [ -d "$HOME/.claude" ]; then
     mkdir -p "$HOME/.claude/skills"
     for skill in "$DOTFILES"/skills/*; do
         skill_name="$(basename "$skill")"
         link "skills/$skill_name" "$HOME/.claude/skills/$skill_name"
     done
 else
-    echo "🔹 skipping claude conf skills - no .claude dir"
+    echo "🔹 skipping claude conf - no .claude dir"
+fi
+
+if [ -d "$HOME/.codex" ]; then
+  partial-sync codex/config.toml "$HOME/.codex/config.toml"
+
+  # TODO codex does not support this - use BEGIN_DOTFILES ??
+  # link AGENTS.base.md "$HOME"/.codex/AGENTS.base.md
+  # inject '@AGENTS.base.md' ""$HOME"/.codex/AGENTS.md" first
+  # if has_flag "installing personal Codex preferences" --codex --all; then
+    # link AGENTS.personal.md "$HOME"/.codex/AGENTS.personal.md
+    # inject '@AGENTS.personal.md' ""$HOME"/.codex/AGENTS.md" first
+  # fi
+
+  mkdir -p "$HOME/.codex/skills"
+  for skill in "$DOTFILES"/skills/*; do
+    skill_name="$(basename "$skill")"
+    link "skills/$skill_name" "$HOME/.codex/skills/$skill_name"
+  done
 fi
 
 case "$(uname -s)" in

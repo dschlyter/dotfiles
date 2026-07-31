@@ -1,0 +1,12 @@
+[tui]
+# BEGIN_DOTFILES:status-line
+status_line = [
+    "project-name",
+    "git-branch",
+    "model-with-reasoning",
+    "context-used",
+    "used-tokens",
+    "five-hour-limit",
+    "weekly-limit",
+]
+# END_DOTFILES:status-line
