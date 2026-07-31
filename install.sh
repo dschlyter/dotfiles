@@ -94,6 +94,36 @@ sync_settings() {
     fi
 }
 
+# Three-way merge only the sections enclosed by BEGIN_DOTFILES markers.
+# Relative repo files are resolved from this repository; relative local files
+# are resolved from the home directory.
+partial-sync() {
+    local dotfiles_file="$1"
+    local local_file="$2"
+    local python_cmd=""
+
+    if [[ ! "$dotfiles_file" == /** ]]; then
+        dotfiles_file="$DOTFILES/$dotfiles_file"
+    fi
+    if [[ ! "$local_file" == /** ]]; then
+        local_file="$HOME/$local_file"
+    fi
+
+    if command -v python3 > /dev/null 2>&1; then
+        python_cmd="python3"
+    elif command -v python > /dev/null 2>&1; then
+        python_cmd="python"
+    else
+        echo "❌ partial sync skipped for $dotfiles_file: Python 3 not found" >&2
+        return 0
+    fi
+
+    if ! "$python_cmd" "$DOTFILES/sync-settings.py" "$dotfiles_file" "$local_file"; then
+        echo "⚠️  partial sync failed for $dotfiles_file; continuing install" >&2
+    fi
+    return 0
+}
+
 inject() {
     local inject="$1"
     local file="$2"
