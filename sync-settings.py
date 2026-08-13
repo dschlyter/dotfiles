@@ -3,7 +3,7 @@
 """
 Synchronize marked sections of repository and local settings files.
 
-Sync two files merging their BEGIN_DOTFILES to END_DOTFILES blocks
+Sync two files three-way merging their BEGIN_DOTFILES to END_DOTFILES blocks - while leaving other content untouched
 """
 
 from __future__ import annotations

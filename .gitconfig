@@ -75,6 +75,8 @@
     cp = cherry-pick
     ski = stash --keep-index
 
+    slow = !touch .git/slow
+
     # entry point for custom scripts (for things that are too large to define inline here)
     # list contibutors with number of commits
     contribs = !$HOME/.git-scripts/entry contribs
