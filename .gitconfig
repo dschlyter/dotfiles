@@ -132,6 +132,7 @@
     lm = !git lh HEAD master
     ll = !git lg -n 9999
     lhl = !git lh -n 9999
+    ld = !git lh -- "${GIT_PREFIX:-.}"
     lc = !git ll | grep -C 10 $(git rev-parse --short HEAD)
     lS = log --color --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ai) %C(bold blue)<%an>%Creset' --abbrev-commit -S
     # log including all branchless (rebased, amended, dropped) commits

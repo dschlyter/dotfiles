@@ -212,6 +212,12 @@ if [ -d "$HOME/.claude" ]; then
         skill_name="$(basename "$skill")"
         link "skills/$skill_name" "$HOME/.claude/skills/$skill_name"
     done
+
+    mkdir -p "$HOME/.claude/commands"
+    for cmd in "$DOTFILES"/skill-commands/*; do
+        cmd_name="$(basename "$cmd")"
+        link "skill-commands/$cmd_name" "$HOME/.claude/commands/$cmd_name"
+    done
 else
     echo "🔹 skipping claude conf - no .claude dir"
 fi
@@ -231,6 +237,12 @@ if [ -d "$HOME/.codex" ]; then
   for skill in "$DOTFILES"/skills/*; do
     skill_name="$(basename "$skill")"
     link "skills/$skill_name" "$HOME/.codex/skills/$skill_name"
+  done
+
+  for cmd in "$DOTFILES"/skill-commands/*.md; do
+    cmd_name="$(basename "$cmd" .md)"
+    mkdir -p "$HOME/.codex/skills/$cmd_name"
+    link "skill-commands/$cmd_name.md" "$HOME/.codex/skills/$cmd_name/SKILL.md"
   done
 fi
 
