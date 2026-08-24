@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+prefix="$(git rev-parse --show-prefix)"
+
+if [[ -z "$prefix" ]]; then
+    echo "Already at repo root, listing all open PRs"
+    gh pr list --state open --limit 100
+    exit 0
+fi
+
+# strip trailing slash for display
+dir="${prefix%/}"
+
+echo "Open PRs touching $dir/"
+echo ""
+
+gh pr list --state open --limit 100 --json number,title,url,files \
+  --jq ".[] | select(.files | map(.path) | any(startswith(\"$prefix\"))) | \"#\(.number) \(.title) \(.url)\""

@@ -4,17 +4,21 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-FILE="${1:-.}"
+ARG="${1:-.}"
 LINE="${2:-}"
 
-# cd to allow this from anywhere with absolue paths
-cd "$(dirname "$FILE")"
+if [[ "$ARG" =~ ^[0-9]+$ ]]; then
+    uri="$(git github-url)/pull/$ARG"
+else
+    # cd to allow this from anywhere with absolue paths
+    cd "$(dirname "$ARG")"
 
-relative_path="$(git rev-parse --show-prefix)$(basename "$FILE")"
-uri="$(git github-url)/tree/master/$relative_path"
+    relative_path="$(git rev-parse --show-prefix)$(basename "$ARG")"
+    uri="$(git github-url)/tree/master/$relative_path"
 
-if [[ -n "$LINE" ]]; then
-    uri="${uri}#L${LINE}"
+    if [[ -n "$LINE" ]]; then
+        uri="${uri}#L${LINE}"
+    fi
 fi
 
 open "$uri"

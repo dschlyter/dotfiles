@@ -279,11 +279,13 @@ _update_git_info() {
         return
     fi
 
-    # fetch three values in one command to optimize runtime, will return 1 and have empty values if not a git dir
-    IFS=$'\n' local GIT_PARAMS_ARR=($(git rev-parse --show-toplevel --abbrev-ref HEAD --symbolic-full-name '@{u}' 2> /dev/null))
+    # fetch values in one command to optimize runtime, will return 1 and have empty values if not a git dir
+    IFS=$'\n' local GIT_PARAMS_ARR=($(git rev-parse --show-toplevel --git-common-dir --abbrev-ref HEAD --symbolic-full-name '@{u}' 2> /dev/null))
     local GIT_ROOT="${GIT_PARAMS_ARR[1]}"
-    local GIT_BRANCH="${GIT_PARAMS_ARR[2]}"
-    local GIT_REMOTE_BRANCH="${GIT_PARAMS_ARR[3]}"
+    local GIT_COMMON_DIR="${GIT_PARAMS_ARR[2]}"
+    [[ "$GIT_COMMON_DIR" != /* ]] && GIT_COMMON_DIR="$GIT_ROOT/$GIT_COMMON_DIR"
+    local GIT_BRANCH="${GIT_PARAMS_ARR[3]}"
+    local GIT_REMOTE_BRANCH="${GIT_PARAMS_ARR[4]}"
     if [ -n "$GIT_ROOT" ]; then
         local GIT_STATUS=""
 
@@ -293,7 +295,7 @@ _update_git_info() {
 
         # start checking for modified files in the background - this is the slowest operation so we start it first
         # check the entire repo, unless repo is marked as slow (monorepo) then check the current directory (or skip if in repo root)
-        if [ -f "$GIT_ROOT/.git/slow" ]; then
+        if [ -f "$GIT_COMMON_DIR/slow" ]; then
             is_slow_repo=1
         else
             is_slow_repo=0

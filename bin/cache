@@ -2,45 +2,78 @@
 
 import sys
 import hashlib
+import re
 import shutil
 import subprocess
+import time
 from pathlib import Path
+
+MAX_CACHE_SECS = 7 * 24 * 3600
+DEFAULT_CACHE_SECS = 3600
 
 
 def usage():
-    print("Run a command and cache output for one hour")
-    print("Usage: cache [cmd args...]")
-    print("cache --clear - will clear all cached commands")
+    print("Run a command and cache output")
+    print("Usage: cache [duration] [cmd args...]")
+    print()
+    print("Duration: 7d, 12h, 30m, 90s, or 90 (defaults to seconds)")
+    print("Default cache duration is 1h, max is 7d")
+    print()
+    print("cache --clear - clear all cached commands")
+
+
+def parse_duration(s):
+    m = re.fullmatch(r'(\d+)([dhms])?', s)
+    if not m:
+        return None
+    value = int(m.group(1))
+    unit = m.group(2) or 's'
+    multipliers = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
+    return value * multipliers[unit]
 
 
 def main():
-    cmd = list(sys.argv)[1:]
-    if not cmd or cmd[0] in ("-h", "--help"):
+    args = sys.argv[1:]
+    if not args or args[0] in ("-h", "--help"):
         usage()
         sys.exit(1)
 
     cache_dir = Path.home() / ".cache/cache-cmd"
-    if not cache_dir.exists():
-        cache_dir.mkdir(parents=True)
+    cache_dir.mkdir(parents=True, exist_ok=True)
 
-    if cmd[0] == "--clear":
+    if args[0] == "--clear":
         shutil.rmtree(str(cache_dir))
         return
 
-    # clean files older than 1h
-    # TODO see if this works on mac
-    # if sys.platform in ("linux", "linux2")
-    # works on linux, MAY work on mac
-    subprocess.check_call(["find", cache_dir, '-mindepth', "1", '-mmin', '+59', '-delete'])
-    # else:
-        # works on mac
-        # subprocess.check_call(["find", cache_dir, '-mindepth', "1", '-mtime', '+3600s', '-delete'])
+    cache_secs = DEFAULT_CACHE_SECS
+    if args[0][0].isdigit():
+        duration = parse_duration(args[0])
+        if duration is not None:
+            cache_secs = duration
+            args = args[1:]
 
-    cmd_hash = hashlib.md5(":SEP:".join(cmd).encode("utf-8")).hexdigest()
+    if not args:
+        usage()
+        sys.exit(1)
+
+    if cache_secs > MAX_CACHE_SECS:
+        print(f"Error: cache duration exceeds max of 7 days", file=sys.stderr)
+        sys.exit(1)
+
+    # clean files older than 7 days
+    subprocess.check_call(["find", str(cache_dir), '-mindepth', "1", '-mmin', f'+{7 * 24 * 60}', '-delete'])
+
+    cmd_hash = hashlib.blake2b(":SEP:".join(args).encode("utf-8"), digest_size=16).hexdigest()
     cache_file = cache_dir / f"cmd-{cmd_hash}.txt"
+
+    if cache_file.exists():
+        age = time.time() - cache_file.stat().st_mtime
+        if age > cache_secs:
+            cache_file.unlink()
+
     if not cache_file.exists():
         with open(cache_file, mode='w') as fp:
-            subprocess.check_call(cmd, stdout=fp)
+            subprocess.check_call(args, stdout=fp)
 
     with open(cache_file) as fp:
         print(fp.read(), end="")
