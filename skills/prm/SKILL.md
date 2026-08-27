@@ -3,7 +3,7 @@ name: prm
 description: General project management - the process for keeping work across multiple Claude sessions aligned with overall goals
 ---
 
-This is the general AI-augmented project management system to track the goals and process for my personal work, and to keep everything neat, organized and focused.
+This is the general AI-augmented project management system to track the goals and process for my personal work, and to keep everything neat, organized, correct and **focused**.
 
 The process and documentation stored in this system serves as *the bridge* between a multitude of Claude sessions on my machine (in the weeds implementation and investigation) and external systems that capture requirements and plans (high level goals).
 
@@ -17,6 +17,7 @@ The user may invoke the skill with different commands, potentially with addition
 - **init** - create a project file for the current project - start should be a lightweight skeleton
 - **create** - create a new task in the existing project
 - **update** - when the skill is invoked with this command, update the project task relevant to the current session
+- **save** - save the result or reference to the appropriate task, probably saving it to a _reference file
 
 # File structure
 
@@ -57,7 +58,10 @@ In order to ensure correctness, follow this process:
 2. Confirm with the user if there are uncertainties - but try to avoid bothering the user if possible
 3. Reference external documentation, or put information in `_reference` files if not certain.
 4. Be explicit about the uncertainty in the project documentation
-5. Consider just omitting the information. No information is better than incorrect info.
+5. Consider omitting the information. No information is much better than incorrect information
+6. Consider omitting the information. No information is much better than correct but unimportant or tangential information
+
+Overall the project file should provide a concise view of the most important aspects, with details left for external docs and references.
 
 ## File content
 
@@ -103,11 +107,3 @@ The `cma` command can find links between Claude sessions and project tasks.
 - `tmus ls` lists Tmux sessions and the name (matching the project) of them
 - `cma who -v <tmux session id>` or `cma who -vs` (current session) - lists the claude sessions in the tmux session
 - `cma show <uuid>` describe the content of the session to understand what it does
-
-# Git backed
-
-The project dir should be backed by git.
-
-Changes should be tracked by git, but all changes must be signed off by the user. Once a change has been done, ask the user if it is good to commit (or they may commit themselves).
-
-If uncommited changes are found, and it is more than 24h old - ask the user on how to handle this. Don't read the files themselves, but list the changed files to the user.

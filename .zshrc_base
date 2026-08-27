@@ -283,7 +283,7 @@ _update_git_info() {
     IFS=$'\n' local GIT_PARAMS_ARR=($(git rev-parse --show-toplevel --git-common-dir --abbrev-ref HEAD --symbolic-full-name '@{u}' 2> /dev/null))
     local GIT_ROOT="${GIT_PARAMS_ARR[1]}"
     local GIT_COMMON_DIR="${GIT_PARAMS_ARR[2]}"
-    [[ "$GIT_COMMON_DIR" != /* ]] && GIT_COMMON_DIR="$GIT_ROOT/$GIT_COMMON_DIR"
+    [[ "$GIT_COMMON_DIR" != /* ]] && GIT_COMMON_DIR="$PWD/$GIT_COMMON_DIR"
     local GIT_BRANCH="${GIT_PARAMS_ARR[3]}"
     local GIT_REMOTE_BRANCH="${GIT_PARAMS_ARR[4]}"
     if [ -n "$GIT_ROOT" ]; then
@@ -294,22 +294,16 @@ _update_git_info() {
         set +m
 
         # start checking for modified files in the background - this is the slowest operation so we start it first
-        # check the entire repo, unless repo is marked as slow (monorepo) then check the current directory (or skip if in repo root)
+        # check the entire repo, unless repo is marked as slow (monorepo) then skip entirely
         if [ -f "$GIT_COMMON_DIR/slow" ]; then
             is_slow_repo=1
         else
             is_slow_repo=0
         fi
-        if [ "$is_slow_repo" -eq 1 ] && [ "$PWD" = "$GIT_ROOT" ]; then
-            # both marked as slow and in repo root, skip the check (exit 1)
+        if [ "$is_slow_repo" -eq 1 ]; then
             (exit 1) &
         else
-            if [ "$is_slow_repo" -eq 1 ]; then
-                check_dir="."
-            else
-                check_dir="$GIT_ROOT"
-            fi
-            (git ls-files --deleted --modified --others --exclude-standard -- "$check_dir" | grep -q .) &
+            (git ls-files --deleted --modified --others --exclude-standard -- "$GIT_ROOT" | grep -q .) &
         fi
         local UNTRACKED_PID="$!"
 
