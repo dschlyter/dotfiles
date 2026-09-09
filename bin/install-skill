@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+roots=("$HOME/.claude/skills")
+show_hint=1
+force=0
+status=0
+
+while getopts "coaf" opt; do
+    case $opt in
+        c) roots=("$HOME/.claude/skills"); show_hint=0 ;;
+        o) roots=("$HOME/.codex/skills"); show_hint=0 ;;
+        a) roots=("$HOME/.claude/skills" "$HOME/.codex/skills"); show_hint=0 ;;
+        f) force=1 ;;
+        \?) exit 2 ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+if [[ -z "${1:-}" ]]; then
+    echo "usage: install-skill [-c|-o|-a] [-f] SKILL" >&2
+    exit 2
+fi
+
+if [[ $show_hint -eq 1 ]]; then
+    echo "hint: use -c for Claude, -o for Codex, or -a for both" >&2
+fi
+
+source="$(pwd)/$1"
+
+for root in "${roots[@]}"; do
+    mkdir -p "$root"
+    destination="$root/$(basename "$1")"
+
+    if [[ $force -eq 1 ]]; then
+        rm -rf "$destination"
+    elif [[ -L "$destination" ]]; then
+        existing_source=$(readlink "$destination")
+        if [[ "$existing_source" == "$source" ]]; then
+            echo "already installed: $destination -> $existing_source"
+        else
+            echo "different symlink: $destination -> $existing_source" >&2
+            status=1
+        fi
+        continue
+    elif [[ -e "$destination" ]]; then
+        echo "not a symlink: $destination" >&2
+        status=1
+        continue
+    fi
+
+    if ln -sn "$source" "$destination"; then
+        echo "installed: $destination -> $source"
+    else
+        status=1
+    fi
+done
+
+exit "$status"
