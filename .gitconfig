@@ -51,6 +51,7 @@
     di = diff HEAD
     dis = diff --staged
     diw = diff HEAD --color-words='[^[:space:]]|([[:alnum:]]|UTF_8_GUARD)+'
+    dim = diff master...HEAD
     au = add -u
     ca = commit -v -a -m
     cm = commit -v
@@ -64,6 +65,7 @@
     pp = !git pull --rebase && git pu
     br = branch -vv
     wt = "!f() { if [ $# -eq 0 ]; then $HOME/.git-scripts/worktree-list; else git worktree \"$@\"; fi; }; f"
+    sparse-wt = !$HOME/.git-scripts/entry sparse-wt
     rs = reset
     rb = rebase
     rba = rebase --autostash
