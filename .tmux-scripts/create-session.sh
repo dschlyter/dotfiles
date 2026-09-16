@@ -2,19 +2,16 @@
 
 NAME="$1"
 
-LAST=$(tmux list-sessions -F '#S' | sort | tail -1)
+# Find the highest numbered session index, ignoring non-numeric sessions (e.g. chirp)
+LAST=$(tmux list-sessions -F '#S' | grep -E '^[0-9]+(-|$)' | sed 's/-.*//' | sort -n | tail -1)
+LAST=${LAST:-0}
 
-for i in $(seq 1 9); do
-    if [ -z "$LAST" ] || [[ "$i" > "$LAST" ]]; then
-        if [ -n "$NAME" ]; then
-            SESSION="$i-$NAME"
-        else
-            SESSION="$i"
-        fi
-        tmux new-session -d -s "$SESSION" && tmux switch-client -t "$SESSION"
-        exit 0
-    fi
-done
+NEXT=$((LAST + 1))
 
-# Fallback: let tmux pick a name
-tmux new-session -d && tmux switch-client -t "$(tmux list-sessions -F '#S' | sort | tail -1)"
+if [ -n "$NAME" ]; then
+    SESSION="$NEXT-$NAME"
+else
+    SESSION="$NEXT"
+fi
+
+tmux new-session -d -s "$SESSION" && tmux switch-client -t "$SESSION"

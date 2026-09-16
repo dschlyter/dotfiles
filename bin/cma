@@ -1985,14 +1985,17 @@ def _strip_session_number(name):
 def _numbered_session_name(name):
     """Add a numbered prefix to a session name, matching create-session.sh logic."""
     try:
-        existing = sorted(sh_read("tmux list-sessions -F '#S'").splitlines())
-        last = existing[-1] if existing else ""
+        sessions = sh_read("tmux list-sessions -F '#S'").splitlines()
+        nums = []
+        for s in sessions:
+            prefix = s.split("-")[0]
+            if prefix.isdigit():
+                nums.append(int(prefix))
+        last = max(nums) if nums else 0
     except subprocess.CalledProcessError:
-        last = ""
-    for i in range(1, 10):
-        if not last or str(i) > last:
-            return f"{i}-{name}" if name else str(i)
-    return name
+        last = 0
+    next_idx = last + 1
+    return f"{next_idx}-{name}" if name else str(next_idx)
 
 
 def _shell_quote(s):
