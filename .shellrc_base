@@ -69,6 +69,7 @@ alias grootp='git rev-parse --show-cdup'
 # -c 'argd *' to clear arg list and avoid error on quitting
 alias erc="vim ~/.zshrc* ~/.shellrc* ~/.bashrc ~/.zgen_plugins ~/.dotfiles/.*.zsh -c 'argd *'; rc"
 function ecl { vim ~/.claude/settings.json $([ -f .claude/settings.local.json ] && echo .claude/settings.local.json) $([ -f CLAUDE.md ] && echo CLAUDE.md) ~/.claude/CLAUDE.md ~/.dotfiles/AGENTS.base.md ~/.dotfiles/AGENTS.personal.md -c 'argd *'; }
+function esk { vim ~/.claude/skills/${1:?usage: esk <skill-name>}/* -c 'argd *'; }
 alias name='tmux rename-window'
 alias i='unset HISTFILE'
 
@@ -577,6 +578,26 @@ function j {
         cd "$(cat "$JM_DIR/$1")"
     else
         fasd_cd -d "$@"
+    fi
+}
+
+function jcb {
+    local dir
+    if [ -n "$1" ] && [ -f "$JM_DIR/$1" ]; then
+        dir="$(cat "$JM_DIR/$1")"
+    else
+        dir="$(fasd -l -d -R "$@" | head -n 1)"
+    fi
+    if [ -n "$dir" ]; then
+        echo "$dir"
+        if command -v pbcopy > /dev/null; then
+            echo -n "$dir" | pbcopy
+        elif command -v xclip > /dev/null; then
+            echo -n "$dir" | xclip -selection clipboard
+        fi
+    else
+        echo "No match found"
+        return 1
     fi
 }
 
