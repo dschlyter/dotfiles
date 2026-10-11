@@ -8,6 +8,8 @@ import math
 import random
 import subprocess
 import statistics
+from itertools import combinations, combinations_with_replacement, permutations
+from functools import reduce, cache
 
 #
 # Default libs
@@ -41,6 +43,20 @@ except:
 
 if missing:
     print("todo: pip install", " ".join(missing))
+
+#
+# Functional helpers
+#
+
+def get(li, i, default=None):
+    if i < 0 or i >= len(li):
+        return default
+    return li[i]
+
+def compose(*functions):
+    return reduce(lambda f, g: lambda x: g(f(x)), functions)
+
+c = compose
 
 #
 # Default functions

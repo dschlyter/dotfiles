@@ -177,6 +177,7 @@ def oauth(force: bool = False):
         )
         if os.path.exists(TOKEN_PATH):
             os.chmod(TOKEN_PATH, 0o600)
+        print("Re-authenticated successfully.", file=sys.stderr)
     return client
 
 

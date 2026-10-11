@@ -62,6 +62,7 @@ def main():
     sp.add_argument('--start', '-s', help='start of the segment')
     sp.add_argument('--end', '-e', help='end of the segment')
     sp.add_argument('--lookback', '-l', type=int, help='days to look back for marks/segments when finding start time (default 1)')
+    sp.add_argument('--force', '-f', action='store_true', help='allow ending closed activities and segments over one year ago')
 
     sp = root_p.add_parser('extend', aliases=['ex'], help='extend existing segment')
     sp.set_defaults(handler=extend)
@@ -75,14 +76,14 @@ def main():
 
     sp = root_p.add_parser('activity', aliases=['a'], help='list and manage activities (has subcommands)')
     sp.set_defaults(handler=list_activities)
-    sp.add_argument('--root_prefix', '-r', help="only list for root with this prefix")
+    sp.add_argument('--root_prefix', '-r', help="only list matching activities and their children")
     sp.add_argument('--closed', '-c', help="list closed activities", action="store_true")
     sp.add_argument('--all', '-a', help="list all", action="store_true")
     activity_p = sp.add_subparsers()
 
     sp = activity_p.add_parser('list', aliases=['l'], help='list activities')
     sp.set_defaults(handler=list_activities)
-    sp.add_argument('root_prefix', help="only list for root with this prefix", nargs="?")
+    sp.add_argument('root_prefix', help="only list matching activities and their children", nargs="?")
     sp.add_argument('--closed', '-c', help="list closed activities", action="store_true")
     sp.add_argument('--all', '-a', help="list all activities (not just open)", action="store_true")
 
@@ -94,6 +95,14 @@ def main():
     sp = activity_p.add_parser('delete', help='delete activity')
     sp.set_defaults(handler=delete_activity)
     sp.add_argument('activity', help="name of activity")
+
+    sp = activity_p.add_parser('rename', help='rename activity')
+    sp.set_defaults(handler=rename_activity)
+    sp.add_argument('activity', help="name of activity")
+    sp.add_argument('new_name', help="new name of activity")
+    sp.add_argument('--merge', '-m', help="merge into an existing activity", action="store_true")
+    sp.add_argument('--from', '-f', dest='from_time', help="only rename segments from this date")
+    sp.add_argument('--to', '-t', dest='to_time', help="only rename segments up to this date")
 
     sp = activity_p.add_parser('parent', help='update parent')
     sp.set_defaults(handler=set_parent)
@@ -160,6 +169,7 @@ def main():
     sp = habits_p.add_parser('update', help='update habit')
     sp.set_defaults(handler=update_habit)
     sp.add_argument('name', help="name of habit")
+    sp.add_argument('--rename', '-r', dest='new_name', help="new name of habit")
     sp.add_argument('--description', '-d')
     sp.add_argument('--status', '-s', choices=["open", "closed"])
     sp.add_argument('--index', '-i', type=int)
@@ -179,7 +189,6 @@ def main():
     sp.add_argument('--all', '-a', help='list all goals (not just open)', action='store_true')
     sp.add_argument('--closed', '-c', help='list closed goals', action='store_true')
     sp.add_argument('--date', help='show standing as of this date (YYYY-MM-DD)', default=None)
-    sp.add_argument('--verbose', '-v', help='evaluate goals (slower)', action='store_true')
 
     sp = goals_p.add_parser('list', aliases=['l'], help='list goals')
     sp.set_defaults(handler=list_goals)
@@ -535,19 +544,37 @@ def cal_view(args, habit, all, **global_args):
             total_min = sum(v for k, v in totals.items() if k.startswith(prefix) and k != 'total')
             return str(round(total_min / 60)) if total_min else None
 
+    breakdown_fn = None
+    if not habit:
+        matched = [a for a in s if a != 'total']
+        if set(matched) != set(activities.split(",")):
+            def breakdown_fn(y, m):
+                prefix = f"{y}-{m:02d}"
+                month_totals = [(sum(v for k, v in s[a].items() if k.startswith(prefix)), a) for a in matched]
+                top = sorted((t for t in month_totals if t[0] > 0), reverse=True)[:4]
+                return [f"{round(t / 60) if t >= 60 else f'.{t * 10 // 60}':>3} {a}"[:month_w] for t, a in top]
+
     cell_w = 3
     month_w = cell_w * 7
     gap = "  "
     for i in range(0, len(months), 3):
         group = months[i:i+3]
         all_lines = [_cal_month_lines(y, m, cell_fn, cell_w, summary_fn) for y, m in group]
-        max_lines = max(len(lines) for lines in all_lines)
-        for lines in all_lines:
-            while len(lines) < max_lines:
-                lines.append("")
+        if breakdown_fn:
+            _pad_lines(all_lines)
+            for lines, (y, m) in zip(all_lines, group):
+                lines.extend(breakdown_fn(y, m))
+        _pad_lines(all_lines)
+        max_lines = len(all_lines[0])
         print()
         for row in range(max_lines):
             print(gap.join(lines[row].ljust(month_w) for lines in all_lines).rstrip())
+
+def _pad_lines(all_lines):
+    max_lines = max(len(lines) for lines in all_lines)
+    for lines in all_lines:
+        while len(lines) < max_lines:
+            lines.append("")
 
 def _cal_month_lines(year, month, cell_fn, cell_w, summary_fn=None):
     month_name = cal_mod.month_name[month]
@@ -585,7 +612,7 @@ def mark(minutes=None, **global_args):
     else:
         print("no mark created")
 
-def end(args, start, end, lookback, **global_args):
+def end(args, start, end, lookback, force, **global_args):
     payloads = []
     i = 0
 
@@ -602,6 +629,8 @@ def end(args, start, end, lookback, **global_args):
         if len(payloads) > 0 and (start or end):
             print("Cannot specify start or end with more than 2 segments")
             quit(1)
+        if force:
+            payload['force'] = True
         if start:
             payload['start'] = start
         if end:
@@ -693,18 +722,20 @@ def add_activity(activity, parent, **global_args):
     entry = {"activity": activity, "parent": parent}
     api.post("api/time4/activities", entry)
 
+def rename_activity(activity, new_name, merge, from_time, to_time, **global_args):
+    res = api.put(f"api/time4/activities/{activity}/rename/{new_name}",
+                  {"merge": merge, "from": from_time, "to": to_time})
+    print(f"renamed {res.get('segments')} segments to {new_name}")
+
 def delete_activity(activity, **global_args):
     api.delete("api/time4/activities/" + activity)
 
 @api_err_print_and_exit
 def list_activities(root_prefix, closed, all, **global_args):
     status = "all" if all else "closed" if closed else "open"
-    res = api.get(f"api/time4/activities?status={status}")
-    activities = []
-    for a in res.get('activities', []):
-        if root_prefix and not any(map(lambda x: x.startswith(root_prefix), a.get('lineage', []) + [a['id']])):
-            continue
-        activities.append(_show_activity(a))
+    match_param = f"&match={root_prefix}" if root_prefix else ""
+    res = api.get(f"api/time4/activities?status={status}{match_param}")
+    activities = [_show_activity(a) for a in res.get('activities', [])]
     for a in sorted(activities):
         print(a)
 
@@ -864,19 +895,17 @@ def add_habit(name, description, **global_args):
 def delete_habit(name, **global_args):
     api.delete("api/time4/habits/" + name)
 
-def update_habit(name, description, status, index, **global_args):
+def update_habit(name, new_name, description, status, index, **global_args):
     index = index-1 if index is not None else None
-    api.put(f"api/time4/habits/{name}", {"description": description, "status": status, "index": index})
+    api.put(f"api/time4/habits/{name}", {"name": new_name, "description": description, "status": status, "index": index})
 
 # Goals
 
-def read_goals(all=False, closed=False, date=None, verbose=False, **global_args):
+def read_goals(all=False, closed=False, date=None, **global_args):
     status = 'all' if all else 'closed' if closed else 'open'
-    url = f"api/time4/goals?status={status}"
+    url = f"api/time4/goals?status={status}&verbose=true"
     if date:
         url += f"&date={date}"
-    if verbose:
-        url += "&verbose=true"
     res = api.get(url)
     for g in res.get('goals', []):
         display_goal(g)

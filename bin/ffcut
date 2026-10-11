@@ -30,6 +30,7 @@ def main():
     main_p.add_argument('--smallest', action='store_true', help='720p with libx265, 28 crf')
 
     main_p.add_argument('--rescale-with-fps', type=int, help='force scale to 1080p with supplied fps (better to scale down than up)')
+    main_p.add_argument('--normalize', action='store_true', help='when merging, pad/resample every input to match the first one (needed for mixed resolutions/framerates)')
     main_p.add_argument('--scale', help='horizontal scale to scale down to, default is 1920 or 1280 depending on preset')
     main_p.add_argument('--quality', type=int, help='quality to use for -crf (cpu, x264 default 23 ~= av1 30) or -cq (gpu, different scale 23 crf ~= 36 cq for x264)')
     main_p.add_argument('--suffix', type=str, default=None, help='override output suffix (e.g. --suffix "" to reuse input filename)')
@@ -40,7 +41,7 @@ def main():
     parsed_args.handler(**parsed_args.__dict__)
 
 
-def cut(files_and_times: List[str], copy, av, av_mid, mid, smid, small, smaller, smallest, rescale_with_fps, scale, quality, suffix, mv, **global_args):
+def cut(files_and_times: List[str], copy, av, av_mid, mid, smid, small, smaller, smallest, rescale_with_fps, normalize, scale, quality, suffix, mv, **global_args):
     args = files_and_times
 
     video_args = []
@@ -120,7 +121,7 @@ def cut(files_and_times: List[str], copy, av, av_mid, mid, smid, small, smaller,
     if len(files_to_process) == 1 and len(files_to_process[0][1]) <= 2:
         direct_cut(files_to_process, output_file, video_args, scale_filter)
     else:
-        multi_file_cut(files_to_process, output_file, video_args, scale_filter)
+        multi_file_cut(files_to_process, output_file, video_args, scale_filter, normalize, scale)
 
     if mv:
         for f in files_to_process:
@@ -139,7 +140,7 @@ def direct_cut(files_to_process: List[str], output_file: str, video_args, scale_
         subprocess.check_call(["ffmpeg", "-i", file] + video_args + [output_file])
 
 
-def multi_file_cut(files_to_process: List[str], output_file: str, video_args, scale_filter):
+def multi_file_cut(files_to_process: List[str], output_file: str, video_args, scale_filter, normalize=False, scale=None):
     print("Using multi cut mode (concat filter, no temp files)")
 
     input_args = []
@@ -155,10 +156,14 @@ def multi_file_cut(files_to_process: List[str], output_file: str, video_args, sc
                 input_args += ["-ss", start, "-to", end, "-i", file]
                 segment_count += 1
 
-    # TODO this can fail is files have different resolutions or framerates
+    # concat requires every segment to match, --normalize forces that, otherwise mixed inputs fail
     # color fix: -pix_fmt yuv420p -profile:v high
     filter_complex = ""
-    if scale_filter:
+    if normalize:
+        v_filter, a_filter = normalize_filters(files_to_process[0][0], scale)
+        filter_complex += ";".join(f"[{i}:v]{v_filter}[v{i}];[{i}:a]{a_filter}[a{i}]" for i in range(segment_count)) + ";"
+        filter_complex += "".join(f"[v{i}][a{i}]" for i in range(segment_count))
+    elif scale_filter:
         filter_complex += ";".join(f"[{i}:v]{scale_filter}[v{i}]" for i in range(segment_count)) + ";"
         filter_complex += "".join(f"[v{i}][{i}:a]" for i in range(segment_count))
     else:
@@ -174,6 +179,31 @@ def multi_file_cut(files_to_process: List[str], output_file: str, video_args, sc
     )
     print("Running:", " ".join(cmd))
     subprocess.check_call(cmd)
+
+
+def normalize_filters(reference_file: str, scale):
+    """Build per segment filters that make every input match the first one, so concat accepts them."""
+    width, height, fps = ffprobe_video(reference_file)
+
+    # same rule as scale_filter - cap the long side, scale down but never up, keep aspect ratio
+    if scale:
+        limit = int(scale) if width / height > 1920 / 1080 else round(int(scale) * 1080 / 1920)
+        factor = min(1.0, limit / (width if width / height > 1920 / 1080 else height))
+        width, height = round(width * factor / 2) * 2, round(height * factor / 2) * 2
+
+    print(f"normalizing all segments to {width}x{height} @ {fps} fps")
+    v_filter = f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:-1:-1,setsar=1,fps={fps},format=yuv420p"
+    a_filter = "aresample=48000,aformat=channel_layouts=stereo"
+    return v_filter, a_filter
+
+
+def ffprobe_video(file: str):
+    out = subprocess.check_output([
+        "ffprobe", "-v", "error", "-select_streams", "v:0",
+        "-show_entries", "stream=width,height,r_frame_rate",
+        "-of", "csv=p=0:s=,", file,
+    ], text=True).strip().split(",")
+    return int(out[0]), int(out[1]), out[2]
 
 
 # OLD DEPRECATED - but could work better for different files with different codecs ?
