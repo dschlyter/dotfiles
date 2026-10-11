@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# git pullf
+# Force pull: like git pull, but hard-resets to the fetched commit instead of merging.
+# Works when the remote branch has been amended, rebased or force-pushed.
+
+set -euo pipefail
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    cat <<'EOF'
+Usage: git pullf [<remote|dir> [<branch>]]
+
+Fetch and hard-reset the current branch, picking the target like git pull:
+  git pullf                   upstream of current branch (@{u})
+  git pullf <remote>          upstream branch, if it is on <remote>
+  git pullf <dir>             branch checked out in <dir> (its HEAD)
+  git pullf <remote|dir> <b>  branch <b>
+
+Aborts on uncommitted changes (stash or reset --hard first).
+Untracked files are left alone.
+Local commits are dropped, recover them with git reflog.
+EOF
+    exit 0
+fi
+
+main() {
+    require_clean
+
+    if [[ $# -eq 0 ]]; then
+        git fetch
+        git reset --hard '@{u}'
+    else
+        git fetch "$@"
+        require_merge_candidate
+        git reset --hard FETCH_HEAD
+    fi
+}
+
+require_clean() {
+    if ! git diff --quiet HEAD; then
+        echo "uncommitted changes, stash or reset --hard first" >&2
+        exit 1
+    fi
+}
+
+# Fetch marks the refs git pull would merge. With only <remote> given and no
+# upstream on it, nothing is marked and FETCH_HEAD is an arbitrary branch.
+require_merge_candidate() {
+    if ! grep -qv 'not-for-merge' "$(git rev-parse --git-path FETCH_HEAD)"; then
+        echo "no branch to pull, specify one: git pullf <remote> <branch>" >&2
+        exit 1
+    fi
+}
+
+main "$@"

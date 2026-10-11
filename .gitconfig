@@ -63,6 +63,7 @@
     pufl = push --force-with-lease
     pof = push --force-with-lease origin
     pp = !git pull --rebase && git pu
+    pullf = !$HOME/.git-scripts/entry pullf
     br = branch -vv
     wt = "!f() { if [ $# -eq 0 ]; then $HOME/.git-scripts/worktree-list; else git worktree \"$@\"; fi; }; f"
     sparse-wt = !$HOME/.git-scripts/entry sparse-wt
@@ -218,7 +219,7 @@
     # lazy fetch, for having fetch in commands that may be chained together, without fetching multiple times
     last-fetch = !f=$(stat -c %Y .git/FETCH_HEAD 2>/dev/null || stat -f %m .git/FETCH_HEAD 2>/dev/null) && echo $(( $(date +%s) - $f )) || echo 999 "#"
     lazy-fe = !test $(git last-fetch) -gt 20 && git fe || true
-    
+
     # pushing
     # fzf select branch to push
     ps = !git braf | sed 's,origin/,,' | xargs -I{} git push -u --follow-tags origin {} "#"
