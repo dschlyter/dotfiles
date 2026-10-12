@@ -14,4 +14,7 @@ else
     SESSION="$NEXT"
 fi
 
-tmux new-session -d -s "$SESSION" && tmux switch-client -t "$SESSION"
+tmux new-session -d -s "$SESSION" || exit 1
+ID=$(tmux display-message -p -t "$SESSION" "#{session_id}")
+~/.tmux-scripts/order-sessions.sh
+tmux switch-client -t "$ID"
