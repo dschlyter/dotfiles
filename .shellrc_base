@@ -136,6 +136,13 @@ gdiff() {
     git diff "$@"
 }
 
+# git swt, and cd to/from the worktree (git swt only prints the dir, or help, to stdout)
+swt() {
+    local out
+    out="$(git swt "$@")" || return
+    if [[ -d "$out" ]]; then cd "$out"; else echo "$out"; fi
+}
+
 has() {
     hash "$1" 2> /dev/null
 }

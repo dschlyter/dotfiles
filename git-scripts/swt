@@ -1,0 +1,228 @@
+#!/bin/bash
+
+# git swt - switch (sparse) worktree
+# Built to stay fast in huge monorepos: avoids full checkouts and repo-wide scans.
+
+usage() {
+    cat <<'EOF'
+Usage: git swt [-c] [branch-name] [-d] [--reset]
+
+Switch to a new worktree, or back from one. Prints the target dir on the last line,
+for use with: cd "$(git swt)"
+
+Create (when not in a worktree):
+  git swt              Move current branch, with uncommitted changes, to worktree.
+                       Main switches to master (fails on master, use -c)
+  git swt <branch>     Move existing branch to worktree, or go to it if it exists
+  git swt -c [name]    Create new branch from master in worktree (default name: worktree2, 3, ...)
+
+  When run from a subdir of a large repo, the worktree is a sparse checkout of that subdir.
+
+Remove (when in a worktree):
+  git swt              Remove worktree, check out branch with uncommitted changes in main repo
+                       (fails if main repo has uncommitted changes)
+  git swt -d           Done: remove worktree, keep branch, leave main repo as is
+                       (fails if worktree has uncommitted changes)
+  git swt --reset      Discard uncommitted changes when removing (combines with -d)
+EOF
+}
+
+set -euo pipefail
+
+# repos with an index smaller than this get a full checkout (~100 bytes per file)
+SMALL_INDEX_BYTES=$((2 * 1024 * 1024))
+
+main() {
+    RESET=false
+    CREATE=false
+    DONE=false
+    BRANCH_ARG=""
+    for arg in "$@"; do
+        case "$arg" in
+            --reset) RESET=true ;;
+            -c|--create) CREATE=true ;;
+            -d|--done) DONE=true ;;
+            -h|--help) usage; exit 0 ;;
+            -*) echo "Unknown option: $arg" >&2; exit 1 ;;
+            *)
+                if [[ -n "$BRANCH_ARG" ]]; then
+                    echo "Error: unexpected argument '$arg'" >&2
+                    exit 1
+                fi
+                BRANCH_ARG="$arg"
+                ;;
+        esac
+    done
+
+    # git exports GIT_DIR to aliases in worktrees, it would leak into the git -C calls below
+    unset GIT_DIR GIT_WORK_TREE
+    DOT_GIT=$(cd "$(git rev-parse --git-dir)" && pwd)
+    COMMON_DIR=$(cd "$(git rev-parse --git-common-dir)" && pwd)
+    SUBDIR=$(git rev-parse --show-prefix)
+    SUBDIR="${SUBDIR%/}"
+
+    if [[ "$DOT_GIT" != "$COMMON_DIR" ]]; then
+        remove_worktree
+    elif [[ "$DONE" == true ]]; then
+        echo "Error: -d only works inside a worktree" >&2
+        exit 1
+    else
+        create_worktree
+    fi
+}
+
+remove_worktree() {
+    if [[ -n "$BRANCH_ARG" || "$CREATE" == true ]]; then
+        echo "Error: branch arguments not supported when removing a worktree" >&2
+        exit 1
+    fi
+
+    local worktree_root main_root branch carry=false
+    worktree_root=$(git rev-parse --show-toplevel)
+    main_root=$(dirname "$COMMON_DIR")
+    branch=$(git rev-parse --abbrev-ref HEAD)
+
+    if [[ "$DONE" == true ]]; then
+        if [[ "$RESET" != true ]] && is_dirty .; then
+            echo "Error: worktree has uncommitted changes. Commit them, or use --reset to discard" >&2
+            exit 1
+        fi
+    elif is_dirty "$main_root"; then
+        echo "Error: main repo $main_root has uncommitted changes, not moving back. Use -d to just remove the worktree" >&2
+        exit 1
+    elif [[ "$RESET" != true ]] && is_dirty .; then
+        echo "Stashing changes to move them back..." >&2
+        git stash push -u -m "swt: $branch" >&2
+        carry=true
+    fi
+
+    echo "Removing worktree for '$branch'..." >&2
+    if [[ "$RESET" == true ]]; then
+        git -C "$main_root" worktree remove --force "$worktree_root"
+    else
+        git -C "$main_root" worktree remove "$worktree_root"
+    fi
+
+    if [[ "$DONE" != true && "$branch" != "HEAD" ]]; then
+        if ! git -C "$main_root" checkout "$branch" >&2; then
+            echo "Warning: could not check out '$branch' in $main_root" >&2
+            [[ "$carry" == true ]] && echo "Warning: changes are left in the stash, restore with: git stash pop" >&2
+        elif [[ "$carry" == true ]]; then
+            git -C "$main_root" stash pop >&2
+        fi
+    fi
+
+    echo "$main_root${SUBDIR:+/$SUBDIR}"
+}
+
+create_worktree() {
+    local repo_root current_branch wt_parent branch sparse=false carry=false
+    repo_root=$(git rev-parse --show-toplevel)
+    current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+    if [[ -d "$repo_root/.claude/worktrees" ]]; then
+        wt_parent="$repo_root/.claude/worktrees"
+    else
+        wt_parent="$repo_root/worktrees"
+    fi
+
+    if [[ -z "$BRANCH_ARG" && "$CREATE" != true ]]; then
+        if [[ "$current_branch" == "master" || "$current_branch" == "HEAD" ]]; then
+            echo "Error: nothing to move on $current_branch, use -c to create a new branch" >&2
+            exit 1
+        fi
+        BRANCH_ARG="$current_branch"
+    fi
+    branch="${BRANCH_ARG:-$(next_worktree_name "$wt_parent")}"
+
+    local wt_dir="$wt_parent/$branch"
+    if [[ -d "$wt_dir" ]]; then
+        echo "Worktree for '$branch' already exists" >&2
+        if [[ -d "$wt_dir/$SUBDIR" ]]; then echo "$wt_dir${SUBDIR:+/$SUBDIR}"; else echo "$wt_dir"; fi
+        return
+    fi
+
+    [[ -n "$SUBDIR" ]] && ! is_small_repo && sparse=true
+
+    if [[ "$CREATE" == true ]]; then
+        if branch_exists "$branch"; then
+            echo "Error: branch '$branch' already exists, drop -c to move it" >&2
+            exit 1
+        fi
+        echo "Creating branch '$branch' from master..." >&2
+        git branch "$branch" master
+    elif ! branch_exists "$branch"; then
+        echo "Error: branch '$branch' does not exist, use -c to create it" >&2
+        exit 1
+    elif [[ "$branch" == "$current_branch" ]]; then
+        # the branch moves together with its uncommitted changes, leaving main clean on master
+        if is_dirty .; then
+            if [[ "$sparse" == true ]] && is_dirty . ":(top,exclude)$SUBDIR"; then
+                echo "Error: uncommitted changes outside $SUBDIR would not fit in the sparse worktree, commit or stash them" >&2
+                exit 1
+            fi
+            echo "Stashing changes to move them to the worktree..." >&2
+            git stash push -u -m "swt: $branch" >&2
+            carry=true
+        fi
+        echo "Switching main repo to master..." >&2
+        git checkout master >&2
+    fi
+
+    mkdir -p "$wt_parent"
+    exclude_dir "${wt_parent#"$repo_root"/}"
+
+    if [[ "$sparse" == true ]]; then
+        echo "Creating sparse worktree for '$branch' ($SUBDIR)..." >&2
+        git worktree add --no-checkout --detach "$wt_dir" >&2
+        git -C "$wt_dir" sparse-checkout set "$SUBDIR" >&2
+        git -C "$wt_dir" checkout "$branch" >&2
+    else
+        echo "Creating worktree for '$branch'..." >&2
+        git worktree add "$wt_dir" "$branch" >&2
+    fi
+
+    if [[ "$carry" == true ]]; then
+        git -C "$wt_dir" stash pop >&2
+    fi
+
+    echo "$wt_dir${SUBDIR:+/$SUBDIR}"
+}
+
+# lists dirs instead of asking git, which is slow in huge repos
+next_worktree_name() {
+    local parent="$1" n=2
+    while [[ -e "$parent/worktree$n" ]] || branch_exists "worktree$n"; do
+        n=$((n + 1))
+    done
+    echo "worktree$n"
+}
+
+# is_dirty <dir> [pathspec...] - any uncommitted or untracked changes
+is_dirty() {
+    local dir="$1"
+    shift
+    [[ -n "$(git -C "$dir" status --porcelain -- "$@")" ]]
+}
+
+# keep the worktree dir out of status and stash -u in the main repo
+exclude_dir() {
+    local exclude="$COMMON_DIR/info/exclude" line="/$1/"
+    grep -qxF "$line" "$exclude" 2>/dev/null && return
+    mkdir -p "$COMMON_DIR/info"
+    echo "$line" >> "$exclude"
+}
+
+branch_exists() {
+    git rev-parse --verify --quiet "refs/heads/$1" >/dev/null
+}
+
+# index size is a cheap proxy for file count. a sparse main repo has a shrunken index, so never count it as small
+is_small_repo() {
+    [[ "$(git config --bool core.sparseCheckout || true)" != "true" ]] || return 1
+    local size
+    size=$(stat -c %s "$DOT_GIT/index" 2>/dev/null || stat -f %z "$DOT_GIT/index")
+    [[ "$size" -lt "$SMALL_INDEX_BYTES" ]]
+}
+
+main "$@"

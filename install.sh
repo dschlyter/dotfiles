@@ -35,6 +35,19 @@ link() {
     fi
 }
 
+# Remove dangling symlinks into dotfiles (e.g. after a rename), leave other links alone
+prune_links() {
+    local dir="$1"
+    local depth="${2:-1}"
+    [ -d "$dir" ] || return 0
+    while IFS= read -r -d '' l; do
+        if [[ "$(readlink -- "$l")" == "$DOTFILES/"* && ! -e "$l" ]]; then
+            echo "🗑️  removing stale link $l"
+            rm "$l"
+        fi
+    done < <(find "$dir" -mindepth 1 -maxdepth "$depth" -type l -print0)
+}
+
 bak_nonlink() {
     SOURCE="$1"
     if [[ ! $SOURCE == /** ]]; then
@@ -164,6 +177,9 @@ has_flag() {
     return 1
 }
 
+prune_links "$HOME"
+prune_links "$HOME/.config" 3
+
 link . .dotfiles
 link bin
 
@@ -207,6 +223,9 @@ if [ -d "$HOME/.claude" ]; then
         inject '@AGENTS.personal.md' ""$HOME"/.claude/CLAUDE.md" first
     fi
 
+    prune_links "$HOME/.claude"
+    prune_links "$HOME/.claude/skills"
+    prune_links "$HOME/.claude/commands"
     mkdir -p "$HOME/.claude/skills"
     for skill in "$DOTFILES"/skills/*; do
         skill_name="$(basename "$skill")"
@@ -233,6 +252,7 @@ if [ -d "$HOME/.codex" ]; then
     # inject '@AGENTS.personal.md' ""$HOME"/.codex/AGENTS.md" first
   # fi
 
+  prune_links "$HOME/.codex/skills" 2
   mkdir -p "$HOME/.codex/skills"
   for skill in "$DOTFILES"/skills/*; do
     skill_name="$(basename "$skill")"

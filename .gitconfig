@@ -66,7 +66,7 @@
     pullf = !$HOME/.git-scripts/entry pullf
     br = branch -vv
     wt = "!f() { if [ $# -eq 0 ]; then $HOME/.git-scripts/worktree-list; else git worktree \"$@\"; fi; }; f"
-    sparse-wt = !$HOME/.git-scripts/entry sparse-wt
+    swt = !$HOME/.git-scripts/entry swt
     rs = reset
     rb = rebase
     rba = rebase --autostash
