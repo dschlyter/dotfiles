@@ -7,3 +7,6 @@ function cdw() { local d=`wslpath "$1"`; cd "$d"; }
 function python {
     python3 "$@"
 }
+
+# clickable links in claude
+export BROWSER=wslview
