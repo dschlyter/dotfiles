@@ -175,7 +175,7 @@ create_worktree() {
     if [[ "$sparse" == true ]]; then
         echo "Creating sparse worktree for '$branch' ($SUBDIR)..." >&2
         git worktree add --no-checkout --detach "$wt_dir" >&2
-        git -C "$wt_dir" sparse-checkout set "$SUBDIR" >&2
+        git -C "$wt_dir" sparse-checkout set --sparse-index "$SUBDIR" >&2
         git -C "$wt_dir" checkout "$branch" >&2
     else
         echo "Creating worktree for '$branch'..." >&2
