@@ -724,7 +724,7 @@ def old_sessions(d=False, s=False, v=False, **kwargs):
     if s:
         try:
             current_session = sh_read("tmux display-message -p '#{session_name}'")
-            sessions = [s for s in sessions if s.get("tmux_session") == current_session]
+            sessions = [s for s in sessions if _strip_session_number(s.get("tmux_session", "")) == _strip_session_number(current_session)]
         except subprocess.CalledProcessError:
             pass
 
@@ -764,7 +764,7 @@ def dead_sessions(d=False, s=False, v=False, **kwargs):
     if s:
         try:
             current_session = sh_read("tmux display-message -p '#{session_name}'")
-            sessions = [s for s in sessions if s.get("tmux_session") == current_session]
+            sessions = [s for s in sessions if _strip_session_number(s.get("tmux_session", "")) == _strip_session_number(current_session)]
         except subprocess.CalledProcessError:
             pass
 
