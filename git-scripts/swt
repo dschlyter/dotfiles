@@ -5,25 +5,31 @@
 
 usage() {
     cat <<'EOF'
-Usage: git swt [-c] [branch-name] [-d] [--reset]
+Usage: git swt [-c] [branch-name] [-d] [-m | -l | -r]
 
 Switch to a new worktree, or back from one. Prints the target dir on the last line,
 for use with: cd "$(git swt)"
 
 Create (when not in a worktree):
-  git swt              Move current branch, with uncommitted changes, to worktree.
+  git swt              Move current branch to worktree.
                        Main switches to master (fails on master, use -c)
   git swt <branch>     Move existing branch to worktree, or go to it if it exists
   git swt -c [name]    Create new branch from master in worktree (default name: worktree2, 3, ...)
 
   When run from a subdir of a large repo, the worktree is a sparse checkout of that subdir.
 
+  With uncommitted changes, one of these is required:
+  -m, --move           Move the changes to the worktree
+  -l, --leave          Leave the changes in the main repo
+
 Remove (when in a worktree):
-  git swt              Remove worktree, check out branch with uncommitted changes in main repo
+  git swt              Remove worktree, check out its branch in main repo
                        (fails if main repo has uncommitted changes)
   git swt -d           Done: remove worktree, keep branch, leave main repo as is
-                       (fails if worktree has uncommitted changes)
-  git swt --reset      Discard uncommitted changes when removing (combines with -d)
+
+  With uncommitted changes, one of these is required:
+  -m, --move           Move the changes back to the main repo (not with -d)
+  -r, --reset          Discard the changes
 EOF
 }
 
@@ -33,13 +39,15 @@ set -euo pipefail
 SMALL_INDEX_BYTES=$((2 * 1024 * 1024))
 
 main() {
-    RESET=false
+    CHANGES=""
     CREATE=false
     DONE=false
     BRANCH_ARG=""
     for arg in "$@"; do
         case "$arg" in
-            --reset) RESET=true ;;
+            -m|--move) set_changes move ;;
+            -l|--leave) set_changes leave ;;
+            -r|--reset) set_changes reset ;;
             -c|--create) CREATE=true ;;
             -d|--done) DONE=true ;;
             -h|--help) usage; exit 0 ;;
@@ -77,27 +85,36 @@ remove_worktree() {
         exit 1
     fi
 
+    if [[ "$CHANGES" == leave ]]; then
+        echo "Error: --leave is not valid when removing, the worktree is deleted. Use -m to move or -r to discard" >&2
+        exit 1
+    fi
+    if [[ "$CHANGES" == move && "$DONE" == true ]]; then
+        echo "Error: -m moves changes onto the branch in the main repo, it does not combine with -d" >&2
+        exit 1
+    fi
+
     local worktree_root main_root branch carry=false
     worktree_root=$(git rev-parse --show-toplevel)
     main_root=$(dirname "$COMMON_DIR")
     branch=$(git rev-parse --abbrev-ref HEAD)
 
-    if [[ "$DONE" == true ]]; then
-        if [[ "$RESET" != true ]] && is_dirty .; then
-            echo "Error: worktree has uncommitted changes. Commit them, or use --reset to discard" >&2
-            exit 1
-        fi
-    elif is_dirty "$main_root"; then
+    if is_dirty . && [[ -z "$CHANGES" ]]; then
+        echo "Error: worktree has uncommitted changes. Commit them, or pass -m to move or -r to discard" >&2
+        exit 1
+    fi
+
+    if [[ "$DONE" != true ]] && is_dirty "$main_root"; then
         echo "Error: main repo $main_root has uncommitted changes, not moving back. Use -d to just remove the worktree" >&2
         exit 1
-    elif [[ "$RESET" != true ]] && is_dirty .; then
+    elif [[ "$CHANGES" == move ]] && is_dirty .; then
         echo "Stashing changes to move them back..." >&2
         git stash push -u -m "swt: $branch" >&2
         carry=true
     fi
 
     echo "Removing worktree for '$branch'..." >&2
-    if [[ "$RESET" == true ]]; then
+    if [[ "$CHANGES" == reset ]]; then
         git -C "$main_root" -c advice.sparseIndexExpanded=false worktree remove --force "$worktree_root"
     else
         git -C "$main_root" -c advice.sparseIndexExpanded=false worktree remove "$worktree_root"
@@ -142,29 +159,40 @@ create_worktree() {
         return
     fi
 
+    if [[ "$CHANGES" == reset ]]; then
+        echo "Error: --reset only works when removing a worktree, use -m or -l" >&2
+        exit 1
+    fi
+    if is_dirty . && [[ -z "$CHANGES" ]]; then
+        echo "Error: uncommitted changes, pass -m to move them to the worktree or -l to leave them" >&2
+        exit 1
+    fi
+
     [[ -n "$SUBDIR" ]] && ! is_small_repo && sparse=true
 
-    if [[ "$CREATE" == true ]]; then
-        if branch_exists "$branch"; then
-            echo "Error: branch '$branch' already exists, drop -c to move it" >&2
-            exit 1
-        fi
-        echo "Creating branch '$branch' from master..." >&2
-        git branch "$branch" master
-    elif ! branch_exists "$branch"; then
+    if [[ "$CREATE" == true ]] && branch_exists "$branch"; then
+        echo "Error: branch '$branch' already exists, drop -c to move it" >&2
+        exit 1
+    elif [[ "$CREATE" != true ]] && ! branch_exists "$branch"; then
         echo "Error: branch '$branch' does not exist, use -c to create it" >&2
         exit 1
-    elif [[ "$branch" == "$current_branch" ]]; then
-        # the branch moves together with its uncommitted changes, leaving main clean on master
-        if is_dirty .; then
-            if [[ "$sparse" == true ]] && is_dirty . ":(top,exclude)$SUBDIR"; then
-                echo "Error: uncommitted changes outside $SUBDIR would not fit in the sparse worktree, commit or stash them" >&2
-                exit 1
-            fi
-            echo "Stashing changes to move them to the worktree..." >&2
-            git stash push -u -m "swt: $branch" >&2
-            carry=true
+    fi
+
+    if [[ "$CHANGES" == move ]] && is_dirty .; then
+        if [[ "$sparse" == true ]] && is_dirty . ":(top,exclude)$SUBDIR"; then
+            echo "Error: uncommitted changes outside $SUBDIR would not fit in the sparse worktree, commit or stash them" >&2
+            exit 1
         fi
+        echo "Stashing changes to move them to the worktree..." >&2
+        git stash push -u -m "swt: $branch" >&2
+        carry=true
+    fi
+
+    if [[ "$CREATE" == true ]]; then
+        echo "Creating branch '$branch' from master..." >&2
+        git branch "$branch" master
+    elif [[ "$branch" == "$current_branch" ]]; then
+        # the branch moves to the worktree, main switches to master (left changes come along)
         echo "Switching main repo to master..." >&2
         git checkout master >&2
     fi
@@ -187,6 +215,14 @@ create_worktree() {
     fi
 
     echo "$wt_dir${SUBDIR:+/$SUBDIR}"
+}
+
+set_changes() {
+    if [[ -n "$CHANGES" && "$CHANGES" != "$1" ]]; then
+        echo "Error: -m, -l and -r are mutually exclusive" >&2
+        exit 1
+    fi
+    CHANGES="$1"
 }
 
 # lists dirs instead of asking git, which is slow in huge repos
