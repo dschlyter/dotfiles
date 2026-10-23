@@ -81,6 +81,7 @@ def main():
     sp = sub_ps.add_parser('restore', aliases=['r', 'res'], help='restore dead sessions from a tmux session')
     sp.add_argument('tmux_session', nargs='?', default=None, help='tmux session name to restore (default: fzf select)')
     sp.add_argument('-t', metavar='TIME', default=None, help='cutoff: relative (e.g. 5m, 2h, 1d) or absolute (YYYY-MM-DD HH:MM)')
+    sp.add_argument('-s', '--select', action='store_true', help='fzf multi-select individual sessions to restore')
     sp.set_defaults(handler=restore_sessions)
 
     sp = sub_ps.add_parser('sync', help='backfill titles for sessions that have a session_id but no title')
@@ -810,12 +811,15 @@ def dead_sessions(d=False, s=False, v=False, **kwargs):
             print_table(rows, sep="  ")
 
 
-def restore_sessions(tmux_session=None, t=None, **kwargs):
+def restore_sessions(tmux_session=None, t=None, select=False, **kwargs):
     """Restore dead sessions from a tmux session.
 
     Finds the latest archived timestamp in the group, then includes all sessions
     that exited within 60 seconds of it (i.e. a batch exit like a reboot).
     Use -t to override the cutoff with a relative (5m, 2h, 1d) or absolute timestamp.
+    Use -s to pick individual sessions with fzf instead.
+    Restores into an existing tmux session of the same name (ignoring number prefix)
+    if there is one, skipping sessions already running there.
     """
     _cleanup_and_update_windows()
 
@@ -828,6 +832,10 @@ def restore_sessions(tmux_session=None, t=None, **kwargs):
     groups = defaultdict(list)
     for s in sessions:
         groups[_strip_session_number(s.get("tmux_session", "unknown"))].append(s)
+
+    if select:
+        _select_and_restore(groups, tmux_session, t)
+        return
 
     if not tmux_session:
         choices = sorted(groups.keys(), key=lambda n: max(_session_timestamp(s) for s in groups[n]), reverse=True)
@@ -842,12 +850,12 @@ def restore_sessions(tmux_session=None, t=None, **kwargs):
             fzf_lines.append(f"{name}  {counts}  {last_activity}")
         fzf_input = "\n".join(fzf_lines)
         try:
-            selected = sh_read(f"echo '{fzf_input}' | fzf -m --prompt='Restore session> '")
+            selected = sh_read(f"printf '%s' {_shell_quote(fzf_input)} | fzf -m --prompt='Restore session> '")
             selected_names = [line.split("  ")[0] for line in selected.strip().splitlines()]
         except subprocess.CalledProcessError:
             return
     else:
-        selected_names = [tmux_session]
+        selected_names = [_strip_session_number(tmux_session)]
 
     for name in selected_names:
         if name not in groups:
@@ -856,24 +864,80 @@ def restore_sessions(tmux_session=None, t=None, **kwargs):
         _restore_group(name, groups[name], t)
 
 
-def _restore_group(tmux_session, group, t=None):
-    """Restore a single group of sessions into a new tmux session."""
+def _select_and_restore(groups, tmux_session=None, t=None):
+    """fzf multi-select individual sessions (optionally within one group / after -t cutoff) and restore them."""
+    if tmux_session:
+        name = _strip_session_number(tmux_session)
+        candidates = [(name, s) for s in groups.get(name, [])]
+    else:
+        candidates = [(name, s) for name, group in groups.items() for s in group]
     if t:
         cutoff = _parse_time_cutoff(t)
         if not cutoff:
             print(f"Invalid time format: {t}")
             return
-        to_restore = [s for s in group if _session_timestamp(s) >= cutoff]
+        candidates = [(n, s) for n, s in candidates if _session_timestamp(s) >= cutoff]
+    candidates = [(n, s) for n, s in candidates if s.get("session_id")]
+    if not candidates:
+        print("No restorable sessions.")
+        return
+    candidates.sort(key=lambda c: _session_timestamp(c[1]), reverse=True)
+
+    rows = [[n, s.get("tmux_window", "?"), _format_cwd(s.get("cwd", "?")),
+             _fmt_timestamp_from_epoch(_session_timestamp(s)), s.get("title", "")]
+            for n, s in candidates]
+    widths = [max(len(r[i]) for r in rows) for i in range(4)]
+    fzf_lines = [f"{i}\t" + "  ".join(c.ljust(w) for c, w in zip(r, widths + [0])).rstrip()
+                 for i, r in enumerate(rows)]
+    fzf_input = "\n".join(fzf_lines)
+    try:
+        selected = sh_read(f"printf '%s' {_shell_quote(fzf_input)} | fzf -m -d '\t' --with-nth=2.. --prompt='Restore sessions> '")
+    except subprocess.CalledProcessError:
+        return
+
+    from collections import defaultdict
+    picked = defaultdict(list)
+    for line in selected.strip().splitlines():
+        name, sess = candidates[int(line.split("\t")[0])]
+        picked[name].append(sess)
+    for name, to_restore in picked.items():
+        _restore_into_tmux(name, to_restore)
+
+
+def _restore_group(tmux_session, group, t=None):
+    """Restore the most recent batch (or those after -t cutoff) of a group of sessions."""
+    if t:
+        cutoff = _parse_time_cutoff(t)
+        if not cutoff:
+            print(f"Invalid time format: {t}")
+            return
     else:
-        latest = max(_session_timestamp(s) for s in group)
-        cutoff = latest - RESTORE_WINDOW_SECS
-        to_restore = [s for s in group if _session_timestamp(s) >= cutoff]
+        cutoff = max(_session_timestamp(s) for s in group) - RESTORE_WINDOW_SECS
+    to_restore = [s for s in group if _session_timestamp(s) >= cutoff]
 
     if not to_restore:
         print(f"No sessions match the time window for '{tmux_session}'.")
         return
+    _restore_into_tmux(tmux_session, to_restore)
 
-    tmux_session = _numbered_session_name(tmux_session)
+
+def _restore_into_tmux(name, to_restore):
+    """Restore sessions into the existing tmux session matching name (ignoring number prefix), or a new one.
+    Skips sessions whose UUID is already live in the target tmux session."""
+    existing = _find_tmux_session(name)
+    if existing:
+        data = read_json(SESSIONS_FILE, default={"panes": {}})
+        live_ids = {s.get("session_id") for s in data["panes"].values()
+                    if s.get("tmux_session") == existing and s.get("session_id")}
+        skipped = [s for s in to_restore if s.get("session_id") in live_ids]
+        to_restore = [s for s in to_restore if s.get("session_id") not in live_ids]
+        if skipped:
+            print(f"Skipping {len(skipped)} sessions already running in '{existing}'")
+        if not to_restore:
+            return
+        tmux_session = existing
+    else:
+        tmux_session = _numbered_session_name(name)
 
     def _sort_key(s):
         wi = s.get("tmux_window_index", "")
@@ -882,8 +946,9 @@ def _restore_group(tmux_session, group, t=None):
                 int(pane) if pane.isdigit() else 9999)
     to_restore.sort(key=_sort_key)
 
-    first = True
-    current_window = {}
+    session_created = bool(existing)
+    windows = {}  # archived window index -> (pane count, first pane id)
+    restored = 0
     for sess in to_restore:
         sid = sess.get("session_id")
         cwd = sess.get("cwd", os.getcwd())
@@ -894,24 +959,36 @@ def _restore_group(tmux_session, group, t=None):
         if window_name == wi:
             window_name = ""
         try:
-            if first:
+            if not session_created:
                 pane_id = sh_read(f"tmux new-session -d -s {_shell_quote(tmux_session)} -n {_shell_quote(window_name)} -c {_shell_quote(cwd)} -P -F '#{{pane_id}}'")
-                current_window[wi] = 1
-                first = False
-            elif wi not in current_window:
-                pane_id = sh_read(f"tmux new-window -t {_shell_quote(tmux_session)} -n {_shell_quote(window_name)} -c {_shell_quote(cwd)} -P -F '#{{pane_id}}'")
-                current_window[wi] = 1
+                windows[wi] = (1, pane_id)
+                session_created = True
+            elif wi not in windows:
+                pane_id = sh_read(f"tmux new-window -d -t {_shell_quote(tmux_session + ':')} -n {_shell_quote(window_name)} -c {_shell_quote(cwd)} -P -F '#{{pane_id}}'")
+                windows[wi] = (1, pane_id)
             else:
-                split = "-h" if current_window[wi] == 1 else "-v"
-                pane_id = sh_read(f"tmux split-window {split} -t {_shell_quote(tmux_session)} -c {_shell_quote(cwd)} -P -F '#{{pane_id}}'")
-                current_window[wi] += 1
+                count, first_pane = windows[wi]
+                split = "-h" if count == 1 else "-v"
+                pane_id = sh_read(f"tmux split-window -d {split} -t {_shell_quote(first_pane)} -c {_shell_quote(cwd)} -P -F '#{{pane_id}}'")
+                windows[wi] = (count + 1, first_pane)
 
             _prepopulate_restored_session(pane_id, sess)
             sh(f"tmux send-keys -t {_shell_quote(pane_id)} {_shell_quote('claude --resume ' + sid)} Enter")
+            restored += 1
         except subprocess.CalledProcessError:
             print(f"Failed to create pane for session {sid}")
 
-    print(f"Restored {len(to_restore)} sessions into new tmux session '{tmux_session}'")
+    kind = "existing" if existing else "new"
+    print(f"Restored {restored} sessions into {kind} tmux session '{tmux_session}'")
+
+
+def _find_tmux_session(name):
+    """Return the live tmux session whose name matches name, ignoring number prefix."""
+    try:
+        live = sh_read("tmux list-sessions -F '#S'").splitlines()
+    except subprocess.CalledProcessError:
+        return None
+    return next((s for s in live if _strip_session_number(s) == name), None)
 
 
 def sync_titles(overwrite=False, **kwargs):
