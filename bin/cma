@@ -1370,6 +1370,9 @@ def hook_session_start(**kwargs):
     def update(data):
         pane_key = key or session_id[:12]
         existing = data["panes"].get(pane_key)
+        if existing and existing.get("session_id") and existing.get("session_id") != session_id:
+            # pane id reused (e.g. after reboot) or /clear - archive the old session instead of losing it
+            _archive_sessions([existing], status_override="abandoned", use_session_time=True)
         if not existing or existing.get("session_id") != session_id:
             existing = {}
         existing["session_id"] = session_id
@@ -1611,9 +1614,12 @@ def _cleanup_stale(data):
 def _archive_sessions(sessions, status_override=None, use_session_time=False):
     """Append sessions to old_sessions.jsonl, deduplicating by session_id.
     use_session_time: use the session's last known timestamp as archived_at
-    instead of current time (for cleanup of already-dead sessions)."""
+    instead of current time (for cleanup of already-dead sessions).
+    Sessions last active before the tmux server started died in a reboot/server restart,
+    they all get the server start time so `cma res` restores them as one batch."""
     if not sessions:
         return
+    server_start = _tmux_server_start() if use_session_time else None
     new_ids = {s.get("session_id") for s in sessions if s.get("session_id")}
     with file_lock(OLD_SESSIONS_FILE):
         if new_ids and os.path.exists(OLD_SESSIONS_FILE):
@@ -1631,12 +1637,24 @@ def _archive_sessions(sessions, status_override=None, use_session_time=False):
             for s in sessions:
                 record = dict(s)
                 if use_session_time:
-                    record["archived_at"] = s.get("status_since") or s.get("created_at") or datetime.now(timezone.utc).isoformat()
+                    last_active = max(s.get(k) or "" for k in ("status_since", "created_at", "restored_at"))
+                    if server_start and last_active and datetime.fromisoformat(last_active) < server_start:
+                        record["archived_at"] = server_start.isoformat()
+                    else:
+                        record["archived_at"] = last_active or datetime.now(timezone.utc).isoformat()
                 else:
                     record["archived_at"] = datetime.now(timezone.utc).isoformat()
                 if status_override:
                     record["status"] = status_override
                 f.write(json.dumps(record) + "\n")
+
+
+def _tmux_server_start():
+    """Return the tmux server start time as an aware datetime, or None."""
+    try:
+        return datetime.fromtimestamp(int(sh_read("tmux display-message -p '#{start_time}'")), timezone.utc)
+    except (subprocess.CalledProcessError, ValueError):
+        return None
 
 
 def _prepopulate_restored_session(pane_id, archived_session):
