@@ -59,7 +59,7 @@ profiling_log "plugins loaded"
 
 ## Conveniences
 alias b='popd'
-alias c='cma'
+alias c='claude'
 alias ha='harpo'
 alias e='h e'
 alias hc='h c'
@@ -77,6 +77,10 @@ alias rh='fc -R'
 alias zl="vim $HOME/.zshrc; rc"
 
 alias claf='claude --fork-session -r'
+
+if command -v podman >/dev/null 2>&1; then
+    alias pm='podman'
+fi
 
 ## Global aliases
 # note: alias R breaks fasd
@@ -495,15 +499,6 @@ profiling_log "fzf and extensions loaded"
 
 # AI Tooling
 
-function ai {
-    # TODO support other agents based on what is installed
-    if [[ -n "$*" ]]; then
-        claude -p "$*"
-    else
-        claude
-    fi
-}
-
 local _SHARED_COMMAND_HELPER_PROMPT="
 Provide a informative but very concise explanation to any suggested changes, more than 3 lines should rarely be needed.
 If instructed to explain, then don't suggest changes, but provide a more detailed explanation.
@@ -530,7 +525,7 @@ Command: $last_command
 Exit code: $last_exit_code
 Output (maybe truncated):
 $cmd_output"
-    ai "$prompt"
+    claude -p "$prompt"
 }
 
 ai-command-helper() {
@@ -553,7 +548,7 @@ Then print the explanation for what is going on.
 User request: ${user_request:-NONE}
 Current command: $BUFFER"
 
-  local response=$(ai "$ai_prompt")
+  local response=$(claude -p "$ai_prompt")
   local command_part=$(echo "$response" | awk 'BEGIN{found=0} {if(NF==0 && !found){found=1; exit} print}' )
   local explanation_part=$(echo "$response" | awk 'BEGIN{found=0} {if(NF==0 && !found){found=1; next} if(found){print}}')
 
