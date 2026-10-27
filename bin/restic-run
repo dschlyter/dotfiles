@@ -22,6 +22,8 @@ if [[ "${1:-}" == 'usage' ]]; then
     echo restic prune
     echo
     echo "Dealing with repo errors. Missing packs can break a backup, but new backups should heal it. https://github.com/restic/restic/issues/2334"
+    echo
+    echo "Recovering deleted/overwritten files on versioned S3, and S3 cleanup after prune: ~/.dotfiles/wiki/restic-s3.md"
 
     exit 0
 fi
