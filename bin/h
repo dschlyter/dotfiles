@@ -91,6 +91,7 @@ def main():
     sp.set_defaults(handler=add_activity)
     sp.add_argument('activity', help="name of activity")
     sp.add_argument('parent', help="name of parent, or 'root' to set as root")
+    sp.add_argument('--force', '-f', action='store_true', help="allow 1-2 letter names")
 
     sp = activity_p.add_parser('delete', help='delete activity')
     sp.set_defaults(handler=delete_activity)
@@ -101,6 +102,7 @@ def main():
     sp.add_argument('activity', help="name of activity")
     sp.add_argument('new_name', help="new name of activity")
     sp.add_argument('--merge', '-m', help="merge into an existing activity", action="store_true")
+    sp.add_argument('--force', '-F', action='store_true', help="allow 1-2 letter names")
     sp.add_argument('--from', '-f', dest='from_time', help="only rename segments from this date")
     sp.add_argument('--to', '-t', dest='to_time', help="only rename segments up to this date")
 
@@ -718,13 +720,13 @@ def delete(time, last, **global_args):
     else:
         print("nothing to delete")
 
-def add_activity(activity, parent, **global_args):
-    entry = {"activity": activity, "parent": parent}
+def add_activity(activity, parent, force, **global_args):
+    entry = {"activity": activity, "parent": parent, "force": force}
     api.post("api/time4/activities", entry)
 
-def rename_activity(activity, new_name, merge, from_time, to_time, **global_args):
+def rename_activity(activity, new_name, merge, from_time, to_time, force, **global_args):
     res = api.put(f"api/time4/activities/{activity}/rename/{new_name}",
-                  {"merge": merge, "from": from_time, "to": to_time})
+                  {"merge": merge, "from": from_time, "to": to_time, "force": force})
     print(f"renamed {res.get('segments')} segments to {new_name}")
 
 def delete_activity(activity, **global_args):
