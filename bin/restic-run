@@ -27,7 +27,8 @@ if [[ "${1:-}" == 'usage' ]]; then
 fi
 
 # export RESTIC_REPOSITORY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and RESTIC_PASSWORD in this file
-source "$HOME/.restic.conf"
+# set RESTIC_RUN_CONF to use another repo, e.g. RESTIC_RUN_CONF=~/.restic-ava-fish2-db.conf restic-run snapshots
+source "${RESTIC_RUN_CONF:-$HOME/.restic.conf}"
 
 if [[ "${1:-}" == 'backup-run' ]]; then
     shift
