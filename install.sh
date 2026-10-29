@@ -10,6 +10,7 @@ ARGS="$* --"
 pushd `dirname $0` > /dev/null
 DOTFILES=`pwd`
 popd > /dev/null
+cd "$DOTFILES"
 
 link() {
     FILE="$1"
