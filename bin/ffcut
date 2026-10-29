@@ -32,6 +32,7 @@ def main():
     main_p.add_argument('--rescale-with-fps', type=int, help='force scale to 1080p with supplied fps (better to scale down than up)')
     main_p.add_argument('--normalize', action='store_true', help='when merging, pad/resample every input to match the first one (needed for mixed resolutions/framerates)')
     main_p.add_argument('--scale', help='horizontal scale to scale down to, default is 1920 or 1280 depending on preset')
+    main_p.add_argument('--scale-keep', action='store_true', help='keep input resolution, do not scale down')
     main_p.add_argument('--quality', type=int, help='quality to use for -crf (cpu, x264 default 23 ~= av1 30) or -cq (gpu, different scale 23 crf ~= 36 cq for x264)')
     main_p.add_argument('--suffix', type=str, default=None, help='override output suffix (e.g. --suffix "" to reuse input filename)')
     main_p.add_argument('--mv', '-m', action='store_true', help='move to subdirs when done')
@@ -41,8 +42,12 @@ def main():
     parsed_args.handler(**parsed_args.__dict__)
 
 
-def cut(files_and_times: List[str], copy, av, av_mid, mid, smid, small, smaller, smallest, rescale_with_fps, normalize, scale, quality, suffix, mv, **global_args):
+def cut(files_and_times: List[str], copy, av, av_mid, mid, smid, small, smaller, smallest, rescale_with_fps, normalize, scale, scale_keep, quality, suffix, mv, **global_args):
     args = files_and_times
+
+    if scale and scale_keep:
+        print("Error: --scale and --scale-keep are mutually exclusive")
+        sys.exit(1)
 
     video_args = []
     output_suffix = "_CUT"
@@ -63,9 +68,9 @@ def cut(files_and_times: List[str], copy, av, av_mid, mid, smid, small, smaller,
     elif preset:
         key = preset[0]
         video_args = preset[1]
-        scale = scale or preset[2]
+        scale = None if scale_keep else (scale or preset[2])
         quality = quality or preset[3]
-        output_suffix = f"_{scale}_{key.upper()}"
+        output_suffix = (f"_{scale}" if scale else "") + f"_{key.upper()}"
         if quality:
             video_args = video_args.format(quality=quality)
             output_suffix += f"_{quality}"
