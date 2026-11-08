@@ -1,8 +1,21 @@
-alias o='wslview'
+alias o='wopen'
+alias open='wopen'
 alias -g CB='| clip.exe'
 alias cb='powershell.exe Get-Clipboard'
 
 function cdw() { local d=`wslpath "$1"`; cd "$d"; }
+
+# paths on the windows fs go to explorer, everything else (wsl paths, urls) to wslview
+function wopen() {
+    (( $# )) || set -- .
+    local target="${1:A}"
+    if [[ -e "$1" && "$target" == /mnt/[a-z](|/*) ]]; then
+        # explorer.exe exits non-zero even on success
+        explorer.exe "$(wslpath -w "$target")" || true
+    else
+        wslview "$@"
+    fi
+}
 
 function python {
     python3 "$@"
